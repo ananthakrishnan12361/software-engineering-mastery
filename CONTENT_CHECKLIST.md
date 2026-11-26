@@ -83,11 +83,11 @@ Split into 5 parts:
 - [x] Garbage collection
 
 #### M01-P5 Topics
-- [ ] TypeScript fundamentals
-- [ ] Type systems
-- [ ] Generics
-- [ ] Interfaces
-- [ ] Type safety
+- [x] TypeScript fundamentals
+- [x] Type systems
+- [x] Generics
+- [x] Interfaces
+- [x] Type safety
 
 ---
 

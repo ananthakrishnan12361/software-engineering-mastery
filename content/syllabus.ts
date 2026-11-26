@@ -277,11 +277,31 @@ export const SYLLABUS_MODULES: SyllabusModule[] = [
       lessonId: "m01-p4",
       anchorId: "m01-p4-topic-garbage-collection"
     },
-    "TypeScript fundamentals",
-    "Type systems",
-    "Generics",
-    "Interfaces",
-    "Type safety"
+    {
+      title: "TypeScript fundamentals",
+      lessonId: "m01-p5",
+      anchorId: "m01-p5-topic-typescript-fundamentals"
+    },
+    {
+      title: "Type systems",
+      lessonId: "m01-p5",
+      anchorId: "m01-p5-topic-type-systems"
+    },
+    {
+      title: "Generics",
+      lessonId: "m01-p5",
+      anchorId: "m01-p5-topic-generics"
+    },
+    {
+      title: "Interfaces",
+      lessonId: "m01-p5",
+      anchorId: "m01-p5-topic-interfaces"
+    },
+    {
+      title: "Type safety",
+      lessonId: "m01-p5",
+      anchorId: "m01-p5-topic-type-safety"
+    }
   ]),
 
   defineModule(

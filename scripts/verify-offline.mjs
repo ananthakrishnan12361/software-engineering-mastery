@@ -136,7 +136,7 @@ try {
     .filter((m) => m.category === "fundamentals")
     .flatMap((m) => m.topics)
     .filter((t) => t.status === "available");
-  assert.equal(availMod1Topics.length, 42);
+  assert.equal(availMod1Topics.length, 47);
 
   const emptyComboTopics = syllabusModules
     .filter((m) => m.category === "databases")
@@ -147,7 +147,7 @@ try {
   const iqAdvMod1 = allQuestions.filter(
     (q) => handbookMod.matchesDifficultyFilter(q.difficulty, "advanced") && q.moduleNumber === 1
   );
-  assert.equal(iqAdvMod1.length, 9);
+  assert.equal(iqAdvMod1.length, 10);
 
   const iqMod2 = allQuestions.filter((q) => q.moduleNumber === 2);
   assert.equal(iqMod2.length, 0);

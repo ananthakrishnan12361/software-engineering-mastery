@@ -194,3 +194,13 @@ For each review, add:
    - **Verified Claim:** `AbortSignal.timeout(ms)` creates an automatically aborting signal after `ms` milliseconds for bounding outbound I/O; `perf_hooks.monitorEventLoopDelay()` tracks Node.js Event Loop lag percentiles.
    - **Official References:** https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal/timeout_static and https://nodejs.org/api/perf_hooks.html#perf_hooksmonitoreventloopdelayoptions
    - **Status:** Verified
+
+
+---
+
+## Module 01 Part 5 (`M01-P5`) Technical Review Log — 2026-11-26
+
+1. **TypeScript Structural Typing, Generics, Narrowing, `strict` Mode & `interface` vs `type`**
+   - **Verified Claim:** TypeScript uses structural type compatibility, erases type annotations during compilation to JS, narrows `unknown` via control-flow guards, enforces exhaustiveness via `never`, and enforces `strictNullChecks`/`noImplicitAny`/`strictFunctionTypes` under `"strict": true`.
+   - **Official References:** https://www.typescriptlang.org/docs/handbook/type-compatibility.html, https://www.typescriptlang.org/docs/handbook/2/generics.html, https://www.typescriptlang.org/docs/handbook/2/narrowing.html, https://www.typescriptlang.org/docs/handbook/2/everyday-types.html, and https://www.typescriptlang.org/tsconfig/#strict
+   - **Status:** Verified
