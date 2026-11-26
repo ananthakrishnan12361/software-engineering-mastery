@@ -1,0 +1,645 @@
+<Callout variant="info" title="Topics Covered in Part 1 (M03-P1)">
+  <p>
+    This first part of Module 3 covers 11 core Node.js runtime &amp; systems topics: <strong>Node.js architecture</strong>, <strong>V8</strong>, <strong>libuv</strong>, <strong>Event loop</strong>, <strong>Thread pool</strong>, <strong>Worker threads</strong>, <strong>Process vs thread</strong>, <strong>Async I/O</strong>, <strong>Streams</strong>, <strong>Buffers</strong>, and <strong>File handling</strong>.
+  </p>
+</Callout>
+
+<TopicSection id="m03-p1-sec-a" letter="A" title="Topic Introduction">
+
+#### What is this?
+
+**Node.js** is an event-driven, non-blocking JavaScript runtime built on Google's **V8** engine and the C/C++ **libuv** library. Rather than spawning one OS thread per incoming HTTP connection, Node.js executes your JavaScript on a single main event-loop thread while delegating network sockets to OS kernel async I/O (`epoll`/`kqueue`/`IOCP`), delegating blocking filesystem/DNS/crypto work to libuv's **thread pool**, and offloading CPU-heavy tasks to **Worker threads**.
+
+#### Why does it exist & what problem does it solve?
+
+Traditional thread-per-request servers waste megabytes of stack memory and OS context-switching overhead waiting on slow database or network sockets. Node.js lets one process handle tens of thousands of concurrent I/O-bound connections with low memory overhead—while **Streams** and **Buffers** process gigabyte files in small constant-memory chunks.
+
+#### Where is it used in real-world software?
+
+High-concurrency API gateways, Backend-for-Frontend (BFF) servers, real-time WebSocket chat/notification services, CLI tooling, and streaming ETL pipelines all rely on Node.js runtime internals.
+
+</TopicSection>
+
+<TopicSection id="m03-p1-sec-b" letter="B" title="Fundamentals (Simple Mental Models)">
+
+<TopicAnchor id="m03-p1-topic-nodejs-architecture" />
+
+#### 1. Node.js Architecture: V8 + Bindings + libuv
+
+**Node.js architecture** connects three layers: your JavaScript application + built-in Node APIs (`node:fs`, `node:http`, `node:crypto`), C++ bindings (translating JS objects to native handles), and native C/C++ engines (**V8** for JS execution, **libuv** for event loop & async I/O, OpenSSL, llhttp, and zlib).
+
+Because Node exposes non-blocking C++ bindings, your JavaScript code never blocks waiting for a socket packet or disk read unless you explicitly call a synchronous `*Sync()` API.
+
+<TopicAnchor id="m03-p1-topic-v8" />
+
+#### 2. V8: JIT Compilation, Hidden Classes & Garbage Collection
+
+**V8** compiles JavaScript directly into native machine code using a multi-tier pipeline: **Ignition** (fast bytecode interpreter) and **TurboFan / Maglev** (optimizing Just-In-Time compilers for hot functions). V8 manages the JS heap across **Young Generation** (Scavenger) and **Old Generation** (Mark-Sweep-Compact) spaces.
+
+Keeping object shapes predictable (consistent property initialization order) allows V8 inline caches to emit fast machine code, whereas polymorphic shapes or unbounded global arrays trigger deoptimizations and GC pauses.
+
+<TopicAnchor id="m03-p1-topic-libuv" />
+
+#### 3. libuv: Cross-Platform Event Loop & Async Abstraction
+
+**libuv** is the C library that gives Node.js a uniform asynchronous event loop across Linux (`epoll`), macOS (`kqueue`), and Windows (`IOCP`). It manages timers, OS network sockets, signal handling, child processes, and the background worker **thread pool**.
+
+Whenever kernel-level non-blocking I/O is unavailable (such as local filesystem reads on POSIX, `dns.lookup()`, or `zlib`/`crypto` operations), libuv dispatches the work to its thread pool and wakes the main loop on completion.
+
+<TopicAnchor id="m03-p1-topic-event-loop" />
+
+#### 4. Event Loop: Macrotask Phases & Microtask Draining
+
+The Node.js **event loop** cycles through six ordered phases: **Timers** (`setTimeout`/`setInterval`), **Pending Callbacks**, **Idle/Prepare**, **Poll** (incoming I/O & `fs` callbacks), **Check** (`setImmediate`), and **Close Callbacks** (`socket.on('close')`).
+
+Between every phase transition (and after each callback in Node 11+), Node drains **`process.nextTick()`** queues first and **Promise microtasks** second—meaning an infinite `nextTick` or Promise recursion will starve the `Poll` I/O phase completely!
+
+<TopicAnchor id="m03-p1-topic-thread-pool" />
+
+#### 5. Thread Pool: `UV_THREADPOOL_SIZE` & Hidden Bottlenecks
+
+By default, libuv's **thread pool** has **`4` worker threads** (configurable up to `1024` via `UV_THREADPOOL_SIZE` before loading threadpool-using modules). It executes `node:fs` file operations, `dns.lookup()`, `crypto.pbkdf2`/`scrypt`, and `zlib` compression.
+
+If four slow `pbkdf2` password hashes saturate all 4 threads, unrelated `fs.readFile` calls queue behind them—which is why tuning `UV_THREADPOOL_SIZE` (matching CPU cores) or using `dns.resolve()` (c-ares async network DNS) prevents mysterious latency spikes.
+
+<TopicAnchor id="m03-p1-topic-worker-threads" />
+
+#### 6. Worker Threads: Parallel CPU Execution Inside One Process
+
+While the event loop excels at I/O, **CPU-bound JavaScript** (image resizing, JSON schema compilation of 50 MB payloads, heavy cryptography) blocks the single main thread and freezes all HTTP requests. **`node:worker_threads`** spawns additional V8 isolates inside the same OS process, communicating via `postMessage()` or zero-copy `SharedArrayBuffer` / `ArrayBuffer` transfers.
+
+Never spawn a new `Worker` per HTTP request (startup costs ~30–50ms and several MB of memory); reuse a fixed **worker pool** sized to `os.availableParallelism()`.
+
+<TopicAnchor id="m03-p1-topic-process-vs-thread" />
+
+#### 7. Process vs. Thread: Isolation, Memory & Crash Boundaries
+
+An OS **process** (`node:child_process`, `cluster`) has its own isolated virtual memory space, V8 heap, and file descriptors—if one process crashes from an uncaught exception or OOM, sibling processes survive. A **thread** (`worker_threads`) shares the parent process's virtual address space, spawns faster, and can share memory via `SharedArrayBuffer`.
+
+Use **multi-process clustering** (or Kubernetes pods) for horizontal web server scaling and crash isolation, and **Worker threads** for CPU-intensive offload within a service.
+
+<TopicAnchor id="m03-p1-topic-async-io" />
+
+#### 8. Async I/O: Non-Blocking Sockets vs. Event-Loop Starvation
+
+**Async I/O** means initiating a network or disk operation and registering a continuation (Promise/callback) so the main thread stays free to serve thousands of other requests while the kernel waits for bytes.
+
+Remember the golden rule of Node.js: **one synchronous CPU loop (`while` over 10M items) or `fs.readFileSync()` blocks every concurrent user**, turning a 10,000-RPS server into a 1-request bottleneck.
+
+<TopicAnchor id="m03-p1-topic-streams" />
+
+#### 9. Streams: Constant-Memory Pipelines & Backpressure
+
+**Streams** (`Readable`, `Writable`, `Duplex`, `Transform`) process data piece-by-piece instead of buffering a whole 2 GB file in RAM. Always connect streams with **`stream/promises` `pipeline(src, transform, dest)`** so errors, cleanup, and **backpressure** propagate automatically.
+
+**Backpressure** occurs when a fast `Readable` produces chunks faster than a slow `Writable` (like a slow client socket) can flush them: `writable.write(chunk)` returns `false` when its internal buffer hits `highWaterMark`, signaling the producer to pause until `'drain'` fires.
+
+<TopicAnchor id="m03-p1-topic-buffers" />
+
+#### 10. Buffers: Fixed-Length Binary Memory Outside V8 Strings
+
+A Node.js **`Buffer`** is a subclass of `Uint8Array` representing raw fixed-length binary memory allocated for TCP packets, file bytes, images, and binary protocols. Unlike UTF-16 JS strings, `Buffer` handles exact byte offsets (`readUInt32BE`, `subarray`, `toString('utf8')`).
+
+Never use the deprecated `new Buffer(size)` constructor (which could leak uninitialized RAM in older Node versions); always use **`Buffer.alloc(size)`** (zero-filled), **`Buffer.from(data)`**, or **`Buffer.concat(chunks)`**.
+
+<TopicAnchor id="m03-p1-topic-file-handling" />
+
+#### 11. File Handling: `fs/promises`, Streaming & Path Traversal Defense
+
+Modern Node **file handling** uses `node:fs/promises` (`readFile`, `writeFile`, `open`) for small configs and `fs.createReadStream` / `pipeline` for large files—never blocking `*Sync()` calls inside HTTP request handlers.
+
+When resolving user-supplied filenames against a base directory, always reject null bytes (`\0`), call `path.resolve(baseDir, userPath)`, and verify `resolved.startsWith(baseDir + path.sep)` (plus `fs.realpath()` when symlinks exist) to block `../../etc/passwd` **path traversal** attacks.
+
+</TopicSection>
+
+<TopicSection id="m03-p1-sec-c" letter="C" title="Internal Working & Architecture">
+
+#### 1. Node.js Runtime Architecture (V8 + libuv + Thread Pool + Worker Threads)
+
+Incoming HTTP connections flow through libuv's non-blocking OS socket pollers into V8 JS callbacks, while blocking `fs`/`crypto` work moves to the libuv thread pool and heavy JS compute moves to Worker threads.
+
+<DiagramCard caption="Figure 3.1 — Node.js routes network I/O through OS kernel pollers, blocking fs/crypto to the libuv thread pool, and heavy JS CPU tasks to Worker threads.">
+  <svg viewBox="0 0 820 205" role="img" aria-label="Node.js runtime architecture with V8, libuv event loop, OS async I/O, and thread pool">
+    <rect x="10" y="10" width="800" height="185" rx="10" fill="var(--bg-subtle)" stroke="var(--border)" />
+
+    <rect x="26" y="34" width="175" height="136" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" />
+    <text x="113" y="60" textAnchor="middle" fill="var(--accent-strong)" fontSize="13" fontWeight="700" fontFamily="sans-serif">V8 Main Thread</text>
+    <text x="113" y="88" textAnchor="middle" fill="var(--text-primary)" fontSize="11.5" fontFamily="monospace">JS Call Stack</text>
+    <text x="113" y="114" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">nextTick + Microtasks</text>
+    <text x="113" y="138" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">1 JS thread (non-blocking)</text>
+
+    <line x1="201" y1="102" x2="241" y2="102" stroke="var(--accent)" strokeWidth="2" />
+    <polygon points="241,102 231,97 231,107" fill="var(--accent)" />
+
+    <rect x="245" y="34" width="180" height="136" rx="8" fill="var(--bg-surface)" stroke="var(--border-strong)" />
+    <text x="335" y="60" textAnchor="middle" fill="var(--text-primary)" fontSize="13" fontWeight="700" fontFamily="sans-serif">libuv Event Loop</text>
+    <text x="335" y="88" textAnchor="middle" fill="var(--text-primary)" fontSize="11.5" fontFamily="monospace">Timers -&gt; Poll -&gt; Check</text>
+    <text x="335" y="114" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">OS epoll / kqueue / IOCP</text>
+    <text x="335" y="138" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Async TCP/HTTP sockets</text>
+
+    <line x1="425" y1="74" x2="465" y2="74" stroke="var(--warning)" strokeWidth="2" />
+    <polygon points="465,74 455,69 455,79" fill="var(--warning)" />
+    <line x1="425" y1="132" x2="465" y2="132" stroke="var(--success)" strokeWidth="2" />
+    <polygon points="465,132 455,127 455,137" fill="var(--success)" />
+
+    <rect x="469" y="28" width="325" height="66" rx="8" fill="var(--warning-soft)" stroke="var(--warning)" />
+    <text x="631" y="54" textAnchor="middle" fill="var(--warning)" fontSize="12.5" fontWeight="700" fontFamily="sans-serif">libuv Thread Pool (Default: 4 threads)</text>
+    <text x="631" y="76" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="monospace">fs, dns.lookup, pbkdf2, zlib</text>
+
+    <rect x="469" y="108" width="325" height="66" rx="8" fill="var(--success-soft)" stroke="var(--success)" />
+    <text x="631" y="134" textAnchor="middle" fill="var(--success)" fontSize="12.5" fontWeight="700" fontFamily="sans-serif">Worker Threads (node:worker_threads)</text>
+    <text x="631" y="156" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="monospace">Parallel V8 isolates for CPU-bound JS</text>
+  </svg>
+</DiagramCard>
+
+#### 2. Stream Backpressure & `highWaterMark` Flow Control
+
+Without backpressure, piping a fast disk read into a slow network socket buffers gigabytes in RAM until Node crashes with OOM. Checking `writable.write(chunk)` keeps memory flat around `highWaterMark`.
+
+<DiagramCard caption="Figure 3.2 — When Writable's internal buffer exceeds highWaterMark, write() returns false so Readable pauses until the 'drain' event fires.">
+  <svg viewBox="0 0 820 180" role="img" aria-label="Node.js stream backpressure pause and drain lifecycle">
+    <rect x="10" y="10" width="800" height="160" rx="10" fill="var(--bg-subtle)" stroke="var(--border)" />
+
+    <rect x="28" y="34" width="225" height="112" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" />
+    <text x="140" y="60" textAnchor="middle" fill="var(--accent-strong)" fontSize="13" fontWeight="700" fontFamily="sans-serif">1. Fast Readable</text>
+    <text x="140" y="88" textAnchor="middle" fill="var(--text-primary)" fontSize="11.5" fontFamily="monospace">readable.push(64KB)</text>
+    <text x="140" y="114" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Calls dest.write(chunk)</text>
+
+    <line x1="253" y1="90" x2="293" y2="90" stroke="var(--warning)" strokeWidth="2" />
+    <polygon points="293,90 283,85 283,95" fill="var(--warning)" />
+
+    <rect x="297" y="34" width="245" height="112" rx="8" fill="var(--warning-soft)" stroke="var(--warning)" />
+    <text x="419" y="60" textAnchor="middle" fill="var(--warning)" fontSize="13" fontWeight="700" fontFamily="sans-serif">2. Buffer &gt;= highWaterMark</text>
+    <text x="419" y="88" textAnchor="middle" fill="var(--text-primary)" fontSize="11.5" fontFamily="monospace">write() returns false</text>
+    <text x="419" y="114" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Readable calls .pause()</text>
+
+    <line x1="542" y1="90" x2="582" y2="90" stroke="var(--success)" strokeWidth="2" />
+    <polygon points="582,90 572,85 572,95" fill="var(--success)" />
+
+    <rect x="586" y="34" width="206" height="112" rx="8" fill="var(--success-soft)" stroke="var(--success)" />
+    <text x="689" y="60" textAnchor="middle" fill="var(--success)" fontSize="13" fontWeight="700" fontFamily="sans-serif">3. Flush Complete</text>
+    <text x="689" y="88" textAnchor="middle" fill="var(--text-primary)" fontSize="11.5" fontFamily="monospace">Writable emits 'drain'</text>
+    <text x="689" y="114" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Readable calls .resume()</text>
+  </svg>
+</DiagramCard>
+
+</TopicSection>
+
+<TopicSection id="m03-p1-sec-d" letter="D" title="Practical Examples (Interactive)">
+
+#### Example 1: Real Node.js `pipeline()` Streaming & Safe File Handling (TypeScript Reference)
+
+<CodeBlock
+  lang="typescript"
+  code={`import { createReadStream, createWriteStream } from "node:fs";
+import path from "node:path";
+import { Transform } from "node:stream";
+import { pipeline } from "node:stream/promises";
+import { createGzip } from "node:zlib";
+
+export function resolveSafeFilePath(baseDir: string, userRelativePath: string): string {
+  if (!userRelativePath || userRelativePath.includes("\\0")) {
+    throw new Error("Invalid file path");
+  }
+  const normalizedBase = path.resolve(baseDir);
+  const target = path.resolve(normalizedBase, userRelativePath);
+  if (target === normalizedBase || !target.startsWith(normalizedBase + path.sep)) {
+    throw new Error("Path traversal blocked");
+  }
+  return target;
+}
+
+export async function compressLogFile(baseDir: string, relativeIn: string, relativeOut: string, signal?: AbortSignal) {
+  const inputPath = resolveSafeFilePath(baseDir, relativeIn);
+  const outputPath = resolveSafeFilePath(baseDir, relativeOut);
+
+  const redactSecrets = new Transform({
+    transform(chunk: Buffer, _encoding, callback) {
+      const cleaned = chunk.toString("utf8").replace(/Bearer\\s+[A-Za-z0-9._-]+/g, "Bearer [REDACTED]");
+      callback(null, Buffer.from(cleaned, "utf8"));
+    }
+  });
+
+  await pipeline(
+    createReadStream(inputPath, { highWaterMark: 64 * 1024 }),
+    redactSecrets,
+    createGzip(),
+    createWriteStream(outputPath),
+    { signal }
+  );
+}`}
+/>
+
+#### Example 2: Node Event Loop Phase & Microtask Priority Simulator (`createNodeLoopSimulator`)
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// Models Node.js event loop execution order: sync -> nextTick -> Promise -> Timers/Poll/Check
+function createNodeLoopSimulator() {
+  const nextTickQueue = [];
+  const microtaskQueue = [];
+  const timersQueue = [];
+  const checkQueue = [];
+  const trace = [];
+
+  function drainMicrotasks() {
+    let steps = 0;
+    while (nextTickQueue.length > 0 || microtaskQueue.length > 0) {
+      while (nextTickQueue.length > 0) {
+        if (++steps > 1000) throw new Error("Microtask starvation detected");
+        nextTickQueue.shift()();
+      }
+      if (microtaskQueue.length > 0) {
+        if (++steps > 1000) throw new Error("Microtask starvation detected");
+        microtaskQueue.shift()();
+      }
+    }
+  }
+
+  return {
+    log(label) {
+      trace.push(label);
+    },
+    nextTick(fn) {
+      if (typeof fn !== "function") throw new TypeError("fn must be a function");
+      nextTickQueue.push(fn);
+    },
+    queueMicrotask(fn) {
+      if (typeof fn !== "function") throw new TypeError("fn must be a function");
+      microtaskQueue.push(fn);
+    },
+    setTimeout0(fn) {
+      if (typeof fn !== "function") throw new TypeError("fn must be a function");
+      timersQueue.push(fn);
+    },
+    setImmediate(fn) {
+      if (typeof fn !== "function") throw new TypeError("fn must be a function");
+      checkQueue.push(fn);
+    },
+    run() {
+      drainMicrotasks();
+      while (timersQueue.length > 0 || checkQueue.length > 0) {
+        while (timersQueue.length > 0) {
+          timersQueue.shift()();
+          drainMicrotasks();
+        }
+        while (checkQueue.length > 0) {
+          checkQueue.shift()();
+          drainMicrotasks();
+        }
+      }
+      return trace;
+    }
+  };
+}
+
+const loop = createNodeLoopSimulator();
+loop.setTimeout0(() => loop.log("timer-0"));
+loop.setImmediate(() => loop.log("immediate"));
+loop.queueMicrotask(() => loop.log("promise-microtask"));
+loop.nextTick(() => loop.log("nextTick"));
+loop.log("sync-start");
+console.log("Order:", loop.run());`}
+/>
+
+#### Example 3: Stream Backpressure Simulator (`createBoundedStreamPipe`)
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// Models Writable highWaterMark, pause() when full, and 'drain' resumption
+function createBoundedStreamPipe(highWaterMarkBytes) {
+  if (!Number.isInteger(highWaterMarkBytes) || highWaterMarkBytes < 1) {
+    throw new TypeError("highWaterMarkBytes must be a positive integer");
+  }
+  const buffer = [];
+  let bufferedBytes = 0;
+  let paused = false;
+  let pauseCount = 0;
+  let drainCount = 0;
+
+  return {
+    write(chunkBytes) {
+      if (!Number.isInteger(chunkBytes) || chunkBytes < 1) {
+        throw new TypeError("chunkBytes must be a positive integer");
+      }
+      buffer.push(chunkBytes);
+      bufferedBytes += chunkBytes;
+      const canContinue = bufferedBytes < highWaterMarkBytes;
+      if (!canContinue && !paused) {
+        paused = true;
+        pauseCount++;
+      }
+      return canContinue;
+    },
+    flushOne() {
+      if (buffer.length === 0) return 0;
+      const flushed = buffer.shift();
+      bufferedBytes -= flushed;
+      if (paused && bufferedBytes < highWaterMarkBytes) {
+        paused = false;
+        drainCount++;
+      }
+      return flushed;
+    },
+    stats() {
+      return { bufferedBytes, paused, pauseCount, drainCount };
+    }
+  };
+}
+
+const pipe = createBoundedStreamPipe(100);
+console.log("Write 60B continue?", pipe.write(60));
+console.log("Write 60B continue?", pipe.write(60));
+pipe.flushOne();
+console.log("Stats after flush:", pipe.stats());`}
+/>
+
+#### Example 4: Binary Buffer Frame Parser & Path Traversal Guard (`parseFrameHeader`, `isSafeRelativePath`)
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// Models Uint8Array/Buffer big-endian frame header parsing + safe relative path check
+function parseFrameHeader(bytes) {
+  if (!(bytes instanceof Uint8Array) || bytes.length < 4) {
+    throw new TypeError("Expected Uint8Array with at least 4 header bytes");
+  }
+  const version = bytes[0];
+  const flags = bytes[1];
+  const payloadLength = (bytes[2] << 8) | bytes[3];
+  if (bytes.length < 4 + payloadLength) {
+    throw new RangeError("Truncated frame: expected " + (4 + payloadLength) + " bytes");
+  }
+  return { version, flags, payloadLength, payload: bytes.subarray(4, 4 + payloadLength) };
+}
+
+function isSafeRelativePath(relPath) {
+  if (typeof relPath !== "string" || !relPath.trim()) return false;
+  if (relPath.includes(String.fromCharCode(0))) return false;
+  const normalized = relPath.replaceAll(String.fromCharCode(92), "/");
+  if (normalized.startsWith("/")) return false;
+  const parts = normalized.split("/");
+  if (parts[0] && parts[0].includes(":")) return false;
+  let depth = 0;
+  for (const seg of parts) {
+    if (!seg || seg === ".") continue;
+    if (seg === "..") {
+      depth--;
+      if (depth < 0) return false;
+    } else {
+      depth++;
+    }
+  }
+  return depth > 0;
+}
+
+const frame = new Uint8Array([1, 2, 0, 3, 65, 66, 67]);
+const parsed = parseFrameHeader(frame);
+console.log("Parsed frame:", { version: parsed.version, len: parsed.payloadLength, bytes: [...parsed.payload] });
+console.log("Safe path logs/app.log?", isSafeRelativePath("logs/app.log"), "| Traversal blocked?", !isSafeRelativePath("../etc/passwd"));`}
+/>
+
+</TopicSection>
+
+<TopicSection id="m03-p1-sec-e" letter="E" title="Step-by-Step Walkthrough">
+
+Trace **`createNodeLoopSimulator`** (**Example 2**) and **`createBoundedStreamPipe`** (**Example 3**):
+
+1. **Synchronous First:** `loop.log("sync-start")` executes immediately on the main call stack (`"sync-start"`).
+2. **NextTick Before Promises:** `drainMicrotasks()` empties `nextTickQueue` (`"nextTick"`) completely before popping `"promise-microtask"` from `microtaskQueue`.
+3. **Macrotask Phases:** Only after microtasks drain does the loop execute Timers (`"timer-0"`) followed by Check (`"immediate"`), draining microtasks between phases.
+4. **Stream Backpressure:** Writing `60B` keeps `bufferedBytes (60) < 100` (`true`), writing another `60B` hits `120 >= 100` (`false`, `paused: true`), and `flushOne()` drops `bufferedBytes` to `60`, emitting `'drain'` (`drainCount: 1`, `paused: false`).
+
+</TopicSection>
+
+<TopicSection id="m03-p1-sec-f" letter="F" title="Real-World Use Cases">
+
+#### Scenario 1: Streaming a 4 GB CSV Export Without OOM Crashes
+
+**Problem:** An API endpoint calls `fs.promises.readFile()` on a 4 GB export file or collects all DB rows into a giant JS string before `res.send()`, spiking heap usage and crashing the Node pod with `ERR_OUT_OF_MEMORY`.
+
+**Production Solution:** Pipe a database cursor stream through a `Transform` CSV formatter directly into the HTTP response using `stream/promises` `pipeline(..., { signal })`, holding memory flat around `64 KB`.
+
+#### Scenario 2: Fixing Tail Latency Caused by `UV_THREADPOOL_SIZE` Saturation
+
+**Problem:** An auth service runs `crypto.pbkdf2` for logins while reading disk templates. Under burst login traffic, unrelated `fs` reads stall for 800ms because all 4 default libuv pool threads are busy hashing.
+
+**Production Solution:** Tune `UV_THREADPOOL_SIZE` to match available CPU cores, or offload heavy CPU hashing to a dedicated bounded `Worker` pool so filesystem and DNS calls stay responsive.
+
+</TopicSection>
+
+<TopicSection id="m03-p1-sec-g" letter="G" title="Common Mistakes">
+
+- **Calling `fs.readFileSync()` or heavy JSON parsing inside HTTP routes:** Blocks the single event loop thread for all concurrent users.
+- **Triggering recursive `process.nextTick()`:** Starves the `Poll` phase forever because Node drains `nextTick` before advancing to I/O.
+- **Ignoring `writable.write() === false` or using `.pipe()` without error handling:** Causes silent memory leaks on slow clients or unhandled stream crashes (`pipeline()` fixes both).
+- **Spawning a new `Worker` thread for every incoming request:** Wastes ~30–50ms and megabytes per request instead of reusing a bounded pool.
+- **Using `path.join(base, userInput)` without checking `startsWith(base + path.sep)`:** Allows `../../` path traversal attacks.
+
+</TopicSection>
+
+<TopicSection id="m03-p1-sec-h" letter="H" title="Best Practices">
+
+- **Use `stream/promises` `pipeline()`** with an `AbortSignal` for all multi-stage file/network streams.
+- **Keep `process.nextTick()` rare and bounded**; prefer standard `Promise` / `queueMicrotask` unless you specifically need pre-I/O library initialization hooks.
+- **Allocate binary memory safely** with `Buffer.alloc()` or `Buffer.from()`, never deprecated `new Buffer()`.
+- **Monitor Event Loop Lag** (`monitorEventLoopDelay` from `node:perf_hooks`) in production to catch accidental CPU blocking early.
+
+</TopicSection>
+
+<TopicSection id="m03-p1-sec-i" letter="I" title="Performance & Scalability">
+
+- **Event Loop Utilization (ELU) & Lag:** Keep p99 event loop delay under `10–20ms`; anything higher signals synchronous CPU work blocking I/O concurrency.
+- **`Buffer` Pooling & `highWaterMark` Tuning:** Node pools small `Buffer.allocUnsafe` slices internally (< 4 KB) and lets you tune `highWaterMark` (default `16 KB` streams, `64 KB` files) to balance syscalls vs. RAM.
+- **Multi-Core Scaling:** A single Node process uses 1 CPU core for JS; run multiple processes via `cluster` or container replicas behind a load balancer.
+
+</TopicSection>
+
+<TopicSection id="m03-p1-sec-j" letter="J" title="Security Considerations">
+
+- **Path Traversal Prevention:** Validate user file inputs against null bytes (`\0`), resolve against a canonical base directory, and check `fs.realpath` when symlinks may exist.
+- **Uninitialized Memory Leak Prevention:** Never use `new Buffer(n)`; use `Buffer.alloc(n)` so secrets from freed heap memory cannot leak into network packets.
+- **DoS via Unbounded Streams / Payloads:** Enforce maximum byte limits inside `Transform` streams or HTTP body parsers so attackers cannot exhaust RAM or disk.
+
+</TopicSection>
+
+<TopicSection id="m03-p1-sec-k" letter="K" title="Comparisons & Decision Tables">
+
+#### 1. Concurrency Mechanisms in Node.js
+
+| Mechanism | Shares Memory? | Crash Isolated? | Best For |
+| --- | --- | --- | --- |
+| **Event Loop (Async I/O)** | Single thread | No | High-concurrency network/DB I/O |
+| **libuv Thread Pool** | Managed C++ pool | No | Blocking `fs`, `crypto`, `zlib`, `dns.lookup` |
+| **Worker Threads** | Optional (`SharedArrayBuffer`) | No (same OS process) | CPU-heavy JS compute (parsing, image math) |
+| **Child Process / Cluster** | No (IPC messages) | Yes (separate OS process) | Multi-core HTTP scaling & fault isolation |
+
+#### 2. Microtask vs. Macrotask Scheduling
+
+| API | Queue / Phase | Can Starve I/O? |
+| --- | --- | --- |
+| `process.nextTick()` | NextTick queue (runs first) | Yes, if recursive |
+| `Promise.then` / `queueMicrotask` | Microtask queue (after `nextTick`) | Yes, if recursive |
+| `setTimeout(fn, 0)` | Timers macrotask phase | No |
+| `setImmediate(fn)` | Check macrotask phase (after Poll) | No |
+
+#### 3. Buffer & File Reading Strategies
+
+| Approach | Memory Footprint | When to Use |
+| --- | --- | --- |
+| `fs.readFileSync()` | Full file in RAM + blocks loop | CLI startup config only (never in servers) |
+| `fs.promises.readFile()` | Full file in RAM, non-blocking | Small files (< 1 MB) |
+| `pipeline(createReadStream, ...)` | Constant (~64 KB chunks) | Large files, logs, media, CSV exports |
+
+</TopicSection>
+
+<TopicSection id="m03-p1-sec-l" letter="L" title="Tips to Remember (Mnemonics & Mental Models)">
+
+- **"Event loop = 1 waiter taking 10,000 orders; blocking CPU = waiter cooking in the kitchen."**
+- **"nextTick runs before Promises, and both drain before the next Event Loop phase."**
+- **"Default libuv pool = 4 threads; heavy crypto can stall your file reads."**
+- **"Always `pipeline()` streams so backpressure and errors never leak."**
+
+</TopicSection>
+
+<TopicSection id="m03-p1-sec-mn" letter="M/N" title="Interview Questions & Detailed Answers">
+
+<InterviewSection lessonId="m03-p1" />
+
+</TopicSection>
+
+<TopicSection id="m03-p1-sec-o" letter="O" title="Practical Exercises">
+
+<ExerciseCard
+  title="Exercise 1: Bounded libuv-Style Thread Pool Queue (createThreadPool)"
+  prompt={
+    <p>
+      Implement <code>createThreadPool(size)</code> that runs up to <code>size</code> tasks concurrently in active slots, queues excess tasks FIFO, promotes queued tasks on <code>completeOne()</code>, tracks <code>peakActive</code>, and rejects invalid pool sizes or non-function tasks.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function createThreadPool(size = 4) {
+  if (!Number.isInteger(size) || size < 1) {
+    throw new TypeError("Pool size must be a positive integer");
+  }
+  const active = [];
+  const queue = [];
+  let peakActive = 0;
+  let completed = 0;
+
+  function startTask(task) {
+    active.push(task);
+    if (active.length > peakActive) peakActive = active.length;
+  }
+
+  return {
+    enqueue(task) {
+      if (typeof task !== "function") throw new TypeError("task must be a function");
+      if (active.length < size) startTask(task);
+      else queue.push(task);
+    },
+    completeOne() {
+      if (active.length === 0) return false;
+      const fn = active.shift();
+      try {
+        fn();
+        completed++;
+      } finally {
+        if (queue.length > 0) startTask(queue.shift());
+      }
+      return true;
+    },
+    stats() {
+      return { active: active.length, queued: queue.length, completed, peakActive };
+    }
+  };
+}
+
+const pool = createThreadPool(2);
+const order = [];
+for (let i = 1; i <= 5; i++) pool.enqueue(() => order.push(i));
+while (pool.completeOne()) {}
+console.log("Pool stats:", pool.stats(), "| FIFO:", order);`}
+  />
+</ExerciseCard>
+
+<ExerciseCard
+  title="Exercise 2: Streaming NDJSON Chunk Line Splitter (createLineSplitter)"
+  prompt={
+    <p>
+      Implement <code>createLineSplitter()</code> with <code>push(chunk)</code> and <code>flush()</code> so arbitrary chunk boundaries (including lines split across two TCP packets) emit complete lines cleanly.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function createLineSplitter() {
+  let remainder = "";
+
+  return {
+    push(chunk) {
+      if (typeof chunk !== "string") throw new TypeError("chunk must be a string");
+      remainder += chunk;
+      const lines = remainder.split(String.fromCharCode(10));
+      remainder = lines.pop() ?? "";
+      return lines;
+    },
+    flush() {
+      if (!remainder) return [];
+      const last = remainder;
+      remainder = "";
+      return [last];
+    }
+  };
+}
+
+const splitter = createLineSplitter();
+const nl = String.fromCharCode(10);
+const out1 = splitter.push('{"id":1}' + nl + '{"id":');
+const out2 = splitter.push('2}' + nl);
+console.log("Out 1:", out1, "| Out 2:", out2);`}
+  />
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m03-p1-sec-p" letter="P" title="Advanced Challenge">
+
+<Callout variant="warn" title="Senior Challenge: Diagnosing Event-Loop Lag & OOM in a Node.js File Gateway">
+  <p>
+    A Node.js API gateway handles 3,000 req/s plus a <code>/export</code> endpoint that compresses and streams 2 GB CSV files. During peak traffic, p99 latency jumps from 15ms to 2.5s and pods occasionally OOM-crash.
+  </p>
+  <p>
+    <strong>Your Task:</strong> Explain how you (1) measure event loop lag vs. libuv threadpool saturation, (2) replace buffered file/gzip reads with <code>stream/promises</code> <code>pipeline()</code> + backpressure, and (3) isolate CPU-heavy transforms/crypto into a bounded Worker pool.
+  </p>
+</Callout>
+
+<ExerciseCard
+  title="Reference Architecture Notes"
+  prompt={null}
+  buttonLabel="Reveal Approach"
+  hideLabel="Hide Approach"
+>
+  <ol>
+    <li>Instrument <code>monitorEventLoopDelay()</code> and memory RSS to separate JS main-thread blocking from <code>UV_THREADPOOL_SIZE</code> contention (e.g., <code>zlib</code>/<code>fs</code> queueing).</li>
+    <li>Switch <code>/export</code> to <code>pipeline(dbCursorStream, csvTransform, createGzip(), res, &#123; signal &#125;)</code> so slow clients trigger backpressure and memory stays ~64 KB per stream.</li>
+    <li>Offload CPU-heavy parsing or encryption to a fixed <code>worker_threads</code> pool (sized to CPU cores) and enforce per-request timeouts/rate limits.</li>
+  </ol>
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m03-p1-sec-q" letter="Q" title="Summary & Key Takeaways">
+
+- **Architecture:** Node.js pairs V8 (single JS thread) with libuv (OS async network I/O + 4-thread pool for `fs`/`crypto`/`zlib`/`dns.lookup`).
+- **Event Loop:** Drains `process.nextTick` then Promise microtasks between phases (`Timers -> Poll -> Check -> Close`); never block the loop with sync CPU or `nextTick` recursion.
+- **Scaling Compute:** Use a bounded `worker_threads` pool for CPU-bound JS and multi-process `cluster`/pods for crash isolation.
+- **Streams & Buffers:** Use `pipeline()` for automatic backpressure/cleanup, allocate `Buffer.alloc`/`Buffer.from`, and guard file paths against `..` traversal.
+
+</TopicSection>

@@ -544,17 +544,61 @@ export const SYLLABUS_MODULES: SyllabusModule[] = [
   ),
 
   defineModule(3, "Node.js & Backend Engineering", "backend", [
-    "Node.js architecture",
-    "V8",
-    "libuv",
-    "Event loop",
-    "Thread pool",
-    "Worker threads",
-    "Process vs thread",
-    "Async I/O",
-    "Streams",
-    "Buffers",
-    "File handling",
+    {
+      title: "Node.js architecture",
+      lessonId: "m03-p1",
+      anchorId: "m03-p1-topic-nodejs-architecture"
+    },
+    {
+      title: "V8",
+      lessonId: "m03-p1",
+      anchorId: "m03-p1-topic-v8"
+    },
+    {
+      title: "libuv",
+      lessonId: "m03-p1",
+      anchorId: "m03-p1-topic-libuv"
+    },
+    {
+      title: "Event loop",
+      lessonId: "m03-p1",
+      anchorId: "m03-p1-topic-event-loop"
+    },
+    {
+      title: "Thread pool",
+      lessonId: "m03-p1",
+      anchorId: "m03-p1-topic-thread-pool"
+    },
+    {
+      title: "Worker threads",
+      lessonId: "m03-p1",
+      anchorId: "m03-p1-topic-worker-threads"
+    },
+    {
+      title: "Process vs thread",
+      lessonId: "m03-p1",
+      anchorId: "m03-p1-topic-process-vs-thread"
+    },
+    {
+      title: "Async I/O",
+      lessonId: "m03-p1",
+      anchorId: "m03-p1-topic-async-io"
+    },
+    {
+      title: "Streams",
+      lessonId: "m03-p1",
+      anchorId: "m03-p1-topic-streams"
+    },
+    {
+      title: "Buffers",
+      lessonId: "m03-p1",
+      anchorId: "m03-p1-topic-buffers"
+    },
+    {
+      title: "File handling",
+      lessonId: "m03-p1",
+      anchorId: "m03-p1-topic-file-handling"
+    },
     "Express",
     "Middleware",
     "Routing",

@@ -156,17 +156,17 @@ Split into 4 parts:
 - **M03-P4**: Production Backend Patterns (pagination, filtering, sorting, file uploads, background jobs, queue systems, WebSockets, connection pooling, microservices, modular monolith, backend design patterns, dependency injection, testing — unit/integration/API tests, performance optimization)
 
 #### Topics
-- [ ] Node.js architecture
-- [ ] V8
-- [ ] libuv
-- [ ] Event loop
-- [ ] Thread pool
-- [ ] Worker threads
-- [ ] Process vs thread
-- [ ] Async I/O
-- [ ] Streams
-- [ ] Buffers
-- [ ] File handling
+- [x] Node.js architecture
+- [x] V8
+- [x] libuv
+- [x] Event loop
+- [x] Thread pool
+- [x] Worker threads
+- [x] Process vs thread
+- [x] Async I/O
+- [x] Streams
+- [x] Buffers
+- [x] File handling
 - [ ] Express
 - [ ] Middleware
 - [ ] Routing

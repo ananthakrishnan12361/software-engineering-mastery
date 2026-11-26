@@ -250,3 +250,16 @@ For each review, add:
   - OWASP XSS Prevention & CSRF Prevention Cheat Sheets: `https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html` and `https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html`
   - Feature-Sliced Design (FSD v2.1) & React Testing Library: `https://feature-sliced.design/docs/get-started/overview` and `https://testing-library.com/docs/react-testing-library/intro/`
 - **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m02-p4.mdx`, `m02-p4.questions.ts`, and `m02-p4.coverage.ts`.
+
+---
+
+### Module 03 Part 1 (M03-P1) Technical Review Log — 2026-11-26
+
+- **Scope:** Node.js architecture, V8, libuv, Event loop, Thread pool, Worker threads, Process vs thread, Async I/O, Streams, Buffers, File handling.
+- **Official Documentation Verified (`M3`):**
+  - Node.js Event Loop, Timers & `process.nextTick()`: `https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick`
+  - Node.js Don't Block the Event Loop (Worker Pool & Worker Threads): `https://nodejs.org/en/learn/asynchronous-work/dont-block-the-event-loop` and `https://nodejs.org/api/worker_threads.html`
+  - Node.js Streams, Backpressure & `stream/promises` `pipeline()`: `https://nodejs.org/en/learn/modules/backpressuring-in-streams` and `https://nodejs.org/api/stream.html#streampipelinesource-transforms-destination-options`
+  - Node.js `Buffer` (`Buffer.alloc` vs deprecated `new Buffer`) & `node:fs/promises`: `https://nodejs.org/api/buffer.html` and `https://nodejs.org/api/fs.html`
+  - V8 Blog (Elements Kinds / Hidden Classes / Ignition & TurboFan): `https://v8.dev/blog`
+- **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m03-p1.mdx`, `m03-p1.questions.ts`, and `m03-p1.coverage.ts`.

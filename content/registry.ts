@@ -25,6 +25,8 @@ import M02P3Mdx from "./modules/02-react/m02-p3.mdx";
 import m02p3Raw from "./modules/02-react/m02-p3.mdx?raw";
 import M02P4Mdx from "./modules/02-react/m02-p4.mdx";
 import m02p4Raw from "./modules/02-react/m02-p4.mdx?raw";
+import M03P1Mdx from "./modules/03-nodejs/m03-p1.mdx";
+import m03p1Raw from "./modules/03-nodejs/m03-p1.mdx?raw";
 import { m01p1Questions } from "./interviews/m01-p1.questions";
 import { m01p2Questions } from "./interviews/m01-p2.questions";
 import { m01p3Questions } from "./interviews/m01-p3.questions";
@@ -34,6 +36,7 @@ import { m02p1Questions } from "./interviews/m02-p1.questions";
 import { m02p2Questions } from "./interviews/m02-p2.questions";
 import { m02p3Questions } from "./interviews/m02-p3.questions";
 import { m02p4Questions } from "./interviews/m02-p4.questions";
+import { m03p1Questions } from "./interviews/m03-p1.questions";
 import { SYLLABUS_MODULES } from "./syllabus";
 
 export interface HandbookCatalog {
@@ -146,6 +149,17 @@ const modules: ModuleRecord[] = [
       "Scope (Parts 1–4): Complete React & Frontend Engineering — Architecture, Hooks, State, Routing, Forms, Auth, Performance, a11y, Security, Architecture & Testing",
     lead: "Master React's declarative UI model, Fiber internals, Hooks, state management, routing, auth, performance, accessibility, XSS/CSRF security, FSD architecture, and testing.",
     lessonIds: ["m02-p1", "m02-p2", "m02-p3", "m02-p4"]
+  },
+  {
+    id: "module-3",
+    number: 3,
+    title: "Node.js & Backend Engineering",
+    category: "backend",
+    partSummary: "Part 1 of 4",
+    scopeSummary:
+      "Scope (Part 1): Node.js Architecture, V8, libuv, Event Loop, Thread Pool, Worker Threads, Process vs Thread, Async I/O, Streams, Buffers & File Handling",
+    lead: "Master Node.js runtime internals, V8 + libuv concurrency, non-blocking async I/O, backpressure streams, and safe binary/file handling.",
+    lessonIds: ["m03-p1"]
   }
 ];
 
@@ -683,8 +697,65 @@ const lessons: LessonRecord[] = [
       }
     ],
     prevLessonId: "m02-p3",
-    nextLessonId: null,
+    nextLessonId: "m03-p1",
     Content: M02P4Mdx
+  },
+  {
+    id: "m03-p1",
+    moduleId: "module-3",
+    moduleNumber: 3,
+    moduleTitle: "Node.js & Backend Engineering",
+    partLabel: "Lesson M03-P1",
+    title: "Part 1: Node.js Runtime, V8, libuv, Event Loop, Streams & Buffers",
+    category: "backend",
+    duration: "90 min (40m theory · 30m practice · 20m review)",
+    objectives: [
+      "Trace how Node.js bridges JS code, V8 execution, OS async sockets, libuv's 4-thread pool, and Worker threads.",
+      "Predict execution order across sync code, process.nextTick(), Promise microtasks, Timers, Poll, and Check phases.",
+      "Design constant-memory streaming pipelines with stream/promises pipeline() and writable highWaterMark backpressure.",
+      "Allocate binary Buffers safely (Buffer.alloc vs deprecated new Buffer) and guard file handling against path traversal."
+    ],
+    sections: [
+      { id: "m03-p1-objectives", title: "Learning Objectives" },
+      { id: "m03-p1-sec-a", letter: "A", title: "Topic Introduction" },
+      { id: "m03-p1-sec-b", letter: "B", title: "Fundamentals (Simple Mental Models)" },
+      { id: "m03-p1-sec-c", letter: "C", title: "Internal Working & Architecture" },
+      { id: "m03-p1-sec-d", letter: "D", title: "Practical Examples (Interactive)" },
+      { id: "m03-p1-sec-e", letter: "E", title: "Step-by-Step Walkthrough" },
+      { id: "m03-p1-sec-f", letter: "F", title: "Real-World Use Cases" },
+      { id: "m03-p1-sec-g", letter: "G", title: "Common Mistakes" },
+      { id: "m03-p1-sec-h", letter: "H", title: "Best Practices" },
+      { id: "m03-p1-sec-i", letter: "I", title: "Performance & Scalability" },
+      { id: "m03-p1-sec-j", letter: "J", title: "Security Considerations" },
+      { id: "m03-p1-sec-k", letter: "K", title: "Comparisons & Decision Tables" },
+      { id: "m03-p1-sec-l", letter: "L", title: "Tips to Remember (Mnemonics & Mental Models)" },
+      { id: "m03-p1-sec-mn", letter: "M/N", title: "Interview Questions & Detailed Answers" },
+      { id: "m03-p1-sec-o", letter: "O", title: "Practical Exercises" },
+      { id: "m03-p1-sec-p", letter: "P", title: "Advanced Challenge" },
+      { id: "m03-p1-sec-q", letter: "Q", title: "Summary & Key Takeaways" },
+      { id: "m03-p1-mastery", title: "Mastery Assessment" }
+    ],
+    masteryItems: [
+      {
+        id: "m03-p1-m1",
+        label: "I can explain V8 + libuv + thread pool + Worker threads and when each handles a workload."
+      },
+      {
+        id: "m03-p1-m2",
+        label: "I can trace process.nextTick(), Promise microtasks, setTimeout(0), and setImmediate()."
+      },
+      {
+        id: "m03-p1-m3",
+        label: "I can implement backpressure-safe stream pipelines, safe Buffers, and path traversal checks."
+      },
+      {
+        id: "m03-p1-m4",
+        label: "I completed the M03-P1 exercises and can answer the interview questions without notes."
+      }
+    ],
+    prevLessonId: "m02-p4",
+    nextLessonId: null,
+    Content: M03P1Mdx
   }
 ];
 
@@ -697,7 +768,8 @@ const questionsByLesson: Record<string, InterviewQuestion[]> = {
   "m02-p1": m02p1Questions,
   "m02-p2": m02p2Questions,
   "m02-p3": m02p3Questions,
-  "m02-p4": m02p4Questions
+  "m02-p4": m02p4Questions,
+  "m03-p1": m03p1Questions
 };
 
 const allQuestions: InterviewQuestion[] = [
@@ -709,7 +781,8 @@ const allQuestions: InterviewQuestion[] = [
   ...m02p1Questions,
   ...m02p2Questions,
   ...m02p3Questions,
-  ...m02p4Questions
+  ...m02p4Questions,
+  ...m03p1Questions
 ];
 
 function mergeGlossaryEntries(...batches: GlossaryEntry[][]): GlossaryEntry[] {
@@ -734,7 +807,8 @@ const glossaryEntries: GlossaryEntry[] = mergeGlossaryEntries(
   extractGlossaryFromMdx(m02p1Raw, "m02-p1"),
   extractGlossaryFromMdx(m02p2Raw, "m02-p2"),
   extractGlossaryFromMdx(m02p3Raw, "m02-p3"),
-  extractGlossaryFromMdx(m02p4Raw, "m02-p4")
+  extractGlossaryFromMdx(m02p4Raw, "m02-p4"),
+  extractGlossaryFromMdx(m03p1Raw, "m03-p1")
 );
 
 function buildSearchRecords(): SearchRecord[] {
@@ -762,6 +836,7 @@ function buildSearchRecords(): SearchRecord[] {
   records.push(...extractSearchRecordsFromMdx(m02p2Raw, "m02-p2", lessons[6].title, 2));
   records.push(...extractSearchRecordsFromMdx(m02p3Raw, "m02-p3", lessons[7].title, 2));
   records.push(...extractSearchRecordsFromMdx(m02p4Raw, "m02-p4", lessons[8].title, 2));
+  records.push(...extractSearchRecordsFromMdx(m03p1Raw, "m03-p1", lessons[9].title, 3));
 
   for (const mod of SYLLABUS_MODULES) {
     for (const topic of mod.topics) {
