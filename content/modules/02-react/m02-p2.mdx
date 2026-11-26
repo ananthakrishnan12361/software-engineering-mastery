@@ -1,0 +1,591 @@
+<Callout variant="info" title="Topics Covered in Part 2 (M02-P2)">
+  <p>
+    This lesson covers 9 core React Hooks &amp; memoization topics from Module 2: <strong>Hooks</strong>, <strong><code>useState</code></strong>, <strong><code>useEffect</code></strong>, <strong><code>useRef</code></strong>, <strong><code>useContext</code></strong>, <strong><code>useMemo</code></strong>, <strong><code>useCallback</code></strong>, <strong><code>React.memo</code></strong>, and <strong>Custom hooks</strong>.
+  </p>
+</Callout>
+
+<TopicSection id="m02-p2-sec-a" letter="A" title="Topic Introduction">
+
+#### What is this?
+
+**Hooks** (`useState`, `useEffect`, `useRef`, `useContext`, `useMemo`, `useCallback`) let function components tap into React's internal Fiber state, side-effect synchronization, mutable refs, context subscriptions, and memoization—without writing ES6 class components. **Custom hooks** (`useAuth`, `useDebouncedValue`) extract and share stateful logic cleanly across components, while **`React.memo`** skips re-rendering a child component when its props are shallowly equal.
+
+#### Why does it exist & what problem does it solve?
+
+Before Hooks (React 16.8), sharing stateful logic across components required wrapper hell (Higher-Order Components and Render Props), and related logic (e.g., subscribing and unsubscribing a WebSocket) had to be split across `componentDidMount`, `componentDidUpdate`, and `componentWillUnmount`. Hooks co-locate related effects with their cleanup and make stateful logic composable.
+
+#### Where is it used in real-world software?
+
+Every modern React application uses Hooks for form inputs (`useState`), DOM measurements and timer handles (`useRef`), theme/auth injection (`useContext`), external system synchronization (`useEffect`), and targeted render-performance optimization (`useMemo`, `useCallback`, `React.memo`) on large tables and interactive charts.
+
+</TopicSection>
+
+<TopicSection id="m02-p2-sec-b" letter="B" title="Fundamentals (Simple Mental Models)">
+
+<TopicAnchor id="m02-p2-topic-hooks" />
+
+#### 1. Hooks: Rules of Hooks & Fiber Slot Ordering
+
+**Hooks** are functions starting with `use` that read and write slots stored on the component's Fiber node in **exact call order**. Because React identifies each hook by its call index (`slot 0`, `slot 1`, `slot 2`...) rather than by variable name, you must follow the **Rules of Hooks**: only call hooks at the **top level** of a React function component or custom hook—never inside `if`, `for`, or nested callbacks.
+
+The second Rule of Hooks is equally strict: only call hooks from React function components or custom hooks—never from plain utility functions—so every hook invocation stays bound to a predictable Fiber lifecycle and cleanup cycle.
+
+<TopicAnchor id="m02-p2-topic-usestate" />
+
+#### 2. `useState`: Snapshot State, Lazy Init & Functional Updaters
+
+`const [count, setCount] = useState(0)` allocates a state slot preserved across re-renders. For expensive initial calculations (such as parsing `localStorage`), pass a **lazy initializer function** `useState(() => parseSavedPrefs())` so React runs it only once on mount rather than on every re-render.
+
+When the next state depends on the previous state, pass a **functional updater** `setCount((prev) => prev + 1)` so queued updates compose cleanly without stale closures.
+
+<TopicAnchor id="m02-p2-topic-useeffect" />
+
+#### 3. `useEffect`: Synchronizing with External Systems (Not Business Logic)
+
+`useEffect(() => { ... return () => cleanup(); }, [deps])` runs **after** React commits DOM updates to the screen. Its purpose is **synchronizing with external systems**—browser subscriptions, timers, `fetch` with `AbortController`, or third-party chart libraries.
+
+Never use `useEffect` for derived state (`fullName = first + last`) or user-event responses (put those in `onClick`/`onSubmit` handlers!). Always return a cleanup function that aborts requests, clears timers, or unsubscribes listeners.
+
+<TopicAnchor id="m02-p2-topic-useref" />
+
+#### 4. `useRef`: Mutable Escape Hatch Without Re-Renders
+
+`const ref = useRef(initialValue)` returns a persistent `{ current: initialValue }` object whose reference stays identical across every render. Unlike `useState`, mutating `ref.current = ...` does **not** schedule a re-render.
+
+`useRef` serves two primary roles: holding a reference to a real DOM node (`<input ref={inputRef} />` for `.focus()`) and storing mutable non-visual values across renders (such as a `setTimeout` ID or latest callback reference).
+
+<TopicAnchor id="m02-p2-topic-usecontext" />
+
+#### 5. `useContext`: Reading Shared Tree Values Without Prop Drilling
+
+`useContext(ThemeContext)` subscribes a component to the nearest `<ThemeContext.Provider value={...}>` (or `<ThemeContext value={...}>` in React 19) above it in the tree, eliminating multi-layer prop drilling for themes, locale, or current user session.
+
+Keep in mind that **every** component calling `useContext(Ctx)` re-renders whenever `Ctx`'s `value` changes by `Object.is`—so memoize object values (`useMemo(() => ({ theme, toggle }), [theme])`) or split fast-changing state from stable dispatchers.
+
+<TopicAnchor id="m02-p2-topic-usememo" />
+
+#### 6. `useMemo`: Caching Expensive Calculations & Reference Identity
+
+`const sorted = useMemo(() => rows.toSorted(...), [rows])` caches a computed result between renders and only recomputes when a dependency in `[rows]` changes by `Object.is`.
+
+Use `useMemo` in two cases: (1) genuinely expensive CPU work (filtering/sorting thousands of rows) and (2) preserving referential equality of an object/array passed to a `React.memo` child or `useEffect` dependency list. Avoid wrapping trivial arithmetic in `useMemo`.
+
+<TopicAnchor id="m02-p2-topic-usecallback" />
+
+#### 7. `useCallback`: Stabilizing Function References
+
+`const handleSave = useCallback((id) => saveOrder(id), [saveOrder])` is shorthand for `useMemo(() => fn, deps)` specifically for functions—returning the **same** function reference across renders unless dependencies change.
+
+On its own, `useCallback` does **not** make a component faster; it only pays off when the stabilized callback is passed as a prop to a `React.memo` child or listed in a `useEffect` dependency array.
+
+<TopicAnchor id="m02-p2-topic-reactmemo" />
+
+#### 8. `React.memo`: Skipping Child Re-Renders on Unchanged Props
+
+Wrapping a component in `React.memo(OrderRow)` tells React to compare previous and next `props` shallowly with `Object.is`. If all props match, React skips re-rendering `OrderRow` and its subtree when the parent re-renders.
+
+`React.memo` is easily defeated if the parent passes a new inline `{}` object or `() => {}` arrow function on every render—which is why `React.memo` pairs with `useMemo` and `useCallback` (or moving static objects outside the component).
+
+<TopicAnchor id="m02-p2-topic-custom-hooks" />
+
+#### 9. Custom Hooks: Composing Reusable Stateful Logic
+
+A **Custom Hook** is a plain JavaScript function whose name starts with `use` (e.g., `useDebouncedValue(value, delayMs)`) that calls built-in hooks (`useState`, `useEffect`, `useRef`) internally.
+
+Custom hooks share **stateful logic**, **not** shared state—each component calling `useDebouncedValue` gets its own isolated hook slots on its own Fiber node, and any `useEffect` cleanups inside the hook run automatically when the host component re-renders or unmounts.
+
+The `use` prefix is not just a convention: React's linter (`eslint-plugin-react-hooks`) and React Compiler rely on it to enforce the Rules of Hooks statically.
+
+</TopicSection>
+
+<TopicSection id="m02-p2-sec-c" letter="C" title="Internal Working & Architecture">
+
+#### 1. How React Stores Hooks as a Linked List on Fiber Nodes
+
+React tracks hooks by **positional call order** (`hook #0 -> hook #1 -> hook #2`) stored in `fiber.memoizedState`. A conditional `if (ready) useState(...)` shifts every subsequent hook's slot index on re-render, corrupting state!
+
+<DiagramCard caption="Figure 2.3 — React identifies each hook by call-order index on fiber.memoizedState; conditional hooks shift slots and corrupt state.">
+  <svg viewBox="0 0 820 190" role="img" aria-label="React Fiber memoizedState hook linked list">
+    <rect x="10" y="10" width="800" height="170" rx="10" fill="var(--bg-subtle)" stroke="var(--border)" />
+
+    <rect x="28" y="34" width="165" height="122" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" />
+    <text x="110" y="60" textAnchor="middle" fill="var(--accent-strong)" fontSize="13" fontWeight="700" fontFamily="sans-serif">Fiber Node</text>
+    <text x="110" y="88" textAnchor="middle" fill="var(--text-primary)" fontSize="12" fontFamily="monospace">memoizedState</text>
+    <text x="110" y="114" textAnchor="middle" fill="var(--text-secondary)" fontSize="11.5" fontFamily="sans-serif">Points to Slot 0</text>
+
+    <line x1="193" y1="95" x2="233" y2="95" stroke="var(--accent)" strokeWidth="2" />
+    <polygon points="233,95 223,90 223,100" fill="var(--accent)" />
+
+    <rect x="237" y="34" width="170" height="122" rx="8" fill="var(--bg-surface)" stroke="var(--border-strong)" />
+    <text x="322" y="60" textAnchor="middle" fill="var(--text-primary)" fontSize="12.5" fontWeight="700" fontFamily="monospace">Slot 0: useState</text>
+    <text x="322" y="88" textAnchor="middle" fill="var(--success)" fontSize="12" fontFamily="monospace">state = "Alice"</text>
+    <text x="322" y="114" textAnchor="middle" fill="var(--text-secondary)" fontSize="11.5" fontFamily="monospace">next -&gt; Slot 1</text>
+
+    <line x1="407" y1="95" x2="447" y2="95" stroke="var(--accent)" strokeWidth="2" />
+    <polygon points="447,95 437,90 437,100" fill="var(--accent)" />
+
+    <rect x="451" y="34" width="165" height="122" rx="8" fill="var(--bg-surface)" stroke="var(--border-strong)" />
+    <text x="533" y="60" textAnchor="middle" fill="var(--text-primary)" fontSize="12.5" fontWeight="700" fontFamily="monospace">Slot 1: useRef</text>
+    <text x="533" y="88" textAnchor="middle" fill="var(--text-secondary)" fontSize="11.5" fontFamily="monospace">&#123; current: el &#125;</text>
+    <text x="533" y="114" textAnchor="middle" fill="var(--text-secondary)" fontSize="11.5" fontFamily="monospace">next -&gt; Slot 2</text>
+
+    <line x1="616" y1="95" x2="651" y2="95" stroke="var(--accent)" strokeWidth="2" />
+    <polygon points="651,95 641,90 641,100" fill="var(--accent)" />
+
+    <rect x="655" y="34" width="138" height="122" rx="8" fill="var(--success-soft)" stroke="var(--success)" />
+    <text x="724" y="60" textAnchor="middle" fill="var(--success)" fontSize="12.5" fontWeight="700" fontFamily="monospace">Slot 2: Effect</text>
+    <text x="724" y="88" textAnchor="middle" fill="var(--text-secondary)" fontSize="11.5" fontFamily="monospace">deps: [id]</text>
+    <text x="724" y="114" textAnchor="middle" fill="var(--text-secondary)" fontSize="11.5" fontFamily="monospace">next: null</text>
+  </svg>
+</DiagramCard>
+
+#### 2. `useEffect` Cleanup Timing & Stale Race Prevention
+
+Before running the next effect (when `[deps]` change) and on unmount, React executes the **previous** render's cleanup function—making `AbortController` or a `cancelled` flag essential to discard out-of-order async responses.
+
+<DiagramCard caption="Figure 2.4 — useEffect runs previous cleanup before executing the new effect, preventing out-of-order fetch race conditions.">
+  <svg viewBox="0 0 820 180" role="img" aria-label="useEffect cleanup and re-run lifecycle">
+    <rect x="10" y="10" width="800" height="160" rx="10" fill="var(--bg-subtle)" stroke="var(--border)" />
+
+    <rect x="28" y="32" width="230" height="116" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" />
+    <text x="143" y="58" textAnchor="middle" fill="var(--accent-strong)" fontSize="13" fontWeight="700" fontFamily="sans-serif">1. Mount (id="1")</text>
+    <text x="143" y="86" textAnchor="middle" fill="var(--text-primary)" fontSize="12" fontFamily="monospace">Commit DOM -&gt; Effect("1")</text>
+    <text x="143" y="112" textAnchor="middle" fill="var(--text-secondary)" fontSize="11.5" fontFamily="sans-serif">Starts fetch("1") + ctrl1</text>
+
+    <line x1="258" y1="90" x2="298" y2="90" stroke="var(--warning)" strokeWidth="2" />
+    <polygon points="298,90 288,85 288,95" fill="var(--warning)" />
+
+    <rect x="302" y="32" width="245" height="116" rx="8" fill="var(--warning-soft)" stroke="var(--warning)" />
+    <text x="424" y="58" textAnchor="middle" fill="var(--warning)" fontSize="13" fontWeight="700" fontFamily="sans-serif">2. Update (id="2")</text>
+    <text x="424" y="86" textAnchor="middle" fill="var(--text-primary)" fontSize="12" fontFamily="monospace">Commit DOM -&gt; cleanup("1")</text>
+    <text x="424" y="112" textAnchor="middle" fill="var(--text-secondary)" fontSize="11.5" fontFamily="sans-serif">ctrl1.abort(); then Effect("2")</text>
+
+    <line x1="547" y1="90" x2="587" y2="90" stroke="var(--danger)" strokeWidth="2" />
+    <polygon points="587,90 577,85 577,95" fill="var(--danger)" />
+
+    <rect x="591" y="32" width="201" height="116" rx="8" fill="var(--danger-soft)" stroke="var(--danger)" />
+    <text x="691" y="58" textAnchor="middle" fill="var(--danger)" fontSize="13" fontWeight="700" fontFamily="sans-serif">3. Unmount</text>
+    <text x="691" y="86" textAnchor="middle" fill="var(--text-primary)" fontSize="12" fontFamily="monospace">cleanup("2") runs</text>
+    <text x="691" y="112" textAnchor="middle" fill="var(--text-secondary)" fontSize="11.5" fontFamily="sans-serif">ctrl2.abort() (zero leaks)</text>
+  </svg>
+</DiagramCard>
+
+</TopicSection>
+
+<TopicSection id="m02-p2-sec-d" letter="D" title="Practical Examples (Interactive)">
+
+#### Example 1: Real React Hooks, `AbortController` Cleanup & `React.memo` (TSX Reference)
+
+<CodeBlock
+  lang="tsx"
+  code={`import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+function useDebouncedValue<T>(value: T, delayMs: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const id = window.setTimeout(() => setDebounced(value), delayMs);
+    return () => window.clearTimeout(id);
+  }, [value, delayMs]);
+  return debounced;
+}
+
+const ResultRow = memo(function ResultRow({
+  id,
+  label,
+  onSelect
+}: {
+  readonly id: string;
+  readonly label: string;
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <li>
+      <button type="button" onClick={() => onSelect(id)}>
+        {label}
+      </button>
+    </li>
+  );
+});
+
+export function SearchPanel({ items }: { readonly items: readonly { id: string; label: string }[] }) {
+  const [query, setQuery] = useState("");
+  const [remoteCount, setRemoteCount] = useState<number | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const debouncedQuery = useDebouncedValue(query, 200);
+
+  useEffect(() => {
+    if (!debouncedQuery) {
+      setRemoteCount(null);
+      return;
+    }
+    const controller = new AbortController();
+    fetch("/api/search?q=" + encodeURIComponent(debouncedQuery), { signal: controller.signal })
+      .then((res) => res.json() as Promise<{ total: number }>)
+      .then((data) => setRemoteCount(data.total))
+      .catch((err: unknown) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        console.error(err);
+      });
+    return () => controller.abort();
+  }, [debouncedQuery]);
+
+  const filtered = useMemo(
+    () => items.filter((item) => item.label.toLowerCase().includes(debouncedQuery.toLowerCase())),
+    [items, debouncedQuery]
+  );
+
+  const handleSelect = useCallback((id: string) => {
+    inputRef.current?.focus();
+    console.log("Selected:", id);
+  }, []);
+
+  return (
+    <div>
+      <input ref={inputRef} value={query} onChange={(e) => setQuery(e.target.value)} />
+      {remoteCount !== null && <p>Server matches: {remoteCount}</p>}
+      <ul>
+        {filtered.map((item) => (
+          <ResultRow key={item.id} id={item.id} label={item.label} onSelect={handleSelect} />
+        ))}
+      </ul>
+    </div>
+  );
+}`}
+/>
+
+#### Example 2: Hook Slot Order Enforcer (Why Conditional Hooks Break)
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// Models React's Fiber hook slot cursor and why conditional hooks throw
+function createHookRuntime() {
+  const slots = [];
+  let cursor = 0;
+  let mounted = false;
+
+  return {
+    beginRender() {
+      cursor = 0;
+    },
+    endRender() {
+      if (!mounted) mounted = true;
+      else if (cursor !== slots.length) {
+        throw new Error("Rendered fewer hooks than expected (conditional hook bug)");
+      }
+    },
+    useState(initialValue) {
+      const idx = cursor++;
+      if (!mounted) {
+        slots[idx] = { kind: "state", value: typeof initialValue === "function" ? initialValue() : initialValue };
+      } else if (idx >= slots.length || slots[idx].kind !== "state") {
+        throw new Error("Rendered more/different hooks than previous render");
+      }
+      const setState = (nextOrFn) => {
+        slots[idx].value = typeof nextOrFn === "function" ? nextOrFn(slots[idx].value) : nextOrFn;
+      };
+      return [slots[idx].value, setState];
+    },
+    useRef(initialValue) {
+      const idx = cursor++;
+      if (!mounted) {
+        slots[idx] = { kind: "ref", value: { current: initialValue } };
+      } else if (idx >= slots.length || slots[idx].kind !== "ref") {
+        throw new Error("Rendered more/different hooks than previous render");
+      }
+      return slots[idx].value;
+    }
+  };
+}
+
+const rt = createHookRuntime();
+rt.beginRender();
+const [name, setName] = rt.useState(() => "Ava");
+const renderCount = rt.useRef(0);
+renderCount.current += 1;
+rt.endRender();
+setName("Liam");
+rt.beginRender();
+const [updatedName] = rt.useState("ignored-after-mount");
+const sameRef = rt.useRef(999);
+rt.endRender();
+console.log("State preserved across render:", name, "->", updatedName, "| ref:", sameRef.current);`}
+/>
+
+#### Example 3: Dependency Array Diffing (`Object.is`) & `React.memo` Shallow Props Bailout
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// Models React's areDepsEqual (useEffect/useMemo/useCallback) and shallowEqual (React.memo)
+function areDepsEqual(prevDeps, nextDeps) {
+  if (!Array.isArray(prevDeps) || !Array.isArray(nextDeps)) {
+    throw new TypeError("Dependency arrays must be arrays");
+  }
+  if (prevDeps.length !== nextDeps.length) return false;
+  for (let i = 0; i < prevDeps.length; i++) {
+    if (!Object.is(prevDeps[i], nextDeps[i])) return false;
+  }
+  return true;
+}
+
+function arePropsShallowEqual(prevProps, nextProps) {
+  if (!prevProps || !nextProps || typeof prevProps !== "object" || typeof nextProps !== "object") {
+    throw new TypeError("Props must be non-null objects");
+  }
+  if (Object.is(prevProps, nextProps)) return true;
+  const prevKeys = Object.keys(prevProps);
+  const nextKeys = Object.keys(nextProps);
+  if (prevKeys.length !== nextKeys.length) return false;
+  for (const key of prevKeys) {
+    if (!Object.hasOwn(nextProps, key) || !Object.is(prevProps[key], nextProps[key])) {
+      return false;
+    }
+  }
+  return true;
+}
+
+const stableFn = () => {};
+console.log("Memo skips with stable props?", arePropsShallowEqual({ id: 1, onClick: stableFn }, { id: 1, onClick: stableFn }));
+console.log("Memo skips with new inline fn?", arePropsShallowEqual({ id: 1, onClick: () => {} }, { id: 1, onClick: () => {} }));
+console.log("Deps equal [NaN] vs [NaN]?", areDepsEqual([NaN], [NaN]));`}
+/>
+
+</TopicSection>
+
+<TopicSection id="m02-p2-sec-e" letter="E" title="Step-by-Step Walkthrough">
+
+Trace **`createHookRuntime`** (**Example 2**) across two renders:
+
+1. **Mount Render (`mounted === false`):** `beginRender()` resets `cursor = 0`. Calling `rt.useState(() => "Ava")` allocates `slots[0]`, invokes the lazy initializer once (`"Ava"`), and advances `cursor` to `1`. `endRender()` locks `mounted = true`.
+2. **State Update (`setName("Liam")`):** Updates `slots[0].value` to `"Liam"`.
+3. **Re-render:** `beginRender()` resets `cursor = 0`. Calling `rt.useState("ignored-after-mount")` reads `slots[0].value` (`"Liam"`) without re-running the initial value.
+4. **Conditional Hook Trap:** If a branch skipped `useState` on re-render, `endRender()` catches `cursor !== slots.length` and throws an error—just like React itself!
+
+</TopicSection>
+
+<TopicSection id="m02-p2-sec-f" letter="F" title="Real-World Use Cases">
+
+#### Scenario 1: Preventing Stale Search Results with `useEffect` + `AbortController`
+
+**Problem:** A user types `"re"` then `"react"`. The slower `"re"` API response resolves *after* `"react"`, overwriting the table with stale results.
+
+**Production Solution:** Create an `AbortController` inside `useEffect`, pass `signal` to `fetch`, and call `controller.abort()` in the effect's cleanup function so superseded requests are cancelled before calling `setState`.
+
+#### Scenario 2: Eliminating Context Re-Render Storms in Large Dashboards
+
+**Problem:** An `AuthContext.Provider` passes `value={{ user, login, logout }}` inline on every `<App />` render, causing 200 memoized consumer widgets to re-render whenever unrelated `<App />` state changes.
+
+**Production Solution:** Wrap `login`/`logout` in `useCallback`, wrap the provider `value` in `useMemo(() => ({ user, login, logout }), [user, login, logout])`, or split `UserStateContext` from `AuthActionsContext`.
+
+</TopicSection>
+
+<TopicSection id="m02-p2-sec-g" letter="G" title="Common Mistakes">
+
+- **Calling hooks inside `if` conditions, loops, or after early `return`s:** Shifts Fiber hook slots and crashes React.
+- **Omitting dependencies from `useEffect` / `useMemo` / `useCallback`:** Creates stale closures reading outdated props/state.
+- **Using `useEffect` to compute derived state or handle button clicks:** Triggers redundant extra renders instead of computing during render or inside event handlers.
+- **Forgetting cleanup in `useEffect` (`clearInterval`, `removeEventListener`, `abort()`):** Causes memory leaks and stale state updates on unmounted components.
+- **Wrapping `React.memo` around a child while still passing inline `{}` or `() => {}` props:** Defeats shallow comparison on every render while paying extra comparison overhead.
+
+</TopicSection>
+
+<TopicSection id="m02-p2-sec-h" letter="H" title="Best Practices">
+
+- **Keep `eslint-plugin-react-hooks` (`rules-of-hooks` & `exhaustive-deps`) enabled** and never suppress dependency warnings blindly—fix the root cause (move functions inside `useEffect` or stabilize with `useCallback`).
+- **Use lazy initializers** (`useState(() => ...)`) for expensive initial parsing.
+- **Reach for `useMemo`/`useCallback`/`React.memo` intentionally** (expensive computations, context values, or profiled slow subtrees), not prematurely on every tiny button.
+- **Keep custom hooks small, single-purpose, and prefixed with `use`**, returning clear tuples or objects.
+
+</TopicSection>
+
+<TopicSection id="m02-p2-sec-i" letter="I" title="Performance & Scalability">
+
+- **Measure Before Memoizing:** `React.memo`, `useMemo`, and `useCallback` add memory and comparison overhead on every render; for cheap components, re-rendering is often faster than diffing props.
+- **Split Contexts by Change Frequency:** Separating `ThemeContext` (rarely changes) from `MousePositionContext` (high frequency) prevents cascading tree re-renders.
+- **React Compiler Note (React 19):** Automatic memoization compilers reduce manual `useMemo`/`useCallback` boilerplate, yet understanding `Object.is` referential equality and pure renders remains essential.
+
+</TopicSection>
+
+<TopicSection id="m02-p2-sec-j" letter="J" title="Security Considerations">
+
+- **Abort & Cleanup Stale Async Effects:** Uncancelled `fetch` effects after logout/tenant-switch can flash or commit previous-user data into the UI unless aborted in `useEffect` cleanup.
+- **Ref Escape Hatch Caution:** Reading/writing raw `ref.current.innerHTML = userInput` bypasses React's JSX XSS escaping—use JSX or `textContent` instead.
+
+</TopicSection>
+
+<TopicSection id="m02-p2-sec-k" letter="K" title="Comparisons & Decision Tables">
+
+#### 1. `useState` vs. `useRef`
+
+| Dimension | `useState` | `useRef` |
+| --- | --- | --- |
+| Triggers re-render on change? | **Yes** (via setter) | **No** (`ref.current = x` is silent) |
+| Timing of update | Scheduled for next render (snapshot) | Immediate mutation |
+| Primary use | UI data rendered into JSX | DOM node refs, timer IDs, mutable flags |
+
+#### 2. `useMemo` vs. `useCallback` vs. `React.memo`
+
+| Tool | What It Memoizes | Typical Use Case |
+| --- | --- | --- |
+| `useMemo(fn, deps)` | **Return value** of `fn()` | Expensive array filtering/sorting, stable object/context values |
+| `useCallback(fn, deps)` | **Function reference** `fn` itself | Passing stable callbacks to `React.memo` children or `useEffect` deps |
+| `React.memo(Component)` | **Rendered output** of `Component` | Skipping child re-renders when all props are shallowly equal |
+
+#### 3. `useEffect` vs. Event Handler vs. Render-Time Calculation
+
+| Need | Where to Put It | Why |
+| --- | --- | --- |
+| Compute `total` from `items` | **Directly during render** (or `useMemo` if heavy) | Zero extra render pass, never out of sync |
+| Submit form on button click | **Event handler** (`onSubmit` / `onClick`) | Runs once per user action with exact event context |
+| Sync with WebSocket / timer / DOM | **`useEffect` with cleanup** | Runs post-commit and cleans up automatically on unmount/change |
+
+</TopicSection>
+
+<TopicSection id="m02-p2-sec-l" letter="L" title="Tips to Remember (Mnemonics & Mental Models)">
+
+- **Rules of Hooks:** *"Top level only—never inside `if`, `for`, or nested functions (slots are positional!)."*
+- **Memoization Trio:** *"`useMemo` caches a **value**, `useCallback` caches a **function**, `React.memo` caches a **component**."*
+- **`useEffect` Question:** *"Am I synchronizing with an external system? If not, it belongs in render or an event handler."*
+
+</TopicSection>
+
+<TopicSection id="m02-p2-sec-mn" letter="M/N" title="Interview Questions & Detailed Answers">
+  <InterviewSection />
+</TopicSection>
+
+<TopicSection id="m02-p2-sec-o" letter="O" title="Practical Exercises">
+
+<ExerciseCard
+  title="Exercise 1: Effect Lifecycle & Stale-Request Guard Simulator"
+  prompt={
+    <p>
+      Write <code>createEffectRunner()</code> that tracks mounted effects, runs the previous cleanup before re-running when dependencies change (using <code>Object.is</code>), and runs final cleanup on <code>unmount()</code>.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function createEffectRunner() {
+  let prevDeps = null;
+  let cleanup = null;
+  let mounted = false;
+
+  return {
+    commit(effectFn, deps) {
+      if (typeof effectFn !== "function") throw new TypeError("effectFn must be a function");
+      if (!Array.isArray(deps)) throw new TypeError("deps must be an array");
+
+      const unchanged =
+        mounted &&
+        prevDeps !== null &&
+        prevDeps.length === deps.length &&
+        deps.every((d, i) => Object.is(d, prevDeps[i]));
+
+      if (unchanged) return false;
+      if (typeof cleanup === "function") cleanup();
+      const nextCleanup = effectFn();
+      cleanup = typeof nextCleanup === "function" ? nextCleanup : null;
+      prevDeps = deps.slice();
+      mounted = true;
+      return true;
+    },
+    unmount() {
+      if (typeof cleanup === "function") cleanup();
+      cleanup = null;
+      prevDeps = null;
+      mounted = false;
+    }
+  };
+}
+
+const log = [];
+const runner = createEffectRunner();
+runner.commit(() => { log.push("sub:1"); return () => log.push("unsub:1"); }, ["1"]);
+runner.commit(() => { log.push("sub:1-again"); }, ["1"]); // skipped!
+runner.commit(() => { log.push("sub:2"); return () => log.push("unsub:2"); }, ["2"]);
+runner.unmount();
+console.log("Effect trace:", log);`}
+  />
+</ExerciseCard>
+
+<ExerciseCard
+  title="Exercise 2: Memoized Selector (createMemoSelector) Modeling useMemo"
+  prompt={
+    <p>
+      Write <code>createMemoSelector(computeFn)</code> that caches the last result and recomputes only when the dependency array changes by <code>Object.is</code>, rejecting non-array deps or non-function <code>computeFn</code>.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function createMemoSelector(computeFn) {
+  if (typeof computeFn !== "function") throw new TypeError("computeFn must be a function");
+  let hasCache = false;
+  let lastDeps = null;
+  let lastResult;
+
+  return function select(deps) {
+    if (!Array.isArray(deps)) throw new TypeError("deps must be an array");
+    const hit =
+      hasCache &&
+      lastDeps.length === deps.length &&
+      deps.every((d, i) => Object.is(d, lastDeps[i]));
+
+    if (!hit) {
+      lastResult = computeFn(...deps);
+      lastDeps = deps.slice();
+      hasCache = true;
+    }
+    return lastResult;
+  };
+}
+
+let runs = 0;
+const sumFiltered = createMemoSelector((nums, min) => {
+  runs++;
+  return nums.filter((n) => n >= min).reduce((a, b) => a + b, 0);
+});
+const arr = [1, 5, 10];
+console.log("Call 1:", sumFiltered([arr, 5]), "| Call 2 (hit):", sumFiltered([arr, 5]), "| Runs:", runs);`}
+  />
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m02-p2-sec-p" letter="P" title="Advanced Challenge">
+
+<Callout variant="warn" title="Senior Challenge: Fixing Cascading Context & Effect Re-Renders">
+  <p>
+    A React dashboard has a <code>DashboardContext</code> holding <code>&#123; filters, rows, selectedId, setSelectedId &#125;</code> and a search bar with a <code>useEffect</code> that fetches rows without cleanup. Users report lag on every click and occasional stale rows overwriting newer searches.
+  </p>
+  <p>
+    <strong>Your Task:</strong> Explain how you (1) split context by update frequency and memoize provider values, (2) add <code>AbortController</code> cleanup to <code>useEffect</code>, and (3) pair <code>React.memo</code> + <code>useCallback</code> on table rows without premature over-memoization.
+  </p>
+</Callout>
+
+<ExerciseCard
+  title="Reference Architecture Notes"
+  prompt={null}
+  buttonLabel="Reveal Approach"
+  hideLabel="Hide Approach"
+>
+  <ol>
+    <li>Split <code>FiltersContext</code> from <code>SelectionContext</code> (and memoize provider objects with <code>useMemo</code>) so selecting a row does not re-render filter controls or unrelated charts.</li>
+    <li>Use <code>AbortController</code> in <code>useEffect</code> cleanup so superseded search fetches abort immediately before calling <code>setRows</code>.</li>
+    <li>Wrap <code>TableRow</code> in <code>React.memo</code> and stabilize <code>onSelect</code> with <code>useCallback(..., [])</code> (using functional state updates or stable dispatchers).</li>
+  </ol>
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m02-p2-sec-q" letter="Q" title="Summary & Key Takeaways">
+
+- **Rules of Hooks:** Hooks map to positional Fiber slots (`fiber.memoizedState`), so always call them at the top level—never conditionally.
+- **State vs. Refs vs. Effects:** `useState` triggers re-renders with snapshot semantics; `useRef` mutates `.current` silently; `useEffect` synchronizes with external systems post-commit and cleans up via `return () => ...`.
+- **Memoization Discipline:** `useMemo` caches values, `useCallback` caches functions, and `React.memo` bails out on shallow-equal props (`Object.is`)—profile first and avoid inline props that defeat `React.memo`.
+- **Custom Hooks:** Extract reusable stateful logic into `use*` functions with isolated per-component hook slots.
+
+</TopicSection>

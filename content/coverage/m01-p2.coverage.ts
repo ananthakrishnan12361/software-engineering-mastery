@@ -12,9 +12,13 @@ export const m01p2Coverage: LessonCoverageSpec = {
       explanationHeadings: [
         "1. Objects: Key-Value Records, Prototypes & Property Descriptors",
         "1. V8 Hidden Classes (Maps) & Inline Caches for Objects",
-        "1. Plain `Object` vs. `Map` vs. `Set`"
+        "1. Plain `Object` vs. `Map` vs. `Set` vs. `WeakMap` / `WeakSet`",
+        "2. Shallow vs. Deep Copying Strategies"
       ],
-      exampleTitles: ["Example 1: Objects, `Object.hasOwn`, Property Descriptors & `structuredClone`"],
+      exampleTitles: [
+        "Example 1: Objects, `Object.hasOwn`, Property Descriptors & `structuredClone`",
+        "Example 6: `WeakMap` & `WeakSet` for Leak-Free Object Metadata"
+      ],
       interviewQuestionIds: ["m01-p2-iq-2", "m01-p2-iq-3", "m01-p2-iq-5", "m01-p2-iq-6"],
       exerciseTitles: ["Exercise 1: Prototype-Pollution-Safe Config Merger"]
     },
@@ -47,7 +51,7 @@ export const m01p2Coverage: LessonCoverageSpec = {
       anchorId: "m01-p2-topic-oop",
       explanationHeadings: [
         "4. OOP: Modeling Domains Around Collaborating Objects",
-        "2. Composition vs. Inheritance"
+        "3. Composition vs. Inheritance"
       ],
       exampleTitles: ["Example 3: Classes, `#private` Encapsulation, Polymorphism & SOLID in Action"],
       interviewQuestionIds: ["m01-p2-iq-1", "m01-p2-iq-7"],
@@ -80,7 +84,7 @@ export const m01p2Coverage: LessonCoverageSpec = {
       anchorId: "m01-p2-topic-inheritance",
       explanationHeadings: [
         "7. Inheritance: Shallow `extends` Taxonomies vs. Composition",
-        "2. Composition vs. Inheritance"
+        "3. Composition vs. Inheritance"
       ],
       exampleTitles: ["Example 4: Inheritance (`extends`, `super`), `#private` Isolation & Liskov Substitution"],
       interviewQuestionIds: ["m01-p2-iq-1", "m01-p2-iq-9"],
@@ -102,9 +106,12 @@ export const m01p2Coverage: LessonCoverageSpec = {
       anchorId: "m01-p2-topic-solid",
       explanationHeadings: [
         "9. SOLID Fundamentals: Five Guidelines for Modular Change",
-        "3. SOLID Principles Quick Decision Guide"
+        "4. SOLID Principles Quick Decision Guide"
       ],
-      exampleTitles: ["Example 3: Classes, `#private` Encapsulation, Polymorphism & SOLID in Action"],
+      exampleTitles: [
+        "Example 3: Classes, `#private` Encapsulation, Polymorphism & SOLID in Action",
+        "Example 5: SOLID — Single Responsibility (SRP) & Interface Segregation (ISP)"
+      ],
       interviewQuestionIds: ["m01-p2-iq-7", "m01-p2-iq-9"],
       exerciseTitles: ["Exercise 3: Refactoring Switch Logic to SOLID (OCP + DIP)"]
     }
@@ -323,26 +330,105 @@ export const m01p2Coverage: LessonCoverageSpec = {
     },
     {
       blockIndex: 5,
+      label: "Example 5: SOLID — Single Responsibility (SRP) & Interface Segregation (ISP)",
+      expectedStdoutIncludes: ["Invoice INV-101: $30.00", 'ISP read-only snapshot: {"balanceCents":3000}'],
+      minStdoutLines: 2,
+      testValidAndInvalidInputs: (run) => {
+        assert.equal(run(`return calc.subtotalCents([{ unitCents: 100, qty: 3 }]);`), 300);
+        assert.equal(run(`return fmt.toSummaryText("INV-9", 50);`), "Invoice INV-9: $0.50");
+        assert.deepEqual(run(`return createReadOnlyAuditView({ getBalanceCents: () => 42 }).snapshot();`), {
+          balanceCents: 42
+        });
+        assert.throws(() => run(`return calc.subtotalCents([]);`), TypeError);
+        assert.throws(() => run(`return calc.subtotalCents([{ unitCents: -1, qty: 1 }]);`), TypeError);
+        assert.throws(() => run(`return calc.subtotalCents([{ unitCents: 100, qty: 0 }]);`), TypeError);
+        assert.throws(() => run(`return fmt.toSummaryText("", 100);`), TypeError);
+        assert.throws(() => run(`return fmt.toSummaryText("INV-1", -1);`), RangeError);
+        assert.throws(() => run(`return createReadOnlyAuditView({});`), TypeError);
+      },
+      safetyMutations: [
+        {
+          description: "Removing empty-items guard in InvoiceCalculator.subtotalCents allows empty invoice total 0",
+          mutateCode: (raw) =>
+            raw.replace(/if \(!Array\.isArray\(items\) \|\| items\.length === 0\)\s*\{[^}]*\}/, "/* guard removed */"),
+          verifyProtection: (run) => {
+            assert.throws(() => run(`return calc.subtotalCents([]);`), TypeError);
+          }
+        },
+        {
+          description: "Removing ISP interface check in createReadOnlyAuditView defers failure until snapshot()",
+          mutateCode: (raw) =>
+            raw.replace(
+              /if \(!ledgerReader \|\| typeof ledgerReader\.getBalanceCents !== "function"\)\s*\{[^}]*\}/,
+              "/* guard removed */"
+            ),
+          verifyProtection: (run) => {
+            assert.throws(() => run(`return createReadOnlyAuditView({});`), TypeError);
+          }
+        }
+      ]
+    },
+    {
+      blockIndex: 6,
+      label: "Example 6: WeakMap & WeakSet for Leak-Free Object Metadata",
+      expectedStdoutIncludes: [
+        'Timing tagged: {"startedAtMs":120}',
+        "First process: true | Duplicate process: false"
+      ],
+      minStdoutLines: 2,
+      testValidAndInvalidInputs: (run) => {
+        const res = run(`
+          const r = { id: 1 };
+          return {
+            tag: tagRequest(r, 55),
+            first: markProcessedOnce(r),
+            second: markProcessedOnce(r)
+          };
+        `) as { tag: { startedAtMs: number }; first: boolean; second: boolean };
+        assert.deepEqual(res.tag, { startedAtMs: 55 });
+        assert.equal(res.first, true);
+        assert.equal(res.second, false);
+
+        assert.throws(() => run(`return tagRequest("primitive", 10);`), TypeError);
+        assert.throws(() => run(`return tagRequest(null, 10);`), TypeError);
+        assert.throws(() => run(`return tagRequest({}, -1);`), RangeError);
+        assert.throws(() => run(`return markProcessedOnce(42);`), TypeError);
+      },
+      safetyMutations: [
+        {
+          description: "Removing negative startedAtMs guard allows invalid timing metadata",
+          mutateCode: (raw) =>
+            raw.replace(/if \(!Number\.isFinite\(startedAtMs\) \|\| startedAtMs < 0\)\s*\{[^}]*\}/, "/* guard removed */"),
+          verifyProtection: (run) => {
+            assert.throws(() => run(`return tagRequest({}, -5);`), RangeError);
+          }
+        }
+      ]
+    },
+    {
+      blockIndex: 7,
       label: "Exercise 1: Prototype-Pollution-Safe Config Merger",
-      expectedStdoutIncludes: ['"theme":"dark"', '"timeoutMs":3000', "Object.prototype polluted? false"],
+      expectedStdoutIncludes: ['"theme":"dark"', '"timeoutMs":3000', "Prototype polluted? false"],
       minStdoutLines: 2,
       testValidAndInvalidInputs: (run) => {
         const res = run(`
           const proto = { inheritedSecret: "leak" };
           const withProto = Object.create(proto);
           withProto.safeKey = 42;
+          const nullProto = Object.assign(Object.create(null), { fromNullProto: true });
           const evil = JSON.parse('{"__proto__":{"pwned":true},"constructor":{"bad":1},"prototype":{"bad":2},"ok":true}');
           const baseEvil = JSON.parse('{"__proto__":{"fromBase":true},"baseOnly":1}');
           const m = safeMerge(baseEvil, evil);
-          const m2 = safeMerge({}, withProto);
+          const m2 = safeMerge(nullProto, withProto);
           return {
             ok: m.ok,
             baseOnly: m.baseOnly,
             hasOwnCtor: Object.hasOwn(m, "constructor"),
             hasOwnProto: Object.hasOwn(m, "__proto__"),
-            pwned: ({}).pwned === true,
+            pwned: m.pwned === true || ({}).pwned === true,
             fromBase: m.fromBase === true,
             m2Safe: m2.safeKey,
+            m2NullProto: m2.fromNullProto,
             m2Leaked: Object.hasOwn(m2, "inheritedSecret")
           };
         `) as Record<string, unknown>;
@@ -353,13 +439,16 @@ export const m01p2Coverage: LessonCoverageSpec = {
         assert.equal(res.pwned, false);
         assert.equal(res.fromBase, false);
         assert.equal(res.m2Safe, 42);
+        assert.equal(res.m2NullProto, true);
         assert.equal(res.m2Leaked, false);
 
-        // Edge cases: null, primitives, arrays rejected symmetrically
+        // Edge cases: null, primitives, arrays, Date, RegExp rejected symmetrically
         assert.throws(() => run(`return safeMerge(null, { a: 1 });`), TypeError);
         assert.throws(() => run(`return safeMerge({ a: 1 }, null);`), TypeError);
         assert.throws(() => run(`return safeMerge({}, "abc");`), TypeError);
         assert.throws(() => run(`return safeMerge([], {});`), TypeError);
+        assert.throws(() => run(`return safeMerge(new Date(), {});`), TypeError);
+        assert.throws(() => run(`return safeMerge({}, /abc/);`), TypeError);
       },
       safetyMutations: [
         {
@@ -389,7 +478,7 @@ export const m01p2Coverage: LessonCoverageSpec = {
       ]
     },
     {
-      blockIndex: 6,
+      blockIndex: 8,
       label: "Exercise 2: Non-Mutating Array Analytics Pipeline",
       expectedStdoutIncludes: ['"id":"o3"', '"id":"o4"', "Original first item untouched: o1"],
       minStdoutLines: 2,
@@ -421,7 +510,7 @@ export const m01p2Coverage: LessonCoverageSpec = {
       ]
     },
     {
-      blockIndex: 7,
+      blockIndex: 9,
       label: "Exercise 3: Refactoring Switch Logic to SOLID (OCP + DIP)",
       expectedStdoutIncludes: ["FLAT500 on 3000: 2500", "PCT10 on 3000: 2700"],
       minStdoutLines: 2,
@@ -429,11 +518,13 @@ export const m01p2Coverage: LessonCoverageSpec = {
         assert.equal(run(`return calc.apply("FLAT500", 3000);`), 2500);
         assert.equal(run(`return calc.apply("PCT10", 3000);`), 2700);
         assert.equal(run(`return calc.apply("FLAT500", 200);`), 0);
+        assert.throws(() => run(`return calc.apply("", 1000);`), TypeError);
+        assert.throws(() => run(`return calc.apply(123, 1000);`), TypeError);
         assert.throws(() => run(`return calc.apply("UNKNOWN", 1000);`), /Unknown discount code/);
         // Prototype property keys like "constructor" or "toString" safely reject instead of running Object.prototype functions
         assert.throws(() => run(`return calc.apply("toString", 1000);`), /Unknown discount code/);
 
-        // Edge cases: negative/NaN/fractional subtotal, invalid register args, LSP postcondition violation
+        // Edge cases: negative/NaN/fractional subtotal, invalid register args, LSP postcondition violations
         assert.throws(() => run(`return calc.apply("PCT10", -500);`), RangeError);
         assert.throws(() => run(`return calc.apply("FLAT500", NaN);`), RangeError);
         assert.throws(() => run(`return calc.apply("PCT10", 19.99);`), RangeError);
@@ -441,6 +532,9 @@ export const m01p2Coverage: LessonCoverageSpec = {
         assert.throws(() => run(`calc.register("BAD", "not-fn");`), TypeError);
         assert.throws(() => {
           run(`calc.register("LSP_BROKEN", () => -10); return calc.apply("LSP_BROKEN", 100);`);
+        }, RangeError);
+        assert.throws(() => {
+          run(`calc.register("LSP_INFLATE", (c) => c + 50); return calc.apply("LSP_INFLATE", 100);`);
         }, RangeError);
       },
       safetyMutations: [
@@ -463,19 +557,26 @@ export const m01p2Coverage: LessonCoverageSpec = {
               "/* subtotal guard removed */"
             ),
           verifyProtection: (run) => {
-            assert.throws(() => run(`return calc.apply("FLAT500", -500);`), RangeError);
+            assert.throws(
+              () => run(`return calc.apply("FLAT500", -500);`),
+              /subtotalCents must be a non-negative safe integer/
+            );
           }
         },
         {
-          description: "Removing LSP postcondition guard allows strategy returning negative cents",
+          description: "Removing LSP postcondition guard allows strategy returning negative or inflated cents",
           mutateCode: (raw) =>
             raw.replace(
-              /if \(!Number\.isSafeInteger\(finalCents\) \|\| finalCents < 0\)\s*\{[^}]*\}/,
+              /if \(!Number\.isSafeInteger\(finalCents\) \|\| finalCents < 0 \|\| finalCents > subtotalCents\)\s*\{[^}]*\}/,
               "/* LSP output guard removed */"
             ),
           verifyProtection: (run) => {
             assert.throws(
               () => run(`calc.register("LSP_BROKEN", () => -10); return calc.apply("LSP_BROKEN", 100);`),
+              RangeError
+            );
+            assert.throws(
+              () => run(`calc.register("LSP_INFLATE", (c) => c + 50); return calc.apply("LSP_INFLATE", 100);`),
               RangeError
             );
           }

@@ -1,0 +1,453 @@
+<Callout variant="info" title="Topics Covered in Part 5 (M01-P5)">
+  <p>
+    This lesson covers the 5 TypeScript topics completing Module 1: <strong>TypeScript fundamentals</strong>, <strong>Type systems</strong>, <strong>Generics</strong>, <strong>Interfaces</strong>, and <strong>Type safety</strong>.
+  </p>
+</Callout>
+
+<TopicSection id="m01-p5-sec-a" letter="A" title="Topic Introduction">
+
+#### What is this?
+
+**TypeScript** is a statically typed superset of JavaScript developed by Microsoft that compiles (**erases types**) down to standard ECMAScript. Its **type system** checks contracts—**interfaces**, **generics**, unions, and **type safety** invariants—at compile time before code ever ships to a browser or Node.js process.
+
+#### Why does it exist & what problem does it solve?
+
+In large JavaScript codebases, refactoring a function signature, renaming a DTO field (`user.fullName` &rarr; `user.displayName`), or forgetting a `null` check silently passes until a customer hits `TypeError: Cannot read properties of undefined` in production. TypeScript catches those entire bug classes in your editor and CI pipeline.
+
+#### Where is it used in real-world software?
+
+Nearly all modern React, Next.js, Node.js/NestJS, and full-stack teams use TypeScript (`strict: true`) to share API contracts between backend and frontend, type database query results (Prisma/Drizzle), and enforce exhaustive error handling across multi-team repositories.
+
+</TopicSection>
+
+<TopicSection id="m01-p5-sec-b" letter="B" title="Fundamentals (Simple Mental Models)">
+
+<TopicAnchor id="m01-p5-topic-typescript-fundamentals" />
+
+#### 1. TypeScript Fundamentals: Compile-Time Checking & Type Erasure
+
+**TypeScript fundamentals** rest on one crucial mental model: TypeScript adds static type annotations (`const port: number = 3000;`) that `tsc` checks during build time and **completely erases** from the emitted `.js` output.
+
+Because types do not exist at runtime in the emitted JavaScript, TypeScript cannot protect you from malformed JSON coming over an HTTP request or `JSON.parse()` unless you pair static types with runtime type guards or schema validators.
+
+<TopicAnchor id="m01-p5-topic-type-systems" />
+
+#### 2. Type Systems: Structural Typing, Unions & Narrowing
+
+Unlike Java or C# (**nominal typing**, where two types with identical fields are incompatible unless they share a named class/interface), TypeScript uses a **structural type system** (*"duck typing at compile time"*): if `{ id: string; name: string }` has every required field of `{ id: string }`, it satisfies `{ id: string }` automatically.
+
+TypeScript also excels at combining types (**union types** like `"idle" | "loading" | "error"`, **intersection types** `A & B`) and **control-flow narrowing** (`typeof`, `in`, `Array.isArray`, or discriminated-union `switch (res.kind)`).
+
+<TopicAnchor id="m01-p5-topic-generics" />
+
+#### 3. Generics: Reusable Type-Safe Abstractions
+
+<GlossaryTerm definition="Type parameters (such as <T>) that let functions, classes, and interfaces preserve caller-specific types without falling back to any.">Generics</GlossaryTerm> (`function first<T>(items: T[]): T | undefined`) act like **function parameters for types**. Instead of duplicating `firstNumber(arr: number[])` and `firstUser(arr: User[])`—or losing all autocomplete with `any`—generics preserve the exact input type through to the output.
+
+You can constrain generics with `extends` (`<T extends { id: string }>`) so a generic helper safely accesses `item.id` while still returning the caller's full specific subtype.
+
+<TopicAnchor id="m01-p5-topic-interfaces" />
+
+#### 4. Interfaces: Contracts, `type` Aliases & Declaration Merging
+
+An <GlossaryTerm definition="A named TypeScript structural contract describing object shapes, method signatures, and optional/readonly properties.">Interface</GlossaryTerm> (`interface PaymentGateway { charge(cents: number): Promise<Receipt>; }`) defines the public contract a class or object must satisfy. Use `readonly` for immutable fields and `?` for optional properties.
+
+`interface` and `type` overlap heavily for object shapes: prefer `interface` for public object/class contracts (clearer error messages, `extends`, and **declaration merging**—where multiple `interface` blocks with the same name in one scope automatically merge, whereas duplicate `type` aliases error) and `type` for unions (`Result<T>`), tuples, and mapped/conditional utility types (`Partial<T>`, `Pick<T, K>`, `Omit<T, K>`).
+
+<TopicAnchor id="m01-p5-topic-type-safety" />
+
+#### 5. Type Safety: `strict`, `unknown` vs. `any` & Runtime Boundaries
+
+**Type safety** means the compiler guarantees operations only run on compatible values. Enabling `"strict": true` in `tsconfig.json` turns on `strictNullChecks`, `noImplicitAny`, and `strictFunctionTypes`—preventing silent `null`/`undefined` crashes.
+
+Never use `any` (which disables type checking completely and spreads virally); use **`unknown`** for untrusted inputs (`JSON.parse`, `catch (err: unknown)`), forcing explicit runtime narrowing before accessing any property.
+
+</TopicSection>
+
+<TopicSection id="m01-p5-sec-c" letter="C" title="Internal Working & Architecture">
+
+#### 1. TypeScript Compiler Pipeline & Type Erasure Boundary
+
+`tsc` parses `.ts`/`.tsx` source into an AST, binds symbols, runs the **Type Checker** across structural relationships and control-flow graphs, and then **strips all type annotations** to emit clean JavaScript.
+
+<DiagramCard caption="Figure 1.9 — TypeScript checks types at compile time and erases them in emitted JS; runtime boundaries must still validate untrusted data.">
+  <svg viewBox="0 0 820 210" role="img" aria-label="TypeScript compile-time type checking, type erasure, and runtime boundary validation">
+    <rect x="10" y="10" width="800" height="190" rx="10" fill="var(--bg-subtle)" stroke="var(--border)" />
+
+    <rect x="28" y="34" width="230" height="142" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" />
+    <text x="143" y="60" textAnchor="middle" fill="var(--accent-strong)" fontSize="13.5" fontWeight="700" fontFamily="sans-serif">1. .ts Source (Compile)</text>
+    <text x="143" y="88" textAnchor="middle" fill="var(--text-primary)" fontSize="12" fontFamily="monospace">interface User &#123; id: string &#125;</text>
+    <text x="143" y="114" textAnchor="middle" fill="var(--text-secondary)" fontSize="11.5" fontFamily="sans-serif">Structural + Strict Checks</text>
+    <text x="143" y="140" textAnchor="middle" fill="var(--success)" fontSize="11.5" fontWeight="700" fontFamily="sans-serif">Catches bugs before build</text>
+
+    <line x1="258" y1="105" x2="305" y2="105" stroke="var(--accent)" strokeWidth="2" />
+    <polygon points="305,105 295,100 295,110" fill="var(--accent)" />
+
+    <rect x="309" y="34" width="225" height="142" rx="8" fill="var(--bg-surface)" stroke="var(--border-strong)" />
+    <text x="421" y="60" textAnchor="middle" fill="var(--text-primary)" fontSize="13.5" fontWeight="700" fontFamily="sans-serif">2. Emitted .js (Runtime)</text>
+    <text x="421" y="88" textAnchor="middle" fill="var(--text-secondary)" fontSize="12" fontFamily="monospace">Types ERASED (0 overhead)</text>
+    <text x="421" y="114" textAnchor="middle" fill="var(--warning)" fontSize="11.5" fontWeight="700" fontFamily="sans-serif">JSON.parse / req.body</text>
+    <text x="421" y="140" textAnchor="middle" fill="var(--danger)" fontSize="11.5" fontFamily="sans-serif">Unsafe `as User` lies!</text>
+
+    <line x1="534" y1="105" x2="581" y2="105" stroke="var(--success)" strokeWidth="2" />
+    <polygon points="581,105 571,100 571,110" fill="var(--success)" />
+
+    <rect x="585" y="34" width="207" height="142" rx="8" fill="var(--success-soft)" stroke="var(--success)" />
+    <text x="688" y="60" textAnchor="middle" fill="var(--success)" fontSize="13.5" fontWeight="700" fontFamily="sans-serif">3. Runtime Guard</text>
+    <text x="688" y="88" textAnchor="middle" fill="var(--text-primary)" fontSize="12" fontFamily="monospace">input: unknown</text>
+    <text x="688" y="114" textAnchor="middle" fill="var(--text-secondary)" fontSize="11.5" fontFamily="sans-serif">Type predicate / Zod</text>
+    <text x="688" y="140" textAnchor="middle" fill="var(--success)" fontSize="11.5" fontWeight="700" fontFamily="sans-serif">100% end-to-end safety</text>
+  </svg>
+</DiagramCard>
+
+#### 2. Discriminated Unions & Exhaustiveness Checking (`never`)
+
+By pairing a literal tag (`ok: true | false`) with an `if`/`switch` check and a `never` default helper (`assertNever(x: never)`), the TypeScript compiler forces every caller to update all branches whenever a new union member is added.
+
+<DiagramCard caption="Figure 1.10 — Control-flow narrowing and exhaustive never checks over a discriminated union Result&lt;T, E&gt;.">
+  <svg viewBox="0 0 820 185" role="img" aria-label="Discriminated union narrowing and exhaustive never check">
+    <rect x="10" y="10" width="800" height="165" rx="10" fill="var(--bg-subtle)" stroke="var(--border)" />
+
+    <rect x="28" y="32" width="250" height="120" rx="8" fill="var(--bg-surface)" stroke="var(--border-strong)" />
+    <text x="153" y="58" textAnchor="middle" fill="var(--accent-strong)" fontSize="13" fontWeight="700" fontFamily="monospace">Result&lt;T, E&gt;</text>
+    <text x="153" y="86" textAnchor="middle" fill="var(--text-primary)" fontSize="11.5" fontFamily="monospace">&#123; ok: true; value: T &#125;</text>
+    <text x="153" y="110" textAnchor="middle" fill="var(--text-primary)" fontSize="11.5" fontFamily="monospace">| &#123; ok: false; error: E &#125;</text>
+
+    <line x1="278" y1="92" x2="330" y2="92" stroke="var(--accent)" strokeWidth="2" />
+    <polygon points="330,92 320,87 320,97" fill="var(--accent)" />
+
+    <rect x="334" y="32" width="220" height="120" rx="8" fill="var(--success-soft)" stroke="var(--success)" />
+    <text x="444" y="58" textAnchor="middle" fill="var(--success)" fontSize="13" fontWeight="700" fontFamily="monospace">if (res.ok)</text>
+    <text x="444" y="86" textAnchor="middle" fill="var(--text-primary)" fontSize="11.5" fontFamily="sans-serif">Narrows to Ok&lt;T&gt;</text>
+    <text x="444" y="110" textAnchor="middle" fill="var(--text-secondary)" fontSize="11.5" fontFamily="monospace">res.value is T</text>
+
+    <rect x="574" y="32" width="218" height="120" rx="8" fill="var(--warning-soft)" stroke="var(--warning)" />
+    <text x="683" y="58" textAnchor="middle" fill="var(--warning)" fontSize="13" fontWeight="700" fontFamily="monospace">else / default: never</text>
+    <text x="683" y="86" textAnchor="middle" fill="var(--text-primary)" fontSize="11.5" fontFamily="sans-serif">Narrows to Err&lt;E&gt;</text>
+    <text x="683" y="110" textAnchor="middle" fill="var(--text-secondary)" fontSize="11.5" fontFamily="monospace">Exhaustive compile error</text>
+  </svg>
+</DiagramCard>
+
+</TopicSection>
+
+<TopicSection id="m01-p5-sec-d" letter="D" title="Practical Examples (Interactive)">
+
+#### Example 1: TypeScript Interfaces, Generics & Discriminated Unions (Compile-Time Reference)
+
+<CodeBlock
+  lang="typescript"
+  code={`// Compile-time TypeScript contracts (erased in emitted JS)
+export interface Entity {
+  readonly id: string;
+}
+
+export type ApiResult<T> =
+  | { readonly ok: true; readonly data: T }
+  | { readonly ok: false; readonly code: "NOT_FOUND" | "VALIDATION"; readonly message: string };
+
+export function indexById<T extends Entity>(items: readonly T[]): Map<string, T> {
+  const map = new Map<string, T>();
+  for (const item of items) map.set(item.id, item);
+  return map;
+}
+
+export function assertNever(x: never): never {
+  throw new Error(\`Unexpected discriminated union variant: \${String(x)}\`);
+}`}
+/>
+
+#### Example 2: Runtime Type Guard (`unknown` &rarr; Verified `OrderDTO`)
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// Runtime type guard backing TypeScript's \`raw: unknown\` -> \`raw is OrderDTO\`
+function isPlainRecord(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function parseOrderDTO(raw) {
+  if (!isPlainRecord(raw)) {
+    throw new TypeError("Order payload must be a plain object");
+  }
+  if (typeof raw.id !== "string" || raw.id.trim().length === 0) {
+    throw new TypeError("Order.id must be a non-empty string");
+  }
+  if (!Number.isSafeInteger(raw.totalCents) || raw.totalCents < 0) {
+    throw new RangeError("Order.totalCents must be a non-negative safe integer");
+  }
+  if (raw.currency !== "USD" && raw.currency !== "EUR") {
+    throw new TypeError("Order.currency must be 'USD' or 'EUR'");
+  }
+  const totalCents = raw.totalCents === 0 ? 0 : raw.totalCents;
+  return Object.freeze({ id: raw.id.trim(), totalCents, currency: raw.currency });
+}
+
+console.log("Parsed DTO:", parseOrderDTO({ id: "ord_1", totalCents: 2500, currency: "USD" }));`}
+/>
+
+#### Example 3: Exhaustive Discriminated Union Handler & `indexById` Generic Runtime
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// Runtime implementation matching TS \`indexById<T extends { id: string }>\` & \`ApiResult<T>\`
+function indexById(items) {
+  if (!Array.isArray(items)) throw new TypeError("items must be an array");
+  const map = new Map();
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+    if (!item || typeof item !== "object" || typeof item.id !== "string" || item.id.trim().length === 0) {
+      throw new TypeError(\`items[\${i}] must have a non-empty string id\`);
+    }
+    const id = item.id.trim();
+    if (map.has(id)) throw new RangeError(\`Duplicate id: \${id}\`);
+    map.set(id, item);
+  }
+  return map;
+}
+
+function formatApiResult(res) {
+  if (!res || typeof res !== "object") throw new TypeError("Result must be an object");
+  switch (res.ok) {
+    case true:
+      if (!Object.hasOwn(res, "data") || res.data === undefined) {
+        throw new TypeError("Success result must include data");
+      }
+      return \`OK: \${JSON.stringify(res.data)}\`;
+    case false:
+      if (typeof res.code !== "string" || res.code.trim().length === 0 || typeof res.message !== "string") {
+        throw new TypeError("Error result must include code and message strings");
+      }
+      return \`ERR[\${res.code}]: \${res.message}\`;
+    default:
+      throw new TypeError(\`Unhandled result variant: \${String(res.ok)}\`);
+  }
+}
+
+const byId = indexById([{ id: "u1", role: "admin" }, { id: "u2", role: "viewer" }]);
+console.log("Lookup u1:", byId.get("u1"));
+console.log("Result:", formatApiResult({ ok: true, data: { count: byId.size } }));`}
+/>
+
+</TopicSection>
+
+<TopicSection id="m01-p5-sec-e" letter="E" title="Step-by-Step Walkthrough">
+
+Trace how **`parseOrderDTO`** (**Example 2**) bridges compile-time TypeScript and runtime JavaScript:
+
+1. **Ingress as `unknown`:** An HTTP route receives `JSON.parse(body)` typed as `unknown` (never `any` and never an unsafe `body as OrderDTO` cast).
+2. **Structural Object Guard:** `isPlainRecord(raw)` verifies `raw` is a non-null, non-array object before reading any property.
+3. **Field-by-Field Narrowing:** Each check (`typeof raw.id === "string"`, `Number.isSafeInteger(raw.totalCents)`, union check on `currency`) narrows the type in TypeScript and throws an explicit `TypeError` or `RangeError` at runtime if violated.
+4. **Immutable Return (`readonly`):** `Object.freeze(...)` aligns runtime immutability with TypeScript's `readonly` interface properties.
+
+</TopicSection>
+
+<TopicSection id="m01-p5-sec-f" letter="F" title="Real-World Use Cases">
+
+#### Scenario 1: End-to-End API Contracts Between Express/Node.js & React
+
+**Problem:** A backend engineer renames `order.amount` to `order.amountCents` in an API response, breaking three React components silently until customers see `$NaN` on checkout.
+
+**Production Solution:** Share TypeScript `interface OrderDTO` contracts in a shared types package, enable `strict: true`, and validate payloads at the Express/fetch boundary with runtime guards (e.g., Zod or `parseOrderDTO`), turning breaking changes into immediate compile errors.
+
+#### Scenario 2: Exhaustive State Machines in React Reducers & Workflow Engines
+
+**Problem:** A payment workflow adds a new `"REFUNDED"` status, but two `switch` statements in billing and analytics forget to handle it, falling through silently.
+
+**Production Solution:** Model statuses as a discriminated union and place `assertNever(state)` in the `default` branch so `tsc` fails the build until every consumer handles `"REFUNDED"`.
+
+</TopicSection>
+
+<TopicSection id="m01-p5-sec-g" letter="G" title="Common Mistakes">
+
+- **Using `any` as an escape hatch:** Disables type checking across every caller that receives that value.
+- **Trusting `data as MyInterface` on `fetch` / `JSON.parse`:** Type assertions tell the compiler *"trust me"* without emitting any runtime validation check!
+- **Disabling `strictNullChecks`:** Allows `undefined`/`null` to slip into string/array methods until runtime crashes occur.
+- **Over-complex conditional/mapped type gymnastics:** Unreadable 20-line type puzzles slow down `tsc` and confuse teammates when a simple discriminated union or generic interface suffices.
+
+</TopicSection>
+
+<TopicSection id="m01-p5-sec-h" letter="H" title="Best Practices">
+
+- **Always enable `"strict": true` (and `noUncheckedIndexedAccess` for safer array/record indexing)** in `tsconfig.json`.
+- **Use `unknown` at all external boundaries** (`JSON.parse`, `catch (err: unknown)`, `req.body`) and narrow with type guards or schema validators.
+- **Prefer discriminated unions over optional-field soup** (e.g., `{ status: "ok"; data: T } | { status: "error"; error: Error }` instead of `{ loading?: boolean; data?: T; error?: Error }`).
+- **Keep generics minimal and constrained** (`<T extends Entity>`), letting TypeScript infer type arguments from call sites whenever possible.
+
+</TopicSection>
+
+<TopicSection id="m01-p5-sec-i" letter="I" title="Performance & Scalability">
+
+- **Zero Runtime Overhead from Types:** Erased interfaces, type aliases, and generics add **0 bytes** and **0ms** to production JavaScript bundles.
+- **Compiler Build Speed (`tsc`):** Prefer `interface extends` over large `&` intersections for huge object graphs—`tsc` caches interface hierarchies much faster than flattened intersections. Use project references (`composite: true`) in monorepos.
+
+</TopicSection>
+
+<TopicSection id="m01-p5-sec-j" letter="J" title="Security Considerations">
+
+- **The Type-Assertion Illusion (`as AdminUser`):** An attacker sending `{ "role": "admin" }` or `{ "totalCents": -500 }` bypasses compile-time types completely at runtime. Always pair TS interfaces with runtime validation at ingress.
+- **Avoid `eval` / `Function` & Untyped `Record<string, any>`:** Use `Map<string, T>` or `satisfies Record<KnownKey, Handler>` so dynamic user keys cannot collide with `Object.prototype`.
+
+</TopicSection>
+
+<TopicSection id="m01-p5-sec-k" letter="K" title="Comparisons & Decision Tables">
+
+#### 1. `any` vs. `unknown` vs. `never`
+
+| Type | Meaning | Allows Property Access Without Narrowing? | Primary Use Case |
+| --- | --- | --- | --- |
+| `any` | Disables type checking (top + bottom) | Yes (unsafe!) | Avoid; temporary legacy JS migration only |
+| `unknown` | Type-safe top type (any value, unknown shape) | **No** (must narrow first) | Untrusted inputs (`JSON.parse`, `catch (err)`) |
+| `never` | Bottom type (impossible/unreachable value) | N/A | Exhaustive `switch` checks, throwing functions |
+
+#### 2. `interface` vs. `type` Alias
+
+| Feature | `interface` | `type` |
+| --- | --- | --- |
+| Object & class `implements` | Yes (idiomatic) | Yes (for object types) |
+| Unions (`A \| B`) & Primitives | No | **Yes** |
+| Declaration merging | Yes | No |
+| `tsc` performance on large graphs | Faster (`extends` caching) | Slower on deep `&` intersections |
+
+#### 3. Structural Typing (TypeScript) vs. Nominal Typing (Java / C#)
+
+| Dimension | Structural Typing (TypeScript) | Nominal Typing (Java / C#) |
+| --- | --- | --- |
+| Compatibility rule | Same shape/properties = compatible | Must explicitly declare `implements` / `extends` |
+| Ergonomics with JSON/DTOs | Seamless with plain object literals | Requires explicit mapper classes |
+| Trap to watch | Two distinct IDs (`UserId` vs `OrderId`) both typed `string` can be swapped | Prevented by distinct classes |
+
+</TopicSection>
+
+<TopicSection id="m01-p5-sec-l" letter="L" title="Tips to Remember (Mnemonics & Mental Models)">
+
+- **Type Erasure Rule:** *"TypeScript protects the build; runtime guards protect the wire."*
+- **`unknown` vs `any`:** *"`any` turns the alarm off; `unknown` asks for ID at the door."*
+- **Generics Rule:** *"Generics are type-level parameters that preserve caller precision without `any`."*
+- **Exhaustiveness:** *"End every union `switch` with `default: return assertNever(x)` so the compiler catches missing cases."*
+
+</TopicSection>
+
+<TopicSection id="m01-p5-sec-mn" letter="M/N" title="Interview Questions & Detailed Answers">
+  <InterviewSection />
+</TopicSection>
+
+<TopicSection id="m01-p5-sec-o" letter="O" title="Practical Exercises">
+
+<ExerciseCard
+  title="Exercise 1: Strict Discriminated Union Narrower (`parsePaymentEvent`)"
+  prompt={
+    <p>
+      Write <code>parsePaymentEvent(raw)</code> that narrows an <code>unknown</code> webhook payload into either <code>&#123; kind: "paid", amountCents &#125;</code> or <code>&#123; kind: "failed", reason &#125;</code>, rejecting invalid kinds, negative/non-integer cents, and empty failure reasons.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function parsePaymentEvent(raw) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    throw new TypeError("Event must be a plain object");
+  }
+  if (raw.kind === "paid") {
+    if (!Number.isSafeInteger(raw.amountCents) || raw.amountCents <= 0) {
+      throw new RangeError("amountCents must be a positive safe integer");
+    }
+    return { kind: "paid", amountCents: raw.amountCents };
+  }
+  if (raw.kind === "failed") {
+    if (typeof raw.reason !== "string" || raw.reason.trim().length === 0) {
+      throw new TypeError("reason must be a non-empty string");
+    }
+    return { kind: "failed", reason: raw.reason.trim() };
+  }
+  throw new TypeError(\`Unsupported event kind: \${String(raw.kind)}\`);
+}
+
+console.log("Paid:", parsePaymentEvent({ kind: "paid", amountCents: 1999 }));
+console.log("Failed:", parsePaymentEvent({ kind: "failed", reason: "card_declined" }));`}
+  />
+</ExerciseCard>
+
+<ExerciseCard
+  title="Exercise 2: Generic-Style Typed Repository Contract (`createTypedStore`)"
+  prompt={
+    <p>
+      Implement <code>createTypedStore(validateItem)</code> (modeling a generic TypeScript interface <code>Store&lt;T extends &#123; id: string &#125;&gt;</code>) that enforces runtime schema validation on <code>save(item)</code> and exposes <code>get(id)</code> and <code>list()</code> safely.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function createTypedStore(validateItem) {
+  if (typeof validateItem !== "function") {
+    throw new TypeError("validateItem must be a function");
+  }
+  const records = new Map();
+  return {
+    save(raw) {
+      const item = validateItem(raw);
+      if (!item || typeof item.id !== "string" || item.id.trim().length === 0) {
+        throw new TypeError("Validated item must include a non-empty string id");
+      }
+      const id = item.id.trim();
+      records.set(id, { ...item, id });
+      return records.get(id);
+    },
+    get(id) {
+      if (typeof id !== "string" || id.trim().length === 0) throw new TypeError("id must be a non-empty string");
+      return records.get(id.trim());
+    },
+    list() {
+      return [...records.values()];
+    }
+  };
+}
+
+const userStore = createTypedStore((u) => {
+  if (!u || typeof u.id !== "string" || typeof u.name !== "string") throw new TypeError("Invalid user");
+  return { id: u.id, name: u.name.trim() };
+});
+userStore.save({ id: "u_1", name: "Maya" });
+console.log("Stored users:", userStore.list());`}
+  />
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m01-p5-sec-p" letter="P" title="Advanced Challenge">
+
+<Callout variant="warn" title="Senior Challenge: Zero-Trust Full-Stack Type Safety">
+  <p>
+    Your TypeScript monorepo shares DTO interfaces between an Express API and a React SPA. Despite <code>"strict": true</code> passing in CI, malformed third-party webhook payloads still cause runtime crashes in production.
+  </p>
+  <p>
+    <strong>Your Task:</strong> Explain (1) why <code>req.body as WebhookDTO</code> fails at runtime due to TypeScript type erasure, (2) how to replace unsafe casts with a single schema-first source of truth (e.g., Zod <code>z.infer</code> or runtime guards backing <code>unknown</code>), and (3) how branded types prevent accidentally swapping <code>UserId</code> and <code>OrderId</code>.
+  </p>
+</Callout>
+
+<ExerciseCard
+  title="Reference Architecture Notes"
+  prompt={null}
+  buttonLabel="Reveal Approach"
+  hideLabel="Hide Approach"
+>
+  <ol>
+    <li>TypeScript erases all interfaces and <code>as</code> assertions during compilation, so <code>req.body</code> arrives at runtime as untrusted JSON.</li>
+    <li>Type ingress payloads as <code>unknown</code> and parse them through a schema validator (such as Zod, Valibot, or Ajv) whose inferred TypeScript type drives downstream pure functions.</li>
+    <li>Use branded primitive types (<code>type UserId = string &amp; &#123; readonly __brand: "UserId" &#125;</code>) to add nominal safety on top of TypeScript's structural type system.</li>
+  </ol>
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m01-p5-sec-q" letter="Q" title="Summary & Key Takeaways">
+
+- **Compile-Time Erasure:** TypeScript catches structural and nullability bugs before deployment, but types vanish at runtime—always validate external `unknown` inputs at I/O boundaries.
+- **Structural Typing & Narrowing:** TypeScript checks shapes, not class names; combine discriminated unions with `switch` + `never` exhaustiveness checks.
+- **Generics & Interfaces:** Use constrained generics (`<T extends Entity>`) instead of `any`, and `interface` for extensible object/class contracts.
+- **Strict Type Safety:** Keep `"strict": true` enabled, replace `any` with `unknown`, and never trust `as T` on untrusted network data.
+
+</TopicSection>

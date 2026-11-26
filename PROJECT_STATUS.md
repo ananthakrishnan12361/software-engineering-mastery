@@ -4,10 +4,10 @@
 Maintain a comfortable, offline-capable React + TypeScript + MDX learning portal built with Feature-Sliced Design v2.1 and bundled into `dist/software_engineering_mastery.html`.
 
 ## Overall status
-**`M01-P1 Remediation` Completed & Independently Audited (`PASS`) — `M01-P2 Remediation` next before `M01-P3`**
+**Modules 1 & 2 Complete + `M03-P1`–`M03-P2` Audited (`PASS`) — `M03-P3` next**
 
 ## Current phase
-Phase 3 design remains locked in [DESIGN_GUIDE.md](DESIGN_GUIDE.md). Content remediation is active for Module 1 (`M01-P1` remediated & verified with live Chrome SVG `getBBox()` checks; approved `M01-P2 Remediation` next before `M01-P3`).
+Phase 3 design remains locked in [DESIGN_GUIDE.md](DESIGN_GUIDE.md). Module 1 (`47/47`), Module 2 (`46/46`), and `M03-P1`–`M03-P2` (`25/56`) are complete & verified (`M03-P3` next).
 
 ## Completed
 - [x] Phase 1 & 2: Legacy v1 archived in `legacy/`, React 19 + TS + Vite 8 + MDX + `vite-plugin-singlefile` + Steiger setup
@@ -19,15 +19,14 @@ Phase 3 design remains locked in [DESIGN_GUIDE.md](DESIGN_GUIDE.md). Content rem
 - [x] Verification: `tsc`, `vite build`, `steiger ./src`, `verify:syllabus`, `verify:parity`, `verify:offline`, and headless Chrome CDP checks at `360`, `390`, `768`, `1024`, `1440` widths across all 3 themes
 
 ## Module progress
-Use `COURSE_OUTLINE.md` and `CONTENT_CHECKLIST.md` to track module and part status. Currently written: `M01-P1` & `M01-P2` (`13` topics available, `932` not written yet; Module 1 interview totals: `7/10` Basic, `7/10` Intermediate, `6/10` Advanced, `3/5` Senior/Architect = `23/35`).
+Use `COURSE_OUTLINE.md` and `CONTENT_CHECKLIST.md` to track module and part status. Currently written: Module 1 complete (`47/47` topics, `35/35` IQs) + Module 2 complete (`46/46` topics, `35/35` IQs) + `M03-P1`–`M03-P2` (`25/56` topics, `18/35` IQs: `6` Basic, `6` Intermediate, `4` Advanced, `2` Senior/Architect) = `118` topics available, `827` not written yet.
 
 ## Current task
-Complete approved `M01-P2 Remediation` (`safeMerge` log/`isPlainObject`, SRP & ISP runnable code, Shallow vs. Deep Copying table, `WeakMap` & `WeakSet`, private field order note) before writing `M01-P3` (`Algorithms, Data structures, Time complexity, Space complexity, Big O, Recursion, Sorting, Searching, Hash maps, Stacks, Queues, Trees, Graph fundamentals`).
+`M03-P2` completed, audited (`PASS` Round 2), and committed locally on `react-fsd`. Next part: `M03-P3` (Authentication, JWT, Refresh tokens, Session management, Authorization, RBAC, OAuth fundamentals, Rate limiting, CORS, Security, Input sanitization, SQL injection, NoSQL injection, API security).
 
 ## Next actions
-1. Run `M01-P2 Remediation` (`PLAN -> WRITE -> CHECK -> AUDIT -> UPDATE -> COMMIT` on `react-fsd`).
-2. Proceed to `M01-P3` once `M01-P2 Remediation` passes `npm run quality` and fresh subagent audit.
-3. User decides when to approve removing `legacy/`.
+1. Proceed to `M03-P3` (`PLAN -> WRITE -> CHECK -> AUDIT -> UPDATE -> COMMIT` on `react-fsd`).
+2. User decides when to approve removing `legacy/`.
 
 ## Decisions
 1. **Approved UI & Design Lock**: The Phase 3 UI design is approved and documented in `DESIGN_GUIDE.md` (themes, tokens, typography, spacing, reusable components, responsive breakpoints, and filter rules). Do not alter the design in future lesson work without user approval.

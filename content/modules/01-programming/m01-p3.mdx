@@ -1,0 +1,750 @@
+<Callout variant="info" title="Topics Covered in Part 3 (M01-P3)">
+  <p>
+    This lesson covers 13 core topics from Module 1: <strong>Algorithms</strong>, <strong>Data structures</strong>, <strong>Time complexity</strong>, <strong>Space complexity</strong>, <strong>Big O</strong>, <strong>Recursion</strong>, <strong>Sorting</strong>, <strong>Searching</strong>, <strong>Hash maps</strong>, <strong>Stacks</strong>, <strong>Queues</strong>, <strong>Trees</strong>, and <strong>Graph fundamentals</strong>.
+  </p>
+</Callout>
+
+<TopicSection id="m01-p3-sec-a" letter="A" title="Topic Introduction">
+
+#### What is this?
+
+An <GlossaryTerm definition="A finite, unambiguous step-by-step procedure for transforming valid inputs into desired outputs.">algorithm</GlossaryTerm> is a step-by-step procedure for solving a problem, while a <GlossaryTerm definition="A systematic way of organizing, storing, and indexing data in memory so specific operations are fast and predictable.">data structure</GlossaryTerm> is how data is laid out in memory so those steps execute efficiently. **Time complexity**, **space complexity**, and **Big O** give engineers a hardware-independent language to predict how runtime and memory scale as input size `n` grows from 10 items to 100 million.
+
+#### Why does it exist & what problem does it solve?
+
+Code that passes unit tests on 20 rows can freeze a Node.js event loop or crash a database query on 200,000 rows. Choosing the right data structure and algorithm turns catastrophic `O(n²)` bottlenecks into `O(n log n)` or `O(1)` operations:
+
+- **Hash maps, stacks, and queues** give `O(1)` lookups, undo/call-stack tracking, and FIFO job scheduling without linear scans.
+- **Sorting and binary search** turn `O(n)` scans over millions of records into ~20 comparisons (`O(log n)`).
+- **Trees and graphs** model hierarchical UIs (the DOM), database indexes (B+ Trees), dependency resolution, and shortest-path routing.
+
+#### Where is it used in real-world software?
+
+Every production layer runs on these primitives: React fiber trees and DOM reconciliation use tree traversals; Node.js task queues and rate limiters use FIFO queues/ring buffers; Express routers, Redis caches, and JS `Map`/`Set` rely on hash tables; PostgreSQL/MySQL indexes use balanced trees; CI/CD pipelines, package managers (`npm`), and microservices dependency analyzers use topological sorting and graph cycle detection.
+
+</TopicSection>
+
+<TopicSection id="m01-p3-sec-b" letter="B" title="Fundamentals (Simple Mental Models)">
+
+<TopicAnchor id="m01-p3-topic-algorithms" />
+
+#### 1. Algorithms: Correctness, Termination & Invariants
+
+An **algorithm** takes well-defined inputs, enforces preconditions, executes deterministic steps, and terminates with a guaranteed output. Two properties separate reliable production algorithms from ad-hoc scripts: **termination** (every loop/recursion makes measurable progress toward a base case) and **loop invariants** (a condition that holds before, during, and after each iteration—such as *"the target, if present, is always inside `[left, right]`"*).
+
+When designing an algorithm, first state the brute-force baseline, identify repeated work (nested scans, redundant recomputation, or `Array.shift()` inside loops), and eliminate that repeated work with a better data structure or divide-and-conquer split.
+
+<TopicAnchor id="m01-p3-topic-data-structures" />
+
+#### 2. Data Structures: Organizing Memory for Access Patterns
+
+A **data structure** trades memory layout against operation speed. Contiguous **arrays** give `O(1)` random access by index (`arr[i]`), but inserting in the middle requires shifting `O(n)` elements. Linked or node-based structures (linked lists, **trees**, **graphs**) avoid contiguous shifting by storing pointers to neighbors, at the cost of extra pointer memory and poorer CPU cache locality.
+
+Never pick a data structure from habit alone: ask which operations dominate your hot path—random index read, key lookup, sorted range scan, FIFO pop, or neighbor traversal—and choose the structure whose strengths match that workload.
+
+<TopicAnchor id="m01-p3-topic-time-complexity" />
+
+#### 3. Time Complexity: Counting Dominant Operations
+
+**Time complexity** measures how the number of basic operations (comparisons, hash probes, swaps) grows relative to input size `n`, rather than wall-clock milliseconds on one laptop. Wall-clock timing varies across CPUs, thermal throttling, and JIT warm-up; operation growth reveals whether a function scales to 10x or 1,000x traffic.
+
+Always analyze **worst-case** and **amortized** time complexity separately. For example, dynamic array `.push()` occasionally resizes and copies `O(n)` elements, yet over `n` pushes the *amortized* cost per push is `O(1)`.
+
+<TopicAnchor id="m01-p3-topic-space-complexity" />
+
+#### 4. Space Complexity: Auxiliary Memory & Call Stack Cost
+
+<GlossaryTerm definition="The extra memory an algorithm allocates beyond its input—including heap structures and call-stack frames.">Space complexity</GlossaryTerm> counts the **auxiliary memory** an algorithm allocates relative to input size `n`. An in-place loop using a few scalar variables has `O(1)` auxiliary space, whereas cloning an array or building a hash map of `n` entries takes `O(n)` space.
+
+Crucially, **recursion is not free**: each active recursive call pushes a stack frame onto the call stack, so a recursive DFS on a skewed tree of depth `n` consumes `O(n)` stack space even if it allocates zero heap objects.
+
+<TopicAnchor id="m01-p3-topic-big-o" />
+
+#### 5. Big O: Asymptotic Upper Bounds & Growth Tiers
+
+<GlossaryTerm definition="Asymptotic notation describing the worst-case upper bound growth rate of time or space as input size n approaches infinity.">Big O</GlossaryTerm> drops constant factors (`2n` &rarr; `O(n)`) and lower-order terms (`n² + 50n + 10` &rarr; `O(n²)`) to expose the dominant growth curve: `O(1)` (constant) &lt; `O(log n)` (logarithmic) &lt; `O(n)` (linear) &lt; `O(n log n)` (linearithmic) &lt; `O(n²)` (quadratic) &lt; `O(2^n)` (exponential).
+
+In production, constants still matter for small `n` (e.g., insertion sort beats merge sort on 12-element subarrays), and `O(n)` with a `10x` lower allocation constant can beat a pointer-heavy `O(n)` structure. Use Big O to avoid catastrophic scaling cliffs, then benchmark real workloads.
+
+<TopicAnchor id="m01-p3-topic-recursion" />
+
+#### 6. Recursion: Base Cases, Progress & Stack Limits
+
+<GlossaryTerm definition="A technique where a function solves a problem by reducing it into smaller subproblems of the same form until reaching a base case.">Recursion</GlossaryTerm> expresses divide-and-conquer and tree/graph algorithms cleanly using two mandatory parts: a **base case** that returns immediately without recursing, and a **recursive step** that strictly shrinks the problem toward that base case.
+
+In JavaScript/Node.js (V8), Proper Tail Calls are **not** enabled in production, and the call stack holds roughly ~10,000 frames. Use recursion for bounded-depth trees (such as balanced trees of height `O(log n)`), and convert unbounded-depth traversals into an explicit heap-allocated stack loop.
+
+<TopicAnchor id="m01-p3-topic-sorting" />
+
+#### 7. Sorting: Comparison Bounds, Stability & `O(n log n)`
+
+Comparison-based sorting has a mathematical lower bound of `Ω(n log n)` comparisons in the worst case. **Merge Sort** guarantees `O(n log n)` worst-case time and **stability** (equal keys preserve original relative order) using `O(n)` extra space, while **Quicksort** averages `O(n log n)` in-place with great cache locality (but degrades to `O(n²)` on bad pivots unless randomized/three-way partitioned).
+
+V8's `Array.prototype.sort()` / `toSorted()` uses **Timsort** (a hybrid of Merge Sort and Insertion Sort), which runs in `O(n log n)` worst-case, `O(n)` on nearly sorted data, and is guaranteed stable since ES2019.
+
+<TopicAnchor id="m01-p3-topic-searching" />
+
+#### 8. Searching: Linear Scan vs. Binary Search
+
+Unsorted collections require an `O(n)` **linear search**. Once data is sorted (or a monotonic predicate `check(mid)` holds), **Binary Search** halves the search interval on every step, locating any target—or the **lower bound** (first index where `condition(x)` is `true`)—in `O(log n)` time (`~20` steps for 1,000,000 items).
+
+Most binary-search bugs are off-by-one errors in boundary updates (`left = mid + 1` vs `right = mid`) or integer midpoint overflow in fixed-width languages (solved via `left + Math.floor((right - left) / 2)`).
+
+<TopicAnchor id="m01-p3-topic-hash-maps" />
+
+#### 9. Hash Maps: `O(1)` Average Lookups & Collisions
+
+A <GlossaryTerm definition="An associative key-value structure that maps keys to bucket indices using a deterministic hash function for O(1) average lookup.">Hash Map</GlossaryTerm> hashes each key into a bucket array index to achieve `O(1)` average insert, lookup, and delete. When two distinct keys map to the same bucket (**hash collision**), the map resolves it via **chaining** (linked list/bucket list) or **open addressing** (probing nearby slots).
+
+If too many keys crowd into few buckets (high **load factor**), the map resizes and rehashes (`O(n)` amortized). In JavaScript, prefer `new Map()` over plain `{}` for dynamic keys to avoid `Object.prototype` collisions and preserve insertion order.
+
+<TopicAnchor id="m01-p3-topic-stacks" />
+
+#### 10. Stacks: LIFO Ordering & Monotonic Patterns
+
+A <GlossaryTerm definition="A Last-In, First-Out (LIFO) linear collection where push and pop happen at the same top end in O(1) time.">Stack</GlossaryTerm> follows **Last-In, First-Out (LIFO)**: the most recently pushed item is popped first (`push` and `pop` in `O(1)`). In JavaScript, a dense array using `.push()`, `.pop()`, and `arr[arr.length - 1]` (`peek`) is already an efficient stack.
+
+Stacks power function call frames, expression/bracket parsing, undo/redo history, iterative DFS, and **monotonic stacks** (computing next-greater-element or sliding-window bounds in `O(n)`).
+
+<TopicAnchor id="m01-p3-topic-queues" />
+
+#### 11. Queues: FIFO Ordering & Why `Array.shift()` Fails at Scale
+
+A <GlossaryTerm definition="A First-In, First-Out (FIFO) linear collection where items enqueue at the back and dequeue from the front.">Queue</GlossaryTerm> follows **First-In, First-Out (FIFO)**: items enter at the tail and leave from the head, powering Breadth-First Search (BFS), rate-limiter windows, and background job buffers.
+
+**Common JS trap:** Using `arr.shift()` to dequeue is `O(n)` because every remaining element shifts left! For true `O(1)` dequeue in JavaScript, use a **circular ring buffer** (fixed capacity), a **head-index pointer** (compacting occasionally), or a **two-stack queue** (amortized `O(1)`).
+
+<TopicAnchor id="m01-p3-topic-trees" />
+
+#### 12. Trees: Hierarchies, BST Invariants & Traversals
+
+A <GlossaryTerm definition="A connected, acyclic hierarchical graph where each node (except the root) has exactly one parent.">Tree</GlossaryTerm> is an acyclic hierarchy starting at a **root** node. In a **Binary Search Tree (BST)**, every node's left subtree contains strictly smaller keys and its right subtree contains strictly larger keys, enabling `O(log n)` search when balanced (or degrading to `O(n)` if skewed like a linked list—which self-balancing trees like AVL, Red-Black, and database B+ Trees prevent).
+
+Tree traversals fall into two families: **Depth-First Search (DFS)** (`pre-order`, `in-order` which yields sorted keys on a BST, `post-order`) and **Breadth-First Search (BFS / level-order)** using a queue.
+
+<TopicAnchor id="m01-p3-topic-graph-fundamentals" />
+
+#### 13. Graph Fundamentals: Vertices, Edges, Cycles & BFS/DFS
+
+A <GlossaryTerm definition="A collection of vertices (nodes) connected by directed or undirected edges, optionally carrying weights.">Graph</GlossaryTerm> `G = (V, E)` models arbitrary relationships: social networks (undirected), microservice calls or task dependencies (directed **DAG**s), and road maps (weighted). Graphs are usually stored as an **adjacency list** (`Map<Node, Neighbor[]>`, `O(V + E)` space—ideal for sparse real-world graphs) rather than an `O(V²)` adjacency matrix.
+
+Because graphs can contain **cycles**, every traversal (BFS for unweighted shortest path, DFS for cycle detection and topological sort) **must** maintain a `visited` `Set` to avoid infinite loops.
+
+</TopicSection>
+
+<TopicSection id="m01-p3-sec-c" letter="C" title="Internal Working & Architecture">
+
+#### 1. How Hash Tables, Ring-Buffer Queues & Call Stacks Work in Memory
+
+Understanding memory layout explains why theoretical `O(1)` can still vary dramatically in practice:
+
+- **Hash Table Buckets & Load Factor:** A hash table allocates an array of `M` buckets. When `size / M` exceeds a load-factor threshold (typically `0.75`), it allocates a larger table (`~2M`) and re-hashes existing keys. V8's `Map` uses a deterministic hash table (**OrderedHashTable**) that preserves insertion order while keeping `O(1)` average lookup.
+- **Ring Buffer vs. `Array.shift()`:** A ring buffer tracks `head` and `tail` indices modulo `capacity` (`(tail + 1) % capacity`). Both `enqueue` and `dequeue` touch a single slot (`O(1)`), whereas `Array.shift()` copies `n - 1` elements on every dequeue (`O(n)`).
+
+<DiagramCard caption="Figure 1.5 — Big O growth rates and O(1) Ring-Buffer Queue vs. O(n) Array.shift() memory movement.">
+  <svg viewBox="0 0 820 235" role="img" aria-label="Big O growth tiers and Ring Buffer Queue versus Array.shift">
+    <rect x="10" y="10" width="800" height="215" rx="10" fill="var(--bg-subtle)" stroke="var(--border)" />
+
+    <rect x="28" y="28" width="365" height="178" rx="8" fill="var(--bg-surface)" stroke="var(--border-strong)" />
+    <text x="46" y="54" fill="var(--accent-strong)" fontSize="13.5" fontWeight="700" fontFamily="sans-serif">Big O Growth Tiers (at n = 100,000)</text>
+    <text x="46" y="82" fill="var(--success)" fontSize="12" fontWeight="700" fontFamily="monospace">O(1)       ~1 op      (Hash lookup / Push)</text>
+    <text x="46" y="106" fill="var(--success)" fontSize="12" fontWeight="700" fontFamily="monospace">O(log n)   ~17 ops    (Binary Search)</text>
+    <text x="46" y="130" fill="var(--accent)" fontSize="12" fontWeight="700" fontFamily="monospace">O(n)       100,000    (Linear Scan)</text>
+    <text x="46" y="154" fill="var(--warning)" fontSize="12" fontWeight="700" fontFamily="monospace">O(n log n) ~1.66M     (Merge / Timsort)</text>
+    <text x="46" y="178" fill="var(--danger)" fontSize="12" fontWeight="700" fontFamily="monospace">O(n^2)     10^10 ops  (Nested loop timeout)</text>
+
+    <rect x="415" y="28" width="377" height="178" rx="8" fill="var(--bg-surface)" stroke="var(--border-strong)" />
+    <text x="433" y="54" fill="var(--accent-strong)" fontSize="13.5" fontWeight="700" fontFamily="sans-serif">Queue Dequeue: Array.shift() vs. Ring Buffer</text>
+
+    <rect x="433" y="70" width="340" height="54" rx="6" fill="var(--danger-soft)" stroke="var(--danger)" />
+    <text x="447" y="92" fill="var(--danger)" fontSize="12" fontWeight="700" fontFamily="monospace">arr.shift() -&gt; O(n) memory shift</text>
+    <text x="447" y="112" fill="var(--text-secondary)" fontSize="11.5" fontFamily="monospace">[x, a, b, c] =&gt; moves a,b,c left 1 slot</text>
+
+    <rect x="433" y="138" width="340" height="54" rx="6" fill="var(--success-soft)" stroke="var(--success)" />
+    <text x="447" y="160" fill="var(--success)" fontSize="12" fontWeight="700" fontFamily="monospace">RingBuffer.dequeue() -&gt; O(1) pointer move</text>
+    <text x="447" y="180" fill="var(--text-secondary)" fontSize="11.5" fontFamily="monospace">head = (head + 1) % cap (zero element copy)</text>
+  </svg>
+</DiagramCard>
+
+#### 2. Tree & Graph Traversals: BFS (Queue) vs. DFS (Stack + Visited Set)
+
+- **Breadth-First Search (BFS)** explores nodes layer by layer (`distance = 0, 1, 2...`) using a **FIFO Queue**, guaranteeing the **shortest path** (fewest edges) in an unweighted graph.
+- **Depth-First Search (DFS)** plunges down each branch using a **Stack** (implicit call stack or explicit array stack) and tracks `visiting` (active path) vs. `visited` (finished) sets to detect cycles in directed graphs (`O(V + E)` time and space).
+
+<DiagramCard caption="Figure 1.6 — Graph Adjacency List representation and BFS (level-order shortest path) vs. DFS (cycle detection).">
+  <svg viewBox="0 0 820 220" role="img" aria-label="Graph adjacency list and BFS versus DFS traversal">
+    <rect x="10" y="10" width="800" height="200" rx="10" fill="var(--bg-subtle)" stroke="var(--border)" />
+
+    <rect x="28" y="28" width="230" height="164" rx="8" fill="var(--bg-surface)" stroke="var(--border-strong)" />
+    <text x="44" y="52" fill="var(--accent-strong)" fontSize="13" fontWeight="700" fontFamily="sans-serif">Adjacency List (O(V + E))</text>
+    <text x="44" y="80" fill="var(--text-primary)" fontSize="12" fontFamily="monospace">A -&gt; ["B", "C"]</text>
+    <text x="44" y="104" fill="var(--text-primary)" fontSize="12" fontFamily="monospace">B -&gt; ["D"]</text>
+    <text x="44" y="128" fill="var(--text-primary)" fontSize="12" fontFamily="monospace">C -&gt; ["D", "E"]</text>
+    <text x="44" y="152" fill="var(--text-primary)" fontSize="12" fontFamily="monospace">D -&gt; ["E"]</text>
+    <text x="44" y="176" fill="var(--text-muted)" fontSize="11.5" fontFamily="sans-serif">Always guard with visited Set</text>
+
+    <rect x="278" y="28" width="250" height="164" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" />
+    <text x="294" y="52" fill="var(--accent-strong)" fontSize="13" fontWeight="700" fontFamily="sans-serif">BFS (FIFO Queue)</text>
+    <text x="294" y="80" fill="var(--text-primary)" fontSize="12" fontFamily="monospace">Level 0: A</text>
+    <text x="294" y="104" fill="var(--text-primary)" fontSize="12" fontFamily="monospace">Level 1: B, C</text>
+    <text x="294" y="128" fill="var(--text-primary)" fontSize="12" fontFamily="monospace">Level 2: D, E</text>
+    <text x="294" y="156" fill="var(--success)" fontSize="11.5" fontWeight="700" fontFamily="sans-serif">Finds shortest unweighted path</text>
+    <text x="294" y="176" fill="var(--text-secondary)" fontSize="11.5" fontFamily="sans-serif">A -&gt; C -&gt; E (2 hops)</text>
+
+    <rect x="548" y="28" width="244" height="164" rx="8" fill="var(--warning-soft)" stroke="var(--warning)" />
+    <text x="564" y="52" fill="var(--warning)" fontSize="13" fontWeight="700" fontFamily="sans-serif">DFS (LIFO Stack)</text>
+    <text x="564" y="80" fill="var(--text-primary)" fontSize="12" fontFamily="monospace">Path 1: A -&gt; B -&gt; D -&gt; E</text>
+    <text x="564" y="104" fill="var(--text-primary)" fontSize="12" fontFamily="monospace">Backtrack to C (visited)</text>
+    <text x="564" y="132" fill="var(--text-secondary)" fontSize="11.5" fontFamily="sans-serif">Tracks active-path Set:</text>
+    <text x="564" y="154" fill="var(--danger)" fontSize="11.5" fontWeight="700" fontFamily="sans-serif">Back-edge to active =&gt; CYCLE</text>
+    <text x="564" y="176" fill="var(--text-secondary)" fontSize="11.5" fontFamily="sans-serif">Used in Topo Sort &amp; DAGs</text>
+  </svg>
+</DiagramCard>
+
+</TopicSection>
+
+<TopicSection id="m01-p3-sec-d" letter="D" title="Practical Examples (Interactive)">
+
+#### Example 1: Binary Search (`O(log n)`) vs. Linear Scan (`O(n)`) with Strict Sorted Validation
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`function assertFiniteNumberArray(arr, name) {
+  if (!Array.isArray(arr)) throw new TypeError(\`\${name} must be an array\`);
+  for (let i = 0; i < arr.length; i++) {
+    if (typeof arr[i] !== "number" || !Number.isFinite(arr[i])) {
+      throw new TypeError(\`\${name}[\${i}] must be a finite number\`);
+    }
+  }
+}
+
+function binarySearch(sortedNums, target) {
+  assertFiniteNumberArray(sortedNums, "sortedNums");
+  if (typeof target !== "number" || !Number.isFinite(target)) {
+    throw new TypeError("target must be a finite number");
+  }
+  for (let i = 1; i < sortedNums.length; i++) {
+    if (sortedNums[i] < sortedNums[i - 1]) {
+      throw new RangeError("sortedNums must be sorted in ascending order");
+    }
+  }
+
+  let left = 0;
+  let right = sortedNums.length - 1;
+  while (left <= right) {
+    const mid = left + Math.floor((right - left) / 2);
+    if (sortedNums[mid] === target) return mid;
+    if (sortedNums[mid] < target) left = mid + 1;
+    else right = mid - 1;
+  }
+  return -1;
+}
+
+const ids = [101, 204, 309, 412, 550, 780, 915];
+console.log("Index of 550:", binarySearch(ids, 550));
+console.log("Index of 999 (missing):", binarySearch(ids, 999));`}
+/>
+
+#### Example 2: Bottom-Up Merge Sort (`O(n log n)`) & Recursion vs. Stack-Safe Iteration
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// Bottom-up iterative Merge Sort: guaranteed O(n log n) time, O(n) space, stable, zero recursion stack risk
+function mergeSortIterative(nums) {
+  if (!Array.isArray(nums)) throw new TypeError("nums must be an array");
+  for (let i = 0; i < nums.length; i++) {
+    if (typeof nums[i] !== "number" || !Number.isFinite(nums[i])) {
+      throw new TypeError("All elements must be finite numbers");
+    }
+  }
+  const n = nums.length;
+  let arr = nums.slice();
+  let buf = new Array(n);
+
+  for (let width = 1; width < n; width *= 2) {
+    for (let left = 0; left < n; left += 2 * width) {
+      const mid = Math.min(left + width, n);
+      const right = Math.min(left + 2 * width, n);
+      let i = left, j = mid, k = left;
+      while (i < mid && j < right) {
+        buf[k++] = arr[i] <= arr[j] ? arr[i++] : arr[j++];
+      }
+      while (i < mid) buf[k++] = arr[i++];
+      while (j < right) buf[k++] = arr[j++];
+    }
+    const tmp = arr;
+    arr = buf;
+    buf = tmp;
+  }
+  return arr;
+}
+
+// Bounded recursion (safe for small/tree depths) vs iterative factorial/sum
+function sumRecursiveBounded(n) {
+  if (!Number.isSafeInteger(n) || n < 0 || n > 5000) {
+    throw new RangeError("n must be a safe integer in [0, 5000]");
+  }
+  if (n === 0) return 0;
+  return n + sumRecursiveBounded(n - 1);
+}
+
+console.log("Merge sorted:", mergeSortIterative([38, 27, 43, 3, 9, 82, 10]));
+console.log("Bounded recursive sum(10):", sumRecursiveBounded(10));`}
+/>
+
+#### Example 3: Hash Map Two-Sum (`O(n)`), Monotonic Stack & `O(1)` Ring-Buffer Queue
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// 1. Hash Map (Map) for O(n) Two-Sum lookup instead of O(n^2) nested loops
+function twoSumIndices(nums, target) {
+  if (!Array.isArray(nums)) throw new TypeError("nums must be an array");
+  if (typeof target !== "number" || !Number.isFinite(target)) {
+    throw new TypeError("target must be a finite number");
+  }
+  const seen = new Map();
+  for (let i = 0; i < nums.length; i++) {
+    const val = nums[i];
+    if (typeof val !== "number" || !Number.isFinite(val)) {
+      throw new TypeError("nums elements must be finite numbers");
+    }
+    const need = target - val;
+    if (seen.has(need)) return [seen.get(need), i];
+    seen.set(val, i);
+  }
+  return null;
+}
+
+// 2. O(1) Fixed-Capacity Ring-Buffer Queue (avoids O(n) Array.shift())
+class RingQueue {
+  #buf;
+  #head = 0;
+  #tail = 0;
+  #size = 0;
+  #cap;
+
+  constructor(capacity) {
+    if (!Number.isSafeInteger(capacity) || capacity < 1) {
+      throw new RangeError("capacity must be a positive safe integer");
+    }
+    this.#cap = capacity;
+    this.#buf = new Array(capacity);
+  }
+
+  enqueue(item) {
+    if (this.#size === this.#cap) throw new RangeError("Queue is full");
+    this.#buf[this.#tail] = item;
+    this.#tail = (this.#tail + 1) % this.#cap;
+    this.#size++;
+  }
+
+  dequeue() {
+    if (this.#size === 0) return undefined;
+    const val = this.#buf[this.#head];
+    this.#buf[this.#head] = undefined;
+    this.#head = (this.#head + 1) % this.#cap;
+    this.#size--;
+    return val;
+  }
+
+  get size() {
+    return this.#size;
+  }
+}
+
+console.log("Two-sum [2,7,11,15] -> 9:", twoSumIndices([2, 7, 11, 15], 9));
+
+// 2. Monotonic Decreasing Stack: O(n) next greater value to the right (else -1)
+function nextGreaterElements(nums) {
+  if (!Array.isArray(nums)) throw new TypeError("nums must be an array");
+  const result = new Array(nums.length).fill(-1);
+  const stack = []; // stores indices whose next greater value is not yet found
+  for (let i = 0; i < nums.length; i++) {
+    const val = nums[i];
+    if (typeof val !== "number" || !Number.isFinite(val)) {
+      throw new TypeError("nums elements must be finite numbers");
+    }
+    while (stack.length > 0 && nums[stack[stack.length - 1]] < val) {
+      result[stack.pop()] = val;
+    }
+    stack.push(i);
+  }
+  return result;
+}
+console.log("Next greater [2,1,5,3]:", nextGreaterElements([2, 1, 5, 3]));
+
+const q = new RingQueue(3);
+q.enqueue("job-1");
+q.enqueue("job-2");
+console.log("Dequeued:", q.dequeue(), "| Remaining size:", q.size);`}
+/>
+
+#### Example 4: Binary Search Tree Validation & Graph BFS Shortest Path
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// 1. Validate BST invariant (all left < node < all right) iteratively via explicit stack
+function isValidBST(root) {
+  if (root === null) return true;
+  if (typeof root !== "object") throw new TypeError("root must be a node object or null");
+  const stack = [{ node: root, min: -Infinity, max: Infinity }];
+  const visited = new Set();
+
+  while (stack.length > 0) {
+    const { node, min, max } = stack.pop();
+    if (node === null) continue;
+    if (typeof node !== "object" || typeof node.val !== "number" || !Number.isFinite(node.val)) {
+      throw new TypeError("Each BST node must have a finite numeric val");
+    }
+    if (visited.has(node)) throw new RangeError("Cycle detected in tree");
+    visited.add(node);
+
+    if (node.val <= min || node.val >= max) return false;
+    stack.push({ node: node.right ?? null, min: node.val, max });
+    stack.push({ node: node.left ?? null, min, max: node.val });
+  }
+  return true;
+}
+
+// 2. Unweighted Graph BFS Shortest Path using head-index queue (O(V + E))
+function shortestPathBFS(adjList, start, goal) {
+  if (!(adjList instanceof Map)) throw new TypeError("adjList must be a Map");
+  if (!adjList.has(start) || !adjList.has(goal)) return null;
+  if (start === goal) return [start];
+
+  const ROOT = Symbol("root");
+  const queue = [start];
+  let head = 0;
+  const parent = new Map([[start, ROOT]]);
+
+  while (head < queue.length) {
+    const cur = queue[head++];
+    const neighbors = adjList.get(cur) ?? [];
+    if (!Array.isArray(neighbors)) throw new TypeError("Adjacency list entry must be an array");
+
+    for (const next of neighbors) {
+      if (parent.has(next)) continue; // Already visited
+      parent.set(next, cur);
+      if (next === goal) {
+        const path = [];
+        for (let at = goal; at !== ROOT; at = parent.get(at)) path.push(at);
+        return path.reverse();
+      }
+      queue.push(next);
+    }
+  }
+  return null;
+}
+
+const bst = { val: 10, left: { val: 5, left: null, right: null }, right: { val: 15, left: null, right: null } };
+console.log("Valid BST?", isValidBST(bst));
+
+const graph = new Map([
+  ["A", ["B", "C"]],
+  ["B", ["D"]],
+  ["C", ["E"]],
+  ["D", ["E"]],
+  ["E", []]
+]);
+console.log("Shortest A -> E:", shortestPathBFS(graph, "A", "E"));`}
+/>
+
+</TopicSection>
+
+<TopicSection id="m01-p3-sec-e" letter="E" title="Step-by-Step Walkthrough">
+
+Trace every step of **`shortestPathBFS(graph, "A", "E")`** in **Example 4**:
+
+1. **Input Validation & Initialization:** Confirm `adjList` is a `Map` and both `"A"` and `"E"` exist. Push `"A"` onto `queue = ["A"]`, set `head = 0`, and record `parent.set("A", null)` to mark `"A"` visited and act as the path root.
+2. **Pop Level 0 (`"A"`):** Advance `head` (`0 -> 1`) in `O(1)` time without shifting array elements. Inspect neighbors `["B", "C"]`: neither is in `parent`, so set `parent("B") = "A"`, `parent("C") = "A"`, and push `"B"`, `"C"` onto `queue`.
+3. **Pop Level 1 (`"B"`):** Advance `head` (`1 -> 2`). Neighbor `"D"` is unvisited, so set `parent("D") = "B"` and enqueue `"D"`.
+4. **Pop Level 1 (`"C"`):** Advance `head` (`2 -> 3`). Neighbor `"E"` matches `goal`! Set `parent("E") = "C"` and immediately reconstruct the path backward via `parent` (`"E" <- "C" <- "A"`), returning `["A", "C", "E"]` (2 hops) before `"D"` is ever expanded.
+
+</TopicSection>
+
+<TopicSection id="m01-p3-sec-f" letter="F" title="Real-World Use Cases">
+
+#### Scenario 1: Sliding-Window Rate Limiter Using a Ring-Buffer Queue (`O(1)` per Request)
+
+**Problem:** An API gateway enforces `100 requests per 60 seconds` per tenant. Storing timestamps in an array and calling `timestamps.shift()` to evict expired timestamps causes `O(n)` memory moves on every request under burst traffic.
+
+**Production Solution:** Maintain a bounded `RingQueue` (or Redis sorted set / token bucket) of capacity `100`. On each request, evict expired timestamps from `head` in `O(1)` per expired entry, check `queue.size < 100`, and enqueue `now` in `O(1)`.
+
+#### Scenario 2: Build System & Microservice Dependency Resolution (Graph + Cycle Detection)
+
+**Problem:** A monorepo task runner (`build -> test -> deploy`) or microservice startup orchestrator must run independent tasks in parallel while rejecting circular dependencies (`A -> B -> A`) before hanging forever.
+
+**Production Solution:** Represent dependencies as a directed adjacency list `Map<TaskId, TaskId[]>`, run iterative 3-color DFS or Kahn's topological sort (`O(V + E)`), fail fast with the cycle path if a back-edge is found, and schedule zero-in-degree waves concurrently.
+
+</TopicSection>
+
+<TopicSection id="m01-p3-sec-g" letter="G" title="Common Mistakes">
+
+- **Using `Array.shift()` in a BFS or job queue:** Turns an `O(V + E)` graph traversal or `O(n)` queue drain into `O(n²)` on large inputs.
+- **Forgetting `visited` tracking in Graph DFS/BFS:** Any cycle causes infinite loops until memory exhaustion or call-stack overflow.
+- **Unbounded recursion on user-controlled trees/graphs:** Input depth of 15,000+ crashes V8 with `RangeError: Maximum call stack size exceeded`.
+- **Binary search off-by-one bugs (`left < right` vs `left <= right`) or forgetting to verify sorted order:** Running binary search on unsorted data silently returns `-1` or wrong indices.
+- **Using plain `{}` as a graph/frequency map for arbitrary strings:** Keys like `"constructor"` or `"toString"` collide with `Object.prototype` unless `new Map()` or `Object.create(null)` is used.
+
+</TopicSection>
+
+<TopicSection id="m01-p3-sec-h" letter="H" title="Best Practices">
+
+- **Start with the simplest correct structure, then optimize hot paths:** Prefer `Map`/`Set` for dynamic `O(1)` lookups, dense arrays for indexed iteration, and ring buffers/head-index queues for FIFO work.
+- **Always validate sorting and numeric preconditions** (`Number.isFinite`, ascending order, non-empty bounds) at algorithm boundaries.
+- **Use iterative stacks/queues for arbitrary-depth trees and graphs** in Node.js so deep inputs never blow the ~10k call stack.
+- **Analyze both time AND auxiliary space** (including hidden call-stack frames and temporary array copies).
+- **Use `left + Math.floor((right - left) / 2)`** for binary-search midpoints as a cross-language habit that avoids 32-bit integer overflow in C++/Java/Go.
+
+</TopicSection>
+
+<TopicSection id="m01-p3-sec-i" letter="I" title="Performance & Scalability">
+
+- **Cache Locality Beats Pointer Chasing:** A contiguous `Array` or typed `Int32Array` benefits from CPU L1/L2 cache prefetching, often outperforming pointer-heavy linked lists even when theoretical Big O is identical (`O(n)`).
+- **Amortized vs. Tail Latency:** Hash-table resizing and dynamic array growth are `O(1)` *amortized*, but an occasional `O(n)` rehash spike on a 5M-entry in-memory cache can trigger a p99 latency spike—pre-size buffers when capacity is known.
+- **Avoid `O(n²)` Nested Loops in Request Handlers:** Replacing an `arr.includes()` inside a `.filter()`/`for` loop (`O(n * m)`) with a `Set` (`O(n + m)`) is one of the highest-ROI optimizations in production Node.js services.
+
+</TopicSection>
+
+<TopicSection id="m01-p3-sec-j" letter="J" title="Security Considerations">
+
+- **Algorithmic Complexity DoS (ReDoS, HashDoS, Quadratic Sort):** Untrusted inputs that trigger worst-case `O(n²)` paths (such as naive `Array.shift()` loops or unguarded nested joins) can saturate a single-threaded Node.js CPU at low request rates. Enforce strict payload size/element caps.
+- **Graph & Tree Cycle Bombs:** Untrusted JSON/YAML dependency graphs or cyclic object references can cause infinite traversal loops unless `visited` `Set`s and max-node/depth caps are enforced.
+- **Prototype Key Injection in Adjacency Lists / Frequency Maps:** Never build `adj[userKey].push(...)` on plain `{}`—use `new Map()` so keys like `"__proto__"` or `"constructor"` cannot corrupt prototypes or crash `.push()`.
+
+</TopicSection>
+
+<TopicSection id="m01-p3-sec-k" letter="K" title="Comparisons & Decision Tables">
+
+#### 1. Big O Complexity Tiers (Practical Scale at `n = 1,000,000`)
+
+| Complexity | Name | Approx. Ops (`n = 10^6`) | Typical Example |
+| --- | --- | --- | --- |
+| `O(1)` | Constant | `1` | `Map.get()`, array index `arr[i]`, `RingQueue.dequeue()` |
+| `O(log n)` | Logarithmic | `~20` | Binary search, balanced BST lookup |
+| `O(n)` | Linear | `1,000,000` | Single-pass scan, `Set` deduplication, BFS/DFS (`V + E`) |
+| `O(n log n)` | Linearithmic | `~20,000,000` | Merge Sort, Timsort (`Array.toSorted()`), Heap Sort |
+| `O(n²)` | Quadratic | `10^12` (hangs) | Nested loops, `arr.shift()` in a loop, naive Bubble Sort |
+
+#### 2. Core Data Structures: Time & Space Trade-Offs
+
+| Structure | Access / Search | Insert / Delete (End vs. Front/Mid) | Extra Space | Best Production Fit |
+| --- | --- | --- | --- | --- |
+| Dynamic `Array` | `O(1)` index / `O(n)` search | `O(1)` amortized tail / `O(n)` front | `O(n)` contiguous | Indexed lists, stacks, cache-friendly scans |
+| `Map` / `Set` (Hash) | `O(1)` average (`O(n)` worst) | `O(1)` average | `O(n)` buckets | Frequency counts, caches, `O(1)` membership |
+| `Stack` (LIFO) | `O(1)` top peek | `O(1)` push/pop | `O(n)` | Undo history, bracket parsing, iterative DFS |
+| `Queue` (Ring/Head) | `O(1)` front peek | `O(1)` enqueue/dequeue | `O(n)` or fixed cap | BFS shortest path, rate limiters, job buffers |
+| Balanced BST / B+ Tree | `O(log n)` | `O(log n)` | `O(n)` + pointers | Ordered range queries, DB indexes |
+| Graph (Adj. List) | `O(deg(v))` neighbor check | `O(1)` add edge | `O(V + E)` | Dependency DAGs, routing, social networks |
+
+#### 3. Sorting & Searching Decision Guide
+
+| Algorithm | Time (Avg / Worst) | Space | Stable? | When to Choose |
+| --- | --- | --- | --- | --- |
+| Timsort (`Array.toSorted`) | `O(n log n)` / `O(n log n)` | `O(n)` | Yes (ES2019+) | Default choice in JS for general arrays |
+| Merge Sort (Iterative) | `O(n log n)` / `O(n log n)` | `O(n)` | Yes | Predictable worst-case, external/linked sorting |
+| Quicksort (3-Way Rand) | `O(n log n)` / `O(n²)` rare | `O(log n)` stack | No | In-place primitive arrays needing cache speed |
+| Binary Search | `O(log n)` / `O(log n)` | `O(1)` | N/A | Sorted arrays or monotonic `check(mid)` predicates |
+
+</TopicSection>
+
+<TopicSection id="m01-p3-sec-l" letter="L" title="Tips to Remember (Mnemonics & Mental Models)">
+
+- **Big O Sanity Check:** *"If `n = 100,000`, `O(n log n)` finishes in milliseconds; `O(n²)` does 10 billion ops and times out."*
+- **Queue vs. Stack Rule:** **S**tack = **S**ame end (`push`/`pop`, LIFO); **Q**ueue = **Q**uite opposite ends (FIFO, never `.shift()`!).
+- **BFS vs. DFS:** *"BFS = ripple in a pond (shortest unweighted path, Queue); DFS = maze explorer with chalk (`visited` Set, Stack)."*
+- **Recursion Safety Rule:** *"Base case + strictly smaller subproblem + depth guard (`~10k` V8 stack limit)."*
+
+</TopicSection>
+
+<TopicSection id="m01-p3-sec-mn" letter="M/N" title="Interview Questions & Detailed Answers">
+  <InterviewSection />
+</TopicSection>
+
+<TopicSection id="m01-p3-sec-o" letter="O" title="Practical Exercises">
+
+<ExerciseCard
+  title="Exercise 1: Binary Search Lower Bound (First Index >= Target)"
+  prompt={
+    <p>
+      Write <code>lowerBound(sortedNums, target)</code> that validates a sorted finite-number array and returns the smallest index <code>i</code> where <code>sortedNums[i] &gt;= target</code> (or <code>sortedNums.length</code> if all elements are smaller), handling duplicates cleanly in <code>O(log n)</code>.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function lowerBound(sortedNums, target) {
+  if (!Array.isArray(sortedNums)) throw new TypeError("sortedNums must be an array");
+  if (typeof target !== "number" || !Number.isFinite(target)) {
+    throw new TypeError("target must be a finite number");
+  }
+  for (let i = 0; i < sortedNums.length; i++) {
+    if (typeof sortedNums[i] !== "number" || !Number.isFinite(sortedNums[i])) {
+      throw new TypeError("All elements must be finite numbers");
+    }
+    if (i > 0 && sortedNums[i] < sortedNums[i - 1]) {
+      throw new RangeError("sortedNums must be sorted in ascending order");
+    }
+  }
+
+  let left = 0;
+  let right = sortedNums.length;
+  while (left < right) {
+    const mid = left + Math.floor((right - left) / 2);
+    if (sortedNums[mid] < target) left = mid + 1;
+    else right = mid;
+  }
+  return left;
+}
+
+console.log("Lower bound of 4 in [1,2,4,4,4,9]:", lowerBound([1, 2, 4, 4, 4, 9], 4));
+console.log("Lower bound of 10:", lowerBound([1, 2, 4, 4, 4, 9], 10));`}
+  />
+</ExerciseCard>
+
+<ExerciseCard
+  title="Exercise 2: Balanced Brackets (Stack) & O(1) Two-Stack Queue"
+  prompt={
+    <p>
+      Implement <code>isBalancedBrackets(expr)</code> using a stack (ignoring non-bracket characters, rejecting non-strings) and a <code>TwoStackQueue</code> class providing amortized <code>O(1)</code> <code>enqueue</code> and <code>dequeue</code> without <code>Array.shift()</code>.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function isBalancedBrackets(expr) {
+  if (typeof expr !== "string") throw new TypeError("expr must be a string");
+  const pairs = new Map([[")", "("], ["]", "["], ["}", "{"]]);
+  const opens = new Set(["(", "[", "{"]);
+  const stack = [];
+
+  for (const ch of expr) {
+    if (opens.has(ch)) {
+      stack.push(ch);
+    } else if (pairs.has(ch)) {
+      if (stack.pop() !== pairs.get(ch)) return false;
+    }
+  }
+  return stack.length === 0;
+}
+
+class TwoStackQueue {
+  #in = [];
+  #out = [];
+
+  enqueue(value) {
+    this.#in.push(value);
+  }
+
+  dequeue() {
+    if (this.#out.length === 0) {
+      while (this.#in.length > 0) this.#out.push(this.#in.pop());
+    }
+    return this.#out.pop();
+  }
+
+  get size() {
+    return this.#in.length + this.#out.length;
+  }
+}
+
+console.log("Balanced '{[()]}'?", isBalancedBrackets("{[()]}"));
+console.log("Balanced '([)]'?", isBalancedBrackets("([)]"));
+const tq = new TwoStackQueue();
+tq.enqueue("a");
+tq.enqueue("b");
+console.log("TwoStackQueue dequeue:", tq.dequeue(), "| size:", tq.size);`}
+  />
+</ExerciseCard>
+
+<ExerciseCard
+  title="Exercise 3: Directed Graph Cycle Detection (Iterative 3-Color DFS)"
+  prompt={
+    <p>
+      Write <code>hasDirectedCycle(adjList)</code> using an explicit stack and 3-state tracking (<code>0 = unvisited</code>, <code>1 = visiting</code>, <code>2 = visited</code>) so 20,000-node deep chains do not overflow the JS call stack.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function hasDirectedCycle(adjList) {
+  if (!(adjList instanceof Map)) throw new TypeError("adjList must be a Map");
+  const state = new Map(); // 0/missing = unvisited, 1 = visiting (on active path), 2 = visited
+
+  for (const start of adjList.keys()) {
+    if ((state.get(start) ?? 0) !== 0) continue;
+    const stack = [{ node: start, idx: 0 }];
+    state.set(start, 1);
+
+    while (stack.length > 0) {
+      const top = stack[stack.length - 1];
+      const neighbors = adjList.get(top.node) ?? [];
+      if (!Array.isArray(neighbors)) throw new TypeError("Adjacency list entry must be an array");
+
+      if (top.idx < neighbors.length) {
+        const next = neighbors[top.idx++];
+        const nextState = state.get(next) ?? 0;
+        if (nextState === 1) return true; // Back-edge to active path => cycle!
+        if (nextState === 0) {
+          state.set(next, 1);
+          stack.push({ node: next, idx: 0 });
+        }
+      } else {
+        state.set(top.node, 2);
+        stack.pop();
+      }
+    }
+  }
+  return false;
+}
+
+const dag = new Map([["build", ["test"]], ["test", ["deploy"]], ["deploy", []]]);
+const cyclic = new Map([["A", ["B"]], ["B", ["C"]], ["C", ["A"]]]);
+console.log("DAG has cycle?", hasDirectedCycle(dag));
+console.log("Cyclic graph has cycle?", hasDirectedCycle(cyclic));`}
+  />
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m01-p3-sec-p" letter="P" title="Advanced Challenge">
+
+<Callout variant="warn" title="Senior Challenge: Multi-Tenant Log & Dependency Analyzer at Scale">
+  <p>
+    You are designing an in-memory Node.js service that ingests up to 200,000 time-ordered log events per minute and resolves a 20,000-node microservice dependency graph on startup.
+  </p>
+  <p>
+    <strong>Your Task:</strong> Explain how you (1) answer timestamp range queries in <code>O(log n)</code> using lower/upper-bound binary search, (2) evict expired sliding-window events in <code>O(1)</code> without <code>Array.shift()</code>, (3) detect dependency cycles without overflowing V8's ~10k call stack, and (4) protect against HashDoS and prototype key injection.
+  </p>
+</Callout>
+
+<ExerciseCard
+  title="Reference Architecture Notes"
+  prompt={null}
+  buttonLabel="Reveal Approach"
+  hideLabel="Hide Approach"
+>
+  <ol>
+    <li>Maintain a ring buffer (or head-index compacted array) of monotonically increasing event timestamps so window eviction is <code>O(1)</code> amortized and range start/end indices are found via <code>O(log n)</code> binary search (<code>lowerBound</code>).</li>
+    <li>Represent the service dependency graph as <code>Map&lt;string, string[]&gt;</code> (immune to <code>__proto__</code>/<code>constructor</code> key collisions) and validate with iterative Kahn's topological sort or 3-color iterative DFS to avoid V8's ~10k stack limit.</li>
+    <li>Cap maximum graph nodes/edges and request payload key counts at ingress to prevent algorithmic complexity DoS and unbounded heap allocation.</li>
+  </ol>
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m01-p3-sec-q" letter="Q" title="Summary & Key Takeaways">
+
+- **Big O & Complexity:** Analyze both **time** and **auxiliary space** (including recursive call-stack frames). Eliminating `O(n²)` nested scans and `Array.shift()` queues is the fastest path to scalable Node.js code.
+- **Core Linear Structures:** Use dense arrays for `O(1)` index reads and stacks (`.push()`/`.pop()`), `RingQueue` / `TwoStackQueue` for `O(1)` FIFO queues, and `Map`/`Set` for `O(1)` average hash lookups without prototype collisions.
+- **Sorting & Searching:** Timsort (`Array.toSorted()`) provides stable `O(n log n)` sorting; Binary Search (`lowerBound`) solves sorted/monotonic lookups in `O(log n)`.
+- **Trees & Graphs:** Use BFS (Queue) for shortest unweighted paths, DFS (iterative Stack + 3-color `state`) for cycle detection and topological sorting, and always guard against cycles and V8's ~10k recursion limit.
+
+</TopicSection>

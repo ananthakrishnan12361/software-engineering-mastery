@@ -132,40 +132,176 @@ export const SYLLABUS_MODULES: SyllabusModule[] = [
       lessonId: "m01-p2",
       anchorId: "m01-p2-topic-solid"
     },
-    "Algorithms",
-    "Data structures",
-    "Time complexity",
-    "Space complexity",
-    "Big O",
-    "Recursion",
-    "Sorting",
-    "Searching",
-    "Hash maps",
-    "Stacks",
-    "Queues",
-    "Trees",
-    "Graph fundamentals",
-    "JavaScript",
-    "ES6+",
-    "Closures",
-    "Scope",
-    "Hoisting",
-    "Prototype",
-    "Prototypal inheritance",
-    "this",
-    "Arrow functions",
-    "Promises",
-    "Async/await",
-    "Event loop",
-    "Microtasks",
-    "Macrotasks",
-    "Memory management",
-    "Garbage collection",
-    "TypeScript fundamentals",
-    "Type systems",
-    "Generics",
-    "Interfaces",
-    "Type safety"
+    {
+      title: "Algorithms",
+      lessonId: "m01-p3",
+      anchorId: "m01-p3-topic-algorithms"
+    },
+    {
+      title: "Data structures",
+      lessonId: "m01-p3",
+      anchorId: "m01-p3-topic-data-structures"
+    },
+    {
+      title: "Time complexity",
+      lessonId: "m01-p3",
+      anchorId: "m01-p3-topic-time-complexity"
+    },
+    {
+      title: "Space complexity",
+      lessonId: "m01-p3",
+      anchorId: "m01-p3-topic-space-complexity"
+    },
+    {
+      title: "Big O",
+      lessonId: "m01-p3",
+      anchorId: "m01-p3-topic-big-o"
+    },
+    {
+      title: "Recursion",
+      lessonId: "m01-p3",
+      anchorId: "m01-p3-topic-recursion"
+    },
+    {
+      title: "Sorting",
+      lessonId: "m01-p3",
+      anchorId: "m01-p3-topic-sorting"
+    },
+    {
+      title: "Searching",
+      lessonId: "m01-p3",
+      anchorId: "m01-p3-topic-searching"
+    },
+    {
+      title: "Hash maps",
+      lessonId: "m01-p3",
+      anchorId: "m01-p3-topic-hash-maps"
+    },
+    {
+      title: "Stacks",
+      lessonId: "m01-p3",
+      anchorId: "m01-p3-topic-stacks"
+    },
+    {
+      title: "Queues",
+      lessonId: "m01-p3",
+      anchorId: "m01-p3-topic-queues"
+    },
+    {
+      title: "Trees",
+      lessonId: "m01-p3",
+      anchorId: "m01-p3-topic-trees"
+    },
+    {
+      title: "Graph fundamentals",
+      lessonId: "m01-p3",
+      anchorId: "m01-p3-topic-graph-fundamentals"
+    },
+    {
+      title: "JavaScript",
+      lessonId: "m01-p4",
+      anchorId: "m01-p4-topic-javascript"
+    },
+    {
+      title: "ES6+",
+      lessonId: "m01-p4",
+      anchorId: "m01-p4-topic-es6"
+    },
+    {
+      title: "Closures",
+      lessonId: "m01-p4",
+      anchorId: "m01-p4-topic-closures"
+    },
+    {
+      title: "Scope",
+      lessonId: "m01-p4",
+      anchorId: "m01-p4-topic-scope"
+    },
+    {
+      title: "Hoisting",
+      lessonId: "m01-p4",
+      anchorId: "m01-p4-topic-hoisting"
+    },
+    {
+      title: "Prototype",
+      lessonId: "m01-p4",
+      anchorId: "m01-p4-topic-prototype"
+    },
+    {
+      title: "Prototypal inheritance",
+      lessonId: "m01-p4",
+      anchorId: "m01-p4-topic-prototypal-inheritance"
+    },
+    {
+      title: "this",
+      lessonId: "m01-p4",
+      anchorId: "m01-p4-topic-this"
+    },
+    {
+      title: "Arrow functions",
+      lessonId: "m01-p4",
+      anchorId: "m01-p4-topic-arrow-functions"
+    },
+    {
+      title: "Promises",
+      lessonId: "m01-p4",
+      anchorId: "m01-p4-topic-promises"
+    },
+    {
+      title: "Async/await",
+      lessonId: "m01-p4",
+      anchorId: "m01-p4-topic-async-await"
+    },
+    {
+      title: "Event loop",
+      lessonId: "m01-p4",
+      anchorId: "m01-p4-topic-event-loop"
+    },
+    {
+      title: "Microtasks",
+      lessonId: "m01-p4",
+      anchorId: "m01-p4-topic-microtasks"
+    },
+    {
+      title: "Macrotasks",
+      lessonId: "m01-p4",
+      anchorId: "m01-p4-topic-macrotasks"
+    },
+    {
+      title: "Memory management",
+      lessonId: "m01-p4",
+      anchorId: "m01-p4-topic-memory-management"
+    },
+    {
+      title: "Garbage collection",
+      lessonId: "m01-p4",
+      anchorId: "m01-p4-topic-garbage-collection"
+    },
+    {
+      title: "TypeScript fundamentals",
+      lessonId: "m01-p5",
+      anchorId: "m01-p5-topic-typescript-fundamentals"
+    },
+    {
+      title: "Type systems",
+      lessonId: "m01-p5",
+      anchorId: "m01-p5-topic-type-systems"
+    },
+    {
+      title: "Generics",
+      lessonId: "m01-p5",
+      anchorId: "m01-p5-topic-generics"
+    },
+    {
+      title: "Interfaces",
+      lessonId: "m01-p5",
+      anchorId: "m01-p5-topic-interfaces"
+    },
+    {
+      title: "Type safety",
+      lessonId: "m01-p5",
+      anchorId: "m01-p5-topic-type-safety"
+    }
   ]),
 
   defineModule(
@@ -173,82 +309,366 @@ export const SYLLABUS_MODULES: SyllabusModule[] = [
     "React & Frontend Engineering",
     "frontend",
     [
-      "React architecture",
-      "Components",
-      "Props",
-      "State",
-      "Rendering",
-      "Virtual DOM",
-      "JSX",
-      "Hooks",
-      "useState",
-      "useEffect",
-      "useRef",
-      "useContext",
-      "useMemo",
-      "useCallback",
-      "React.memo",
-      "Custom hooks",
-      "Component lifecycle concepts",
-      "State management",
-      "Context API",
-      "Redux",
-      "Redux Toolkit",
-      "React Query / TanStack Query",
-      "React Router",
-      "Forms",
-      "Validation",
-      "API integration",
-      "Authentication",
-      "Authorization",
-      "Error boundaries",
-      "Lazy loading",
-      "Code splitting",
-      "Performance optimization",
-      "Rendering optimization",
-      "Memoization",
-      "Frontend caching",
-      "Accessibility",
-      "Responsive design",
-      "Security",
-      "XSS",
-      "CSRF",
-      "Large frontend architecture",
-      "Component design patterns",
-      "Testing",
-      "Unit testing",
-      "Integration testing",
-      "Frontend debugging"
+      {
+        title: "React architecture",
+        lessonId: "m02-p1",
+        anchorId: "m02-p1-topic-react-architecture"
+      },
+      {
+        title: "Components",
+        lessonId: "m02-p1",
+        anchorId: "m02-p1-topic-components"
+      },
+      {
+        title: "Props",
+        lessonId: "m02-p1",
+        anchorId: "m02-p1-topic-props"
+      },
+      {
+        title: "State",
+        lessonId: "m02-p1",
+        anchorId: "m02-p1-topic-state"
+      },
+      {
+        title: "Rendering",
+        lessonId: "m02-p1",
+        anchorId: "m02-p1-topic-rendering"
+      },
+      {
+        title: "Virtual DOM",
+        lessonId: "m02-p1",
+        anchorId: "m02-p1-topic-virtual-dom"
+      },
+      {
+        title: "JSX",
+        lessonId: "m02-p1",
+        anchorId: "m02-p1-topic-jsx"
+      },
+      {
+        title: "Hooks",
+        lessonId: "m02-p2",
+        anchorId: "m02-p2-topic-hooks"
+      },
+      {
+        title: "useState",
+        lessonId: "m02-p2",
+        anchorId: "m02-p2-topic-usestate"
+      },
+      {
+        title: "useEffect",
+        lessonId: "m02-p2",
+        anchorId: "m02-p2-topic-useeffect"
+      },
+      {
+        title: "useRef",
+        lessonId: "m02-p2",
+        anchorId: "m02-p2-topic-useref"
+      },
+      {
+        title: "useContext",
+        lessonId: "m02-p2",
+        anchorId: "m02-p2-topic-usecontext"
+      },
+      {
+        title: "useMemo",
+        lessonId: "m02-p2",
+        anchorId: "m02-p2-topic-usememo"
+      },
+      {
+        title: "useCallback",
+        lessonId: "m02-p2",
+        anchorId: "m02-p2-topic-usecallback"
+      },
+      {
+        title: "React.memo",
+        lessonId: "m02-p2",
+        anchorId: "m02-p2-topic-reactmemo"
+      },
+      {
+        title: "Custom hooks",
+        lessonId: "m02-p2",
+        anchorId: "m02-p2-topic-custom-hooks"
+      },
+      {
+        title: "Component lifecycle concepts",
+        lessonId: "m02-p1",
+        anchorId: "m02-p1-topic-component-lifecycle-concepts"
+      },
+      {
+        title: "State management",
+        lessonId: "m02-p3",
+        anchorId: "m02-p3-topic-state-management"
+      },
+      {
+        title: "Context API",
+        lessonId: "m02-p3",
+        anchorId: "m02-p3-topic-context-api"
+      },
+      {
+        title: "Redux",
+        lessonId: "m02-p3",
+        anchorId: "m02-p3-topic-redux"
+      },
+      {
+        title: "Redux Toolkit",
+        lessonId: "m02-p3",
+        anchorId: "m02-p3-topic-redux-toolkit"
+      },
+      {
+        title: "React Query / TanStack Query",
+        lessonId: "m02-p3",
+        anchorId: "m02-p3-topic-tanstack-query"
+      },
+      {
+        title: "React Router",
+        lessonId: "m02-p3",
+        anchorId: "m02-p3-topic-react-router"
+      },
+      {
+        title: "Forms",
+        lessonId: "m02-p3",
+        anchorId: "m02-p3-topic-forms"
+      },
+      {
+        title: "Validation",
+        lessonId: "m02-p3",
+        anchorId: "m02-p3-topic-validation"
+      },
+      {
+        title: "API integration",
+        lessonId: "m02-p3",
+        anchorId: "m02-p3-topic-api-integration"
+      },
+      {
+        title: "Authentication",
+        lessonId: "m02-p3",
+        anchorId: "m02-p3-topic-authentication"
+      },
+      {
+        title: "Authorization",
+        lessonId: "m02-p3",
+        anchorId: "m02-p3-topic-authorization"
+      },
+      {
+        title: "Error boundaries",
+        lessonId: "m02-p4",
+        anchorId: "m02-p4-topic-error-boundaries"
+      },
+      {
+        title: "Lazy loading",
+        lessonId: "m02-p4",
+        anchorId: "m02-p4-topic-lazy-loading"
+      },
+      {
+        title: "Code splitting",
+        lessonId: "m02-p4",
+        anchorId: "m02-p4-topic-code-splitting"
+      },
+      {
+        title: "Performance optimization",
+        lessonId: "m02-p4",
+        anchorId: "m02-p4-topic-performance-optimization"
+      },
+      {
+        title: "Rendering optimization",
+        lessonId: "m02-p4",
+        anchorId: "m02-p4-topic-rendering-optimization"
+      },
+      {
+        title: "Memoization",
+        lessonId: "m02-p4",
+        anchorId: "m02-p4-topic-memoization"
+      },
+      {
+        title: "Frontend caching",
+        lessonId: "m02-p4",
+        anchorId: "m02-p4-topic-frontend-caching"
+      },
+      {
+        title: "Accessibility",
+        lessonId: "m02-p4",
+        anchorId: "m02-p4-topic-accessibility"
+      },
+      {
+        title: "Responsive design",
+        lessonId: "m02-p4",
+        anchorId: "m02-p4-topic-responsive-design"
+      },
+      {
+        title: "Security",
+        lessonId: "m02-p4",
+        anchorId: "m02-p4-topic-security"
+      },
+      {
+        title: "XSS",
+        lessonId: "m02-p4",
+        anchorId: "m02-p4-topic-xss"
+      },
+      {
+        title: "CSRF",
+        lessonId: "m02-p4",
+        anchorId: "m02-p4-topic-csrf"
+      },
+      {
+        title: "Large frontend architecture",
+        lessonId: "m02-p4",
+        anchorId: "m02-p4-topic-large-frontend-architecture"
+      },
+      {
+        title: "Component design patterns",
+        lessonId: "m02-p4",
+        anchorId: "m02-p4-topic-component-design-patterns"
+      },
+      {
+        title: "Testing",
+        lessonId: "m02-p4",
+        anchorId: "m02-p4-topic-testing"
+      },
+      {
+        title: "Unit testing",
+        lessonId: "m02-p4",
+        anchorId: "m02-p4-topic-unit-testing"
+      },
+      {
+        title: "Integration testing",
+        lessonId: "m02-p4",
+        anchorId: "m02-p4-topic-integration-testing"
+      },
+      {
+        title: "Frontend debugging",
+        lessonId: "m02-p4",
+        anchorId: "m02-p4-topic-frontend-debugging"
+      }
     ],
     "Includes real React code and optimization examples."
   ),
 
   defineModule(3, "Node.js & Backend Engineering", "backend", [
-    "Node.js architecture",
-    "V8",
-    "libuv",
-    "Event loop",
-    "Thread pool",
-    "Worker threads",
-    "Process vs thread",
-    "Async I/O",
-    "Streams",
-    "Buffers",
-    "File handling",
-    "Express",
-    "Middleware",
-    "Routing",
-    "REST API",
-    "API design",
-    "HTTP",
-    "HTTP methods",
-    "Status codes",
-    "Headers",
-    "Request lifecycle",
-    "API versioning",
-    "API validation",
-    "Error handling",
-    "Logging",
+    {
+      title: "Node.js architecture",
+      lessonId: "m03-p1",
+      anchorId: "m03-p1-topic-nodejs-architecture"
+    },
+    {
+      title: "V8",
+      lessonId: "m03-p1",
+      anchorId: "m03-p1-topic-v8"
+    },
+    {
+      title: "libuv",
+      lessonId: "m03-p1",
+      anchorId: "m03-p1-topic-libuv"
+    },
+    {
+      title: "Event loop",
+      lessonId: "m03-p1",
+      anchorId: "m03-p1-topic-event-loop"
+    },
+    {
+      title: "Thread pool",
+      lessonId: "m03-p1",
+      anchorId: "m03-p1-topic-thread-pool"
+    },
+    {
+      title: "Worker threads",
+      lessonId: "m03-p1",
+      anchorId: "m03-p1-topic-worker-threads"
+    },
+    {
+      title: "Process vs thread",
+      lessonId: "m03-p1",
+      anchorId: "m03-p1-topic-process-vs-thread"
+    },
+    {
+      title: "Async I/O",
+      lessonId: "m03-p1",
+      anchorId: "m03-p1-topic-async-io"
+    },
+    {
+      title: "Streams",
+      lessonId: "m03-p1",
+      anchorId: "m03-p1-topic-streams"
+    },
+    {
+      title: "Buffers",
+      lessonId: "m03-p1",
+      anchorId: "m03-p1-topic-buffers"
+    },
+    {
+      title: "File handling",
+      lessonId: "m03-p1",
+      anchorId: "m03-p1-topic-file-handling"
+    },
+    {
+      title: "Express",
+      lessonId: "m03-p2",
+      anchorId: "m03-p2-topic-express"
+    },
+    {
+      title: "Middleware",
+      lessonId: "m03-p2",
+      anchorId: "m03-p2-topic-middleware"
+    },
+    {
+      title: "Routing",
+      lessonId: "m03-p2",
+      anchorId: "m03-p2-topic-routing"
+    },
+    {
+      title: "REST API",
+      lessonId: "m03-p2",
+      anchorId: "m03-p2-topic-rest-api"
+    },
+    {
+      title: "API design",
+      lessonId: "m03-p2",
+      anchorId: "m03-p2-topic-api-design"
+    },
+    {
+      title: "HTTP",
+      lessonId: "m03-p2",
+      anchorId: "m03-p2-topic-http"
+    },
+    {
+      title: "HTTP methods",
+      lessonId: "m03-p2",
+      anchorId: "m03-p2-topic-http-methods"
+    },
+    {
+      title: "Status codes",
+      lessonId: "m03-p2",
+      anchorId: "m03-p2-topic-status-codes"
+    },
+    {
+      title: "Headers",
+      lessonId: "m03-p2",
+      anchorId: "m03-p2-topic-headers"
+    },
+    {
+      title: "Request lifecycle",
+      lessonId: "m03-p2",
+      anchorId: "m03-p2-topic-request-lifecycle"
+    },
+    {
+      title: "API versioning",
+      lessonId: "m03-p2",
+      anchorId: "m03-p2-topic-api-versioning"
+    },
+    {
+      title: "API validation",
+      lessonId: "m03-p2",
+      anchorId: "m03-p2-topic-api-validation"
+    },
+    {
+      title: "Error handling",
+      lessonId: "m03-p2",
+      anchorId: "m03-p2-topic-error-handling"
+    },
+    {
+      title: "Logging",
+      lessonId: "m03-p2",
+      anchorId: "m03-p2-topic-logging"
+    },
     "Authentication",
     "JWT",
     "Refresh tokens",

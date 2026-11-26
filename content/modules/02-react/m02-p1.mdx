@@ -1,0 +1,499 @@
+<Callout variant="info" title="Topics Covered in Part 1 (M02-P1)">
+  <p>
+    This lesson covers 8 foundational React topics from Module 2: <strong>React architecture</strong>, <strong>Components</strong>, <strong>Props</strong>, <strong>State</strong>, <strong>Rendering</strong>, <strong>Virtual DOM</strong>, <strong>JSX</strong>, and <strong>Component lifecycle concepts</strong>.
+  </p>
+</Callout>
+
+<TopicSection id="m02-p1-sec-a" letter="A" title="Topic Introduction">
+
+#### What is this?
+
+**React** is a declarative, component-based UI library for building interactive web interfaces. Instead of manually mutating DOM nodes (`document.createElement`, `el.textContent = ...`) whenever data changes, you describe **what the UI should look like** for a given **State** and **Props** using **Components** and **JSX**, and React's **Rendering** & **Virtual DOM** (Fiber) engine reconciles the minimal DOM updates needed.
+
+#### Why does it exist & what problem does it solve?
+
+Imperative DOM manipulation breaks down as apps grow: when multiple events update overlapping UI regions, manual DOM mutations drift out of sync with application data, causing stale views and layout bugs. React solves this with **one-way data flow** (`UI = f(state, props)`), isolated reusable components, and deterministic reconciliation.
+
+#### Where is it used in real-world software?
+
+React powers single-page dashboards, e-commerce storefronts, collaborative editors, and full-stack frameworks (Next.js, Remix). Understanding React's render-vs-commit pipeline and key reconciliation prevents sluggish forms, lost input focus, and cascading re-renders.
+
+</TopicSection>
+
+<TopicSection id="m02-p1-sec-b" letter="B" title="Fundamentals (Simple Mental Models)">
+
+<TopicAnchor id="m02-p1-topic-react-architecture" />
+
+#### 1. React Architecture: Declarative UI, Fiber & Two-Phase Updates
+
+**React architecture** splits UI work into two distinct phases: the **Render phase** (purely calling component functions to compute a React Element tree in memory, which can be paused/restarted in React 18/19 concurrent rendering) and the **Commit phase** (synchronously applying minimal mutations to the real browser DOM and running effects).
+
+Under the hood, React's **Fiber** architecture represents each component instance and host element as a linked-list tree of Fiber nodes, tracking pending state updates, priorities, and previous/next trees (`current` vs. `workInProgress`).
+
+<TopicAnchor id="m02-p1-topic-components" />
+
+#### 2. Components: Pure UI Functions & Composition
+
+<GlossaryTerm definition="A reusable, self-contained UI building block (typically a JavaScript function) that accepts props and returns React elements.">Components</GlossaryTerm> are plain JavaScript functions whose names start with a capital letter (`function OrderCard({ order }) { ... }`) and return JSX.
+
+Keep components **pure during render**: given the same props and state, a component must return the same JSX without mutating external variables, firing network requests, or writing to `localStorage` directly inside the render body.
+
+<TopicAnchor id="m02-p1-topic-props" />
+
+#### 3. Props: Read-Only Inputs & One-Way Data Flow
+
+<GlossaryTerm definition="Read-only inputs passed from a parent component to a child component, enforcing unidirectional data flow.">Props</GlossaryTerm> (properties) flow **downward** from parent to child (`<UserBadge name="Ava" role="admin" />`). A child component must **never** mutate its `props` object—if a child needs to trigger a change in parent data, the parent passes a callback prop (`onSelect`).
+
+React also reserves special props: `children` (nested JSX passed between opening/closing tags) and `key` (reconciliation identity in lists, **not** readable inside `props`).
+
+<TopicAnchor id="m02-p1-topic-state" />
+
+#### 4. State: Component-Owned Memory Across Renders
+
+<GlossaryTerm definition="Mutable snapshot memory owned by a component instance; updating state via its setter schedules a re-render.">State</GlossaryTerm> is data owned by a component that changes over time (form inputs, open/closed toggles, fetched data). Unlike local variables (which reset on every function call), React preserves state across renders.
+
+Crucially, **state behaves like a snapshot per render** and must be updated **immutably** (replacing objects/arrays via `{ ...prev, name }` or `.map()`/`.filter()` rather than `prev.items.push(x)`), because React compares state references with `Object.is` to decide whether to re-render.
+
+<TopicAnchor id="m02-p1-topic-rendering" />
+
+#### 5. Rendering: Trigger, Render & Commit
+
+In React, **rendering** means React calling your component functions to calculate the next UI description—**not** necessarily repainting the whole browser page! A render is triggered on initial mount or when a component's state changes (which by default re-renders that component and its descendants recursively).
+
+During the **Commit phase**, React uses the diff computed during rendering to touch **only** the DOM nodes whose attributes or text actually changed.
+
+<TopicAnchor id="m02-p1-topic-virtual-dom" />
+
+#### 6. Virtual DOM: Lightweight Element Trees & Reconciliation
+
+The <GlossaryTerm definition="An in-memory tree of lightweight React element descriptions reconciled against the previous tree to compute minimal real DOM mutations.">Virtual DOM</GlossaryTerm> (React Element objects `{ type, props, key }`) is far cheaper to create and diff in JavaScript than touching live browser DOM nodes.
+
+During **reconciliation**, React compares elements by `type` and `key`: same `type` + same `key` updates the existing DOM node in place (preserving state and `<input>` focus); different `type` or missing/changed `key` unmounts the old subtree and mounts a fresh one.
+
+<TopicAnchor id="m02-p1-topic-jsx" />
+
+#### 7. JSX: Syntax Sugar for `jsx()` / `React.createElement`
+
+**JSX** looks like HTML inside JavaScript (`<Button variant="primary">{label}</Button>`), but build tools (Babel, SWC, or TypeScript) compile every tag into plain JavaScript function calls (`jsx(Button, { variant: "primary", children: label })`) that return React Element objects.
+
+Because JSX compiles directly to JavaScript expressions, dynamic values go inside `{ ... }`, DOM attributes use camelCase (`className`, `htmlFor`, `onClick`), adjacent tags must share a single parent or Fragment (`<>...</>`), and React automatically escapes text children (`{userInput}`) to help prevent XSS.
+
+<TopicAnchor id="m02-p1-topic-component-lifecycle-concepts" />
+
+#### 8. Component Lifecycle Concepts: Mount, Update & Unmount
+
+Even with modern function components, every component instance moves through three **lifecycle** stages: **Mount** (first render + DOM insertion + effect setup), **Update** (re-render when props/state/context change + DOM patch + effect cleanup/re-run), and **Unmount** (removal from DOM + cleanup of timers, subscriptions, and `AbortController`s).
+
+Understanding mount vs. update vs. unmount prevents stale state bugs and memory leaks when components appear and disappear dynamically.
+
+</TopicSection>
+
+<TopicSection id="m02-p1-sec-c" letter="C" title="Internal Working & Architecture">
+
+#### 1. React's Trigger &rarr; Render &rarr; Commit Pipeline
+
+React batches multiple `setState` calls inside an event handler (and in React 18+, across promises and timeouts via automatic batching) into a single render pass before committing DOM updates.
+
+<DiagramCard caption="Figure 2.1 — React's three-step update pipeline: Trigger (state update) -> Render (pure JSX/Fiber diff) -> Commit (minimal DOM patches).">
+  <svg viewBox="0 0 820 205" role="img" aria-label="React Trigger, Render, and Commit pipeline">
+    <rect x="10" y="10" width="800" height="185" rx="10" fill="var(--bg-subtle)" stroke="var(--border)" />
+
+    <rect x="28" y="34" width="225" height="136" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" />
+    <text x="140" y="60" textAnchor="middle" fill="var(--accent-strong)" fontSize="13.5" fontWeight="700" fontFamily="sans-serif">1. Trigger</text>
+    <text x="140" y="88" textAnchor="middle" fill="var(--text-primary)" fontSize="12" fontFamily="monospace">Initial Mount or</text>
+    <text x="140" y="110" textAnchor="middle" fill="var(--text-primary)" fontSize="12" fontFamily="monospace">setState(nextVal)</text>
+    <text x="140" y="140" textAnchor="middle" fill="var(--text-secondary)" fontSize="11.5" fontFamily="sans-serif">Batched in React 18/19</text>
+
+    <line x1="253" y1="102" x2="298" y2="102" stroke="var(--accent)" strokeWidth="2" />
+    <polygon points="298,102 288,97 288,107" fill="var(--accent)" />
+
+    <rect x="302" y="34" width="235" height="136" rx="8" fill="var(--bg-surface)" stroke="var(--border-strong)" />
+    <text x="419" y="60" textAnchor="middle" fill="var(--text-primary)" fontSize="13.5" fontWeight="700" fontFamily="sans-serif">2. Render (Pure)</text>
+    <text x="419" y="88" textAnchor="middle" fill="var(--text-primary)" fontSize="12" fontFamily="monospace">Call Component(props)</text>
+    <text x="419" y="110" textAnchor="middle" fill="var(--text-secondary)" fontSize="11.5" fontFamily="sans-serif">Diff Virtual DOM / Fiber</text>
+    <text x="419" y="140" textAnchor="middle" fill="var(--success)" fontSize="11.5" fontWeight="700" fontFamily="sans-serif">Zero DOM writes here</text>
+
+    <line x1="537" y1="102" x2="582" y2="102" stroke="var(--success)" strokeWidth="2" />
+    <polygon points="582,102 572,97 572,107" fill="var(--success)" />
+
+    <rect x="586" y="34" width="206" height="136" rx="8" fill="var(--success-soft)" stroke="var(--success)" />
+    <text x="689" y="60" textAnchor="middle" fill="var(--success)" fontSize="13.5" fontWeight="700" fontFamily="sans-serif">3. Commit (DOM)</text>
+    <text x="689" y="88" textAnchor="middle" fill="var(--text-primary)" fontSize="12" fontFamily="monospace">Apply minimal patches</text>
+    <text x="689" y="110" textAnchor="middle" fill="var(--text-secondary)" fontSize="11.5" fontFamily="sans-serif">Browser Layout &amp; Paint</text>
+    <text x="689" y="140" textAnchor="middle" fill="var(--text-secondary)" fontSize="11.5" fontFamily="sans-serif">Run Effect cleanups/setup</text>
+  </svg>
+</DiagramCard>
+
+#### 2. List Reconciliation: Stable `key` vs. Array Index `key`
+
+When items are inserted at the top or reordered, using `index` as `key` tricks React into reusing the wrong component instance (causing `<input>` values or checkboxes to stick to the wrong row!). Stable unique IDs (`key={item.id}`) preserve exact instance identity.
+
+<DiagramCard caption="Figure 2.2 — Prepending an item: index keys misalign component state, whereas stable ID keys move the existing instance cleanly.">
+  <svg viewBox="0 0 820 195" role="img" aria-label="React list reconciliation with index keys versus stable ID keys">
+    <rect x="10" y="10" width="800" height="175" rx="10" fill="var(--bg-subtle)" stroke="var(--border)" />
+
+    <rect x="28" y="28" width="370" height="138" rx="8" fill="var(--danger-soft)" stroke="var(--danger)" />
+    <text x="46" y="54" fill="var(--danger)" fontSize="13" fontWeight="700" fontFamily="sans-serif">Anti-Pattern: key=&#123;index&#125; on Reorder</text>
+    <text x="46" y="82" fill="var(--text-primary)" fontSize="12" fontFamily="monospace">Before: [0: "Task A", 1: "Task B"]</text>
+    <text x="46" y="106" fill="var(--text-primary)" fontSize="12" fontFamily="monospace">Prepend "New" =&gt; 0:"New", 1:"Task A"</text>
+    <text x="46" y="136" fill="var(--danger)" fontSize="11.5" fontFamily="sans-serif">Key 0 reuses Task A's DOM/input state!</text>
+
+    <rect x="420" y="28" width="372" height="138" rx="8" fill="var(--success-soft)" stroke="var(--success)" />
+    <text x="438" y="54" fill="var(--success)" fontSize="13" fontWeight="700" fontFamily="sans-serif">Correct: key=&#123;item.id&#125; (Stable ID)</text>
+    <text x="438" y="82" fill="var(--text-primary)" fontSize="12" fontFamily="monospace">Before: [id="a", id="b"]</text>
+    <text x="438" y="106" fill="var(--text-primary)" fontSize="12" fontFamily="monospace">Prepend id="new" =&gt; ["new", "a", "b"]</text>
+    <text x="438" y="136" fill="var(--success)" fontSize="11.5" fontFamily="sans-serif">Mounts "new" once; keeps "a" &amp; "b" intact</text>
+  </svg>
+</DiagramCard>
+
+</TopicSection>
+
+<TopicSection id="m02-p1-sec-d" letter="D" title="Practical Examples (Interactive)">
+
+#### Example 1: Real React Component, Props, Immutable State & Stable Keys (TSX Reference)
+
+<CodeBlock
+  lang="tsx"
+  code={`interface TaskItem {
+  readonly id: string;
+  readonly title: string;
+  readonly done: boolean;
+}
+
+export function TaskList({
+  tasks,
+  onToggle
+}: {
+  readonly tasks: readonly TaskItem[];
+  onToggle: (id: string) => void;
+}) {
+  // Pure render: derives count instead of duplicating state
+  const remaining = tasks.filter((t) => !t.done).length;
+
+  return (
+    <section aria-label="Task list">
+      <p>{remaining} remaining</p>
+      <ul>
+        {tasks.map((task) => (
+          <li key={task.id}>
+            <label>
+              <input
+                type="checkbox"
+                checked={task.done}
+                onChange={() => onToggle(task.id)}
+              />
+              <span>{task.title}</span>
+            </label>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}`}
+/>
+
+#### Example 2: Virtual DOM Element Factory & `Object.is` State Update Guard
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// Models React's jsx() element object + Object.is state bailout
+function createVNode(type, props = {}, key = null) {
+  if ((typeof type !== "string" && typeof type !== "function") || (typeof type === "string" && type.trim().length === 0)) {
+    throw new TypeError("VNode type must be a non-empty tag string or component function");
+  }
+  if (!props || typeof props !== "object" || Object.prototype.toString.call(props) !== "[object Object]") {
+    throw new TypeError("props must be a plain object");
+  }
+  const { key: _reservedKey, ...cleanProps } = props;
+  return Object.freeze({
+    type,
+    key: key === null || key === undefined ? null : String(key),
+    props: Object.freeze(cleanProps)
+  });
+}
+
+function shouldScheduleRender(prevState, nextStateOrUpdater) {
+  const nextState = typeof nextStateOrUpdater === "function" ? nextStateOrUpdater(prevState) : nextStateOrUpdater;
+  // React compares previous and next state with Object.is
+  return { nextState, willRender: !Object.is(prevState, nextState) };
+}
+
+const node = createVNode("li", { className: "row", children: "Pay invoice" }, "inv_1");
+const sameRef = { count: 1 };
+sameRef.count = 2; // Mutating in place keeps same reference!
+console.log("VNode:", node.type, "key:", node.key);
+console.log("Mutated same-ref triggers render?", shouldScheduleRender(sameRef, sameRef).willRender);
+console.log("Immutable copy triggers render?", shouldScheduleRender(sameRef, { ...sameRef }).willRender);`}
+/>
+
+#### Example 3: Keyed List Reconciliation Diff (`mount` / `update` / `unmount`)
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// Models React's keyed reconciliation between prevItems and nextItems
+function reconcileKeyedList(prevItems, nextItems) {
+  if (!Array.isArray(prevItems) || !Array.isArray(nextItems)) {
+    throw new TypeError("prevItems and nextItems must be arrays");
+  }
+  const prevMap = new Map();
+  for (let i = 0; i < prevItems.length; i++) {
+    const item = prevItems[i];
+    if (!item || typeof item.key !== "string" || item.key.trim().length === 0) {
+      throw new TypeError(\`prevItems[\${i}] must have a non-empty string key\`);
+    }
+    if (typeof item.type !== "string" || item.type.trim().length === 0) {
+      throw new TypeError(\`prevItems[\${i}] must have a non-empty string type\`);
+    }
+    if (prevMap.has(item.key)) throw new RangeError(\`Duplicate key in prevItems: \${item.key}\`);
+    prevMap.set(item.key, item);
+  }
+
+  const ops = [];
+  const seenNext = new Set();
+  for (let i = 0; i < nextItems.length; i++) {
+    const next = nextItems[i];
+    if (!next || typeof next.key !== "string" || next.key.trim().length === 0) {
+      throw new TypeError(\`nextItems[\${i}] must have a non-empty string key\`);
+    }
+    if (typeof next.type !== "string" || next.type.trim().length === 0) {
+      throw new TypeError(\`nextItems[\${i}] must have a non-empty string type\`);
+    }
+    if (seenNext.has(next.key)) throw new RangeError(\`Duplicate key in nextItems: \${next.key}\`);
+    seenNext.add(next.key);
+
+    const prev = prevMap.get(next.key);
+    if (!prev) ops.push({ op: "MOUNT", key: next.key });
+    else if (prev.type !== next.type) ops.push({ op: "REPLACE", key: next.key });
+    else ops.push({ op: "UPDATE", key: next.key });
+  }
+
+  for (const prev of prevItems) {
+    if (!seenNext.has(prev.key)) ops.push({ op: "UNMOUNT", key: prev.key });
+  }
+  return ops;
+}
+
+const prev = [{ key: "a", type: "Row" }, { key: "b", type: "Row" }];
+const next = [{ key: "new", type: "Row" }, { key: "a", type: "Row" }];
+console.log("Reconcile ops:", reconcileKeyedList(prev, next));`}
+/>
+
+</TopicSection>
+
+<TopicSection id="m02-p1-sec-e" letter="E" title="Step-by-Step Walkthrough">
+
+Trace **`reconcileKeyedList`** (**Example 3**) when `"new"` is prepended and `"b"` is removed:
+
+1. **Validate & Index Previous Tree:** Build `prevMap` keyed by each item's `key` (`"a"` and `"b"`), rejecting missing or duplicate keys immediately (just as React warns on duplicate keys).
+2. **Walk Next Tree:** For `"new"`, `prevMap.get("new")` is `undefined`, so React emits `MOUNT` (`new`). For `"a"`, `prevMap.get("a")` exists with the same `type: "Row"`, so React emits `UPDATE` (`a`) and preserves its DOM node and state!
+3. **Type Change Check:** If `"a"` changed `type` (e.g., `"Row"` &rarr; `"Banner"`), React emits `REPLACE` (unmount old subtree, mount new one).
+4. **Unmount Removed Nodes:** Any key in `prevMap` absent from `seenNext` (`"b"`) receives `UNMOUNT`, triggering its cleanup lifecycle.
+
+</TopicSection>
+
+<TopicSection id="m02-p1-sec-f" letter="F" title="Real-World Use Cases">
+
+#### Scenario 1: Preserving Form Focus & Draft Input in Dynamic Order Lists
+
+**Problem:** An admin table renders editable `<OrderRow />` items with `key={index}`. When a live WebSocket pushes a new order to index `0`, every row's draft comment shifts onto the wrong order!
+
+**Production Solution:** Key every row by its database primary key (`key={order.id}`) and pass immutable updates upward via callbacks (`onUpdateNote(order.id, text)`).
+
+#### Scenario 2: Avoiding Derived-State Drift in Checkout Summaries
+
+**Problem:** A checkout component stores `items` in state *and* duplicates `totalCents` in a second `useState`, causing `totalCents` to fall out of sync when coupons or quantities update.
+
+**Production Solution:** Store only minimal source-of-truth state (`items`, `couponCode`) and compute `totalCents` directly during render as a pure function of state and props.
+
+</TopicSection>
+
+<TopicSection id="m02-p1-sec-g" letter="G" title="Common Mistakes">
+
+- **Mutating state arrays/objects in place (`items.push(x); setItems(items)`):** `Object.is(prev, next)` is `true`, so React skips the re-render completely!
+- **Using array `index` as `key` on dynamic/sortable/filterable lists:** Corrupts local input state and triggers unnecessary DOM mutations.
+- **Calling state setters directly in the component body:** Causes infinite render loops (`Too many re-renders`).
+- **Storing derived values (like `filteredItems` or `fullName`) in `useState`:** Creates synchronization bugs when props or source state change.
+- **Mutating `props` inside a child component:** Violates React's pure-component contract and breaks parent state predictability.
+
+</TopicSection>
+
+<TopicSection id="m02-p1-sec-h" letter="H" title="Best Practices">
+
+- **Keep components small, pure, and focused** (`UI = f(state, props)`).
+- **Use stable, unique IDs for `key`**, never `Math.random()` (which remounts every item on every render!) and never `index` for mutable lists.
+- **Derive computed values during render** instead of duplicating them in state.
+- **Lift state only to the lowest common ancestor** that actually needs it—avoid dumping local UI toggles into global state.
+- **Use functional updaters (`setCount((c) => c + 1)`)** whenever the next state depends on the previous state across batched updates.
+
+</TopicSection>
+
+<TopicSection id="m02-p1-sec-i" letter="I" title="Performance & Scalability">
+
+- **Avoid Inline `Math.random()` Keys or Defining Components Inside Components:** Defining `function Inner() {}` inside `Outer` creates a new function reference every render, forcing React to unmount/remount `Inner`'s entire DOM subtree every time `Outer` renders!
+- **Automatic Batching (React 18+):** Multiple state updates inside event handlers, `Promise.then`, and `setTimeout` are batched into a single render + commit pass.
+- **Colocate State:** Keeping fast-changing state (like a search input or hover state) inside a small leaf component prevents re-rendering an entire 500-row dashboard.
+
+</TopicSection>
+
+<TopicSection id="m02-p1-sec-j" letter="J" title="Security Considerations">
+
+- **Automatic JSX Escaping vs. `dangerouslySetInnerHTML`:** Standard `{userInput}` interpolation escapes HTML entities automatically, blocking basic `<script>` XSS. Never pass unsanitized user HTML into `dangerouslySetInnerHTML` or unvalidated `href={`javascript:...`}` URLs.
+- **Keep Secrets Out of Props/Client State:** Everything rendered in React runs in the user's browser; never embed API secrets or authorization trust decisions solely in client-side JSX conditionals.
+
+</TopicSection>
+
+<TopicSection id="m02-p1-sec-k" letter="K" title="Comparisons & Decision Tables">
+
+#### 1. Props vs. State
+
+| Dimension | `Props` | `State` |
+| --- | --- | --- |
+| Ownership | Passed in by parent component | Owned internally by the component |
+| Mutability inside component | **Read-only** (never mutate) | Updated via state setter (triggers re-render) |
+| Purpose | Configure child behavior & pass callbacks | Track dynamic UI/data changes over time |
+
+#### 2. Imperative DOM vs. React Virtual DOM (Fiber)
+
+| Aspect | Imperative DOM (`document.*`) | React Declarative + Fiber |
+| --- | --- | --- |
+| Update model | Manual step-by-step DOM mutations | Pure `UI = f(state, props)` + diffing |
+| Sync risk | High (easy for UI & data to drift) | Low (single source of truth) |
+| Batching & scheduling | Manual `requestAnimationFrame` | Built-in automatic batching & concurrent priority |
+
+#### 3. List `key` Choices
+
+| Key Choice | Safe for Static Lists? | Safe for Reorder / Insert / Delete? | Verdict |
+| --- | --- | --- | --- |
+| `item.id` (DB/stable ID) | Yes | **Yes** | **Always prefer** |
+| Array `index` | Only if never reordered/filtered | **No** (state corruption) | Avoid on dynamic lists |
+| `Math.random()` / `crypto.randomUUID()` per render | **No** | **No** (remounts every render!) | **Never use** |
+
+</TopicSection>
+
+<TopicSection id="m02-p1-sec-l" letter="L" title="Tips to Remember (Mnemonics & Mental Models)">
+
+- **React Equation:** *"`UI = f(state, props)` — props flow down, events flow up."*
+- **Three Phases:** *"Trigger &rarr; Render (pure calculation) &rarr; Commit (DOM + effects)."*
+- **`Object.is` Trap:** *"Mutating an array in place keeps the same reference, so React ignores it—always return a new reference."*
+- **`key` Rule:** *"Same `type` + same `key` = update in place; changed `key` or `type` = unmount and remount."*
+
+</TopicSection>
+
+<TopicSection id="m02-p1-sec-mn" letter="M/N" title="Interview Questions & Detailed Answers">
+  <InterviewSection />
+</TopicSection>
+
+<TopicSection id="m02-p1-sec-o" letter="O" title="Practical Exercises">
+
+<ExerciseCard
+  title="Exercise 1: Immutable State Updater & Snapshot Batcher"
+  prompt={
+    <p>
+      Write <code>applyBatchedUpdates(initialState, updaters)</code> that models React's batched state queue: given an initial value and an array of values or updater functions <code>(prev) =&gt; next</code>, compute the final state sequentially and report whether React's <code>Object.is</code> check triggers a render.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function applyBatchedUpdates(initialState, updaters) {
+  if (!Array.isArray(updaters)) throw new TypeError("updaters must be an array");
+  let current = initialState;
+  for (let i = 0; i < updaters.length; i++) {
+    const u = updaters[i];
+    current = typeof u === "function" ? u(current) : u;
+  }
+  return {
+    nextState: current,
+    shouldRender: !Object.is(initialState, current)
+  };
+}
+
+// Direct value (0 + 1 repeated 3 times = 1) vs functional updater ((c) => c + 1 repeated 3 times = 3)
+console.log("Snapshot replacement:", applyBatchedUpdates(0, [1, 1, 1]));
+console.log("Functional updaters:", applyBatchedUpdates(0, [(c) => c + 1, (c) => c + 1, (c) => c + 1]));`}
+  />
+</ExerciseCard>
+
+<ExerciseCard
+  title="Exercise 2: Safe JSX Attribute & Text Escaper"
+  prompt={
+    <p>
+      Write <code>escapeHtmlText(input)</code> and <code>isSafeHref(url)</code> modeling how React escapes text children against XSS and rejects dangerous <code>javascript:</code> / <code>data:</code> URLs in links.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function escapeHtmlText(input) {
+  if (typeof input !== "string") throw new TypeError("input must be a string");
+  return input
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function isSafeHref(url) {
+  if (typeof url !== "string") throw new TypeError("url must be a string");
+  for (let i = 0; i < url.length; i++) {
+    const code = url.charCodeAt(i);
+    if (code <= 31 || code === 127) return false;
+  }
+  const trimmed = url.trim();
+  if (trimmed.length === 0) return false;
+  if (trimmed.startsWith("#")) return true;
+  if (trimmed.startsWith("/") && !trimmed.startsWith("//") && trimmed.charCodeAt(1) !== 92) return true;
+  try {
+    const parsed = new URL(trimmed);
+    return parsed.protocol === "https:" || parsed.protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+
+console.log("Escaped:", escapeHtmlText('<script>alert("xss")</script>'));
+console.log("Safe https?", isSafeHref("https:" + "//app.local/docs"), "| Safe javascript:?", isSafeHref("javascript:alert(1)"));`}
+  />
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m02-p1-sec-p" letter="P" title="Advanced Challenge">
+
+<Callout variant="warn" title="Senior Challenge: Fixing a Sluggish, Glitching Data Grid">
+  <p>
+    A 1,000-row React table suffers two production bugs: (1) typing in row 1's filter/note input freezes the UI for 300ms, and (2) sorting the table scrambles checked checkboxes across rows.
+  </p>
+  <p>
+    <strong>Your Task:</strong> Explain how you fix both bugs using React's core architecture: (1) replacing <code>key=&#123;index&#125;</code> with stable row IDs, (2) colocating fast-changing input state inside leaf components (or lifting only committed values), (3) avoiding inline component definitions inside parent render, and (4) deriving totals/filtered counts during render instead of duplicated state.
+  </p>
+</Callout>
+
+<ExerciseCard
+  title="Reference Architecture Notes"
+  prompt={null}
+  buttonLabel="Reveal Approach"
+  hideLabel="Hide Approach"
+>
+  <ol>
+    <li>Replace <code>key=&#123;index&#125;</code> with <code>key=&#123;row.id&#125;</code> so sorting moves Fiber/DOM instances instead of misaligning checkbox state.</li>
+    <li>Colocate fast-changing filter/input state in a small leaf component so keystrokes do not re-render all 1,000 sibling rows on every keypress.</li>
+    <li>Define all child components at module scope (never inside another component's render function) so React updates rather than unmounting/remounting subtrees.</li>
+  </ol>
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m02-p1-sec-q" letter="Q" title="Summary & Key Takeaways">
+
+- **Declarative Architecture:** React separates pure **Render** (computing Fiber/Virtual DOM diffs) from synchronous **Commit** (patching minimal DOM nodes).
+- **Props vs. State:** `Props` are read-only inputs flowing down; `State` is component-owned snapshot memory updated **immutably** (`Object.is` comparison).
+- **Reconciliation & Keys:** Same `type` + same `key` updates in place; use stable unique IDs (never `Math.random()`, and avoid `index` on dynamic lists).
+- **Lifecycle & Security:** Understand mount, update, and unmount cleanup; rely on JSX text escaping while validating external URLs (`https:`/`http:`) and avoiding `dangerouslySetInnerHTML`.
+
+</TopicSection>

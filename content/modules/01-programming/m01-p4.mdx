@@ -1,0 +1,708 @@
+<Callout variant="info" title="Topics Covered in Part 4 (M01-P4)">
+  <p>
+    This lesson covers 16 core JavaScript runtime topics from Module 1: <strong>JavaScript</strong>, <strong>ES6+</strong>, <strong>Closures</strong>, <strong>Scope</strong>, <strong>Hoisting</strong>, <strong>Prototype</strong>, <strong>Prototypal inheritance</strong>, <strong><code>this</code></strong>, <strong>Arrow functions</strong>, <strong>Promises</strong>, <strong>Async/await</strong>, <strong>Event loop</strong>, <strong>Microtasks</strong>, <strong>Macrotasks</strong>, <strong>Memory management</strong>, and <strong>Garbage collection</strong>.
+  </p>
+</Callout>
+
+<TopicSection id="m01-p4-sec-a" letter="A" title="Topic Introduction">
+
+#### What is this?
+
+**JavaScript internals** explain how the language actually executes behind the syntax: how **Scope**, **Hoisting**, and **Closures** govern variable lifetime; how **Prototypes** and **`this`** resolve property lookups and method receivers; how **Promises**, **Async/await**, and the **Event Loop** (**Microtasks** vs. **Macrotasks**) schedule asynchronous work on a single thread; and how **Memory management** and **Garbage collection** reclaim unreachable heap objects.
+
+#### Why does it exist & what problem does it solve?
+
+Most production JavaScript bugs—stale closures in React hooks, `this` becoming `undefined` when passing a method as a callback, `Promise.all` failing silently, microtask starvation freezing UI/Node.js, or unbounded `Map` caches leaking gigabytes of RAM—stem from treating JS syntax as magic instead of understanding the runtime model.
+
+#### Where is it used in real-world software?
+
+Every React hook, Redux selector, Express middleware, database connection pool, and `fetch`/API retry wrapper depends on closures, `this`/lexical binding, microtask ordering, and proper reference cleanup so long-lived Node.js servers and browser tabs stay fast and leak-free.
+
+</TopicSection>
+
+<TopicSection id="m01-p4-sec-b" letter="B" title="Fundamentals (Simple Mental Models)">
+
+<TopicAnchor id="m01-p4-topic-javascript" />
+
+#### 1. JavaScript: Single-Threaded, Event-Driven, Multi-Paradigm
+
+**JavaScript** is a single-threaded, garbage-collected, dynamically typed language standardized by **ECMAScript (ECMA-262)**. Single-threaded means one Call Stack executes one synchronous instruction at a time—preventing low-level data races on shared JS variables.
+
+To stay responsive on one thread, JavaScript delegates slow I/O, timers, and network requests to host APIs (browser Web APIs or Node.js `libuv`) and schedules their completion callbacks through the Event Loop.
+
+<TopicAnchor id="m01-p4-topic-es6" />
+
+#### 2. ES6+ (ES2015–Modern ECMAScript): Ergonomics & Safety
+
+**ES6+ (ES2015 and later)** modernized JavaScript from a fragile scripting language into a structured application language: `let`/`const` block scoping, arrow functions, `class` syntax, ES modules (`import`/`export`), destructuring, and rest/spread (`...`).
+
+Subsequent yearly releases added `Promise` combinators (`allSettled`, `any`), `async`/`await`, optional chaining (`?.`), nullish coalescing (`??`), `Map`/`Set`/`WeakMap`, `Object.hasOwn()`, and non-mutating array transforms (`toSorted()`, `toSpliced()`).
+
+<TopicAnchor id="m01-p4-topic-scope" />
+
+#### 3. Scope: Lexical Environments & the Scope Chain
+
+<GlossaryTerm definition="The compile-time rule determining where declared variables and functions are visible, forming nested Lexical Environments.">Scope</GlossaryTerm> defines where a binding is visible. JavaScript uses **lexical (static) scope**: a function's outer scope is determined by where it is **written in source code**, not where it is called at runtime.
+
+When resolving an identifier `x`, the engine checks the current Lexical Environment first and walks outward along parent environment links until reaching module/global scope (or throwing `ReferenceError` if undeclared).
+
+<TopicAnchor id="m01-p4-topic-hoisting" />
+
+#### 4. Hoisting: Creation Phase Registration & TDZ
+
+<GlossaryTerm definition="The engine's creation-phase behavior of registering declarations in their scope before executing statements line by line.">Hoisting</GlossaryTerm> happens because the engine scans each scope during its creation phase before executing statements line by line. `function` declarations are bound with their full callable body, and `var` bindings are initialized to `undefined`.
+
+By contrast, `let`, `const`, and `class` declarations are hoisted into the **Temporal Dead Zone (TDZ)** uninitialized, throwing a `ReferenceError` if any code reads or writes them before their declaration line executes.
+
+<TopicAnchor id="m01-p4-topic-closures" />
+
+#### 5. Closures: Functions That Remember Their Birth Scope
+
+A <GlossaryTerm definition="A function bundled together with references to its enclosing lexical environment, preserving outer variables after the outer function returns.">Closure</GlossaryTerm> is created whenever an inner function references variables from an enclosing scope. Even after the outer function's stack frame pops, those captured bindings stay alive on the heap as long as the inner function remains reachable.
+
+Because closures capture live variable bindings rather than static value copies, they power private state factories, memoization caches, and React hooks—and explain why `var` in a `for` loop shares one counter across all callbacks while `let` creates a fresh binding per iteration.
+
+<TopicAnchor id="m01-p4-topic-prototype" />
+
+#### 6. Prototype: The `[[Prototype]]` Delegation Link
+
+Every JavaScript object has an internal `[[Prototype]]` link (inspectable via `Object.getPrototypeOf(obj)`) pointing to another object or `null` (as in `Object.create(null)`).
+
+When reading `obj.toString`, the engine checks `obj`'s own properties first, then walks the **prototype chain** (`obj` &rarr; `Object.prototype` &rarr; `null`) until it finds the property or reaches `null` and returns `undefined`.
+
+<TopicAnchor id="m01-p4-topic-prototypal-inheritance" />
+
+#### 7. Prototypal Inheritance: Behavior Sharing via Delegation
+
+**Prototypal inheritance** shares methods across instances without duplicating functions into every object on the heap. Both `Object.create(proto)` and ES2015 `class` (`ClassName.prototype`) rely on prototype delegation.
+
+All instances share one method reference on the prototype, while each instance stores its own state properties—and mutating `Object.prototype` affects every delegating object across the runtime (which is why prototype pollution is severe).
+
+<TopicAnchor id="m01-p4-topic-this" />
+
+#### 8. `this`: Dynamic Call-Site Binding Rules
+
+In regular functions, <GlossaryTerm definition="An execution-context binding determined by how a function is called (call site), except in arrow functions which capture it lexically.">this</GlossaryTerm> is determined by **how the function is called**, not where it is defined: `new fn()` binds `this` to the new instance, and `fn.call(ctx)` / `.apply(ctx)` / `.bind(ctx)` sets `this` explicitly.
+
+Otherwise, `obj.method()` binds `this` to `obj`, whereas a bare `fn()` call (including a detached method `const f = obj.method; f()`) sets `this` to `undefined` in strict mode (or `globalThis` in sloppy mode).
+
+<TopicAnchor id="m01-p4-topic-arrow-functions" />
+
+#### 9. Arrow Functions: Lexical `this` & Callback Safety
+
+**Arrow functions** (`(x) => x * 2`) do **not** create their own `this`, `arguments`, or `super` bindings—instead, they capture `this` lexically from their enclosing scope when created, and `.call`/`.bind` cannot override it.
+
+That makes arrow functions ideal for array callbacks, timers, and Promise chains inside class methods, while making them unsuitable as `new` constructors (throws `TypeError`) or prototype methods that need a dynamic receiver.
+
+<TopicAnchor id="m01-p4-topic-promises" />
+
+#### 10. Promises: Composable Asynchronous State Machines
+
+A <GlossaryTerm definition="An object representing the eventual completion or failure of an async operation, transitioning once from pending to fulfilled or rejected.">Promise</GlossaryTerm> represents a future value in one of three states: **pending**, **fulfilled**, or **rejected**. Once settled, its value or rejection reason is immutable and never changes again.
+
+Chaining `.then()`, `.catch()`, and `.finally()` flattens nested callbacks into linear pipelines, while combinators (`Promise.all`, `Promise.allSettled`, `Promise.race`, `Promise.any`) coordinate concurrent async tasks with distinct failure semantics.
+
+<TopicAnchor id="m01-p4-topic-async-await" />
+
+#### 11. Async/Await: Syntactic Sugar Over Promises
+
+`async` functions always return a `Promise`, and `await expr` pauses only the **current `async` function's execution**, yielding control back to the Event Loop so other requests and UI events continue running.
+
+Once the awaited Promise settles, the continuation resumes as a **microtask**. Always wrap `await` in `try/catch` for rejection handling, and launch independent async calls with `Promise.all()` before `await`ing so you avoid sequential waterfalls.
+
+<TopicAnchor id="m01-p4-topic-event-loop" />
+
+#### 12. Event Loop: Orchestrating Sync Stack & Async Queues
+
+The **Event Loop** coordinates JavaScript's single Call Stack with async completion queues. First, the synchronous Call Stack runs to completion. Next, the runtime drains **all** queued microtasks until the microtask queue is empty.
+
+Only after the microtask queue is completely empty does the Event Loop pick **one** macrotask (e.g., `setTimeout`, I/O callback), execute it, and drain microtasks again before the next macrotask or browser frame render.
+
+<TopicAnchor id="m01-p4-topic-microtasks" />
+
+#### 13. Microtasks: High-Priority Promise Continuations
+
+<GlossaryTerm definition="High-priority async callbacks (Promise .then/catch/finally, queueMicrotask, MutationObserver) drained completely after each task before the next macrotask or render.">Microtasks</GlossaryTerm> include `Promise.then/.catch/.finally`, `await` continuations, and `queueMicrotask()`. Even `await Promise.resolve(1)` schedules its continuation as a microtask rather than running synchronously.
+
+Because the engine drains the **entire** microtask queue (including microtasks queued during draining) before moving on, recursive microtask scheduling starves timers, network I/O, and UI painting completely.
+
+<TopicAnchor id="m01-p4-topic-macrotasks" />
+
+#### 14. Macrotasks: Timers, I/O & UI Events
+
+**Macrotasks** (Tasks) include `setTimeout`, `setInterval`, DOM/UI events, and Node.js I/O / `setImmediate` callbacks. Only **one** macrotask executes per Event Loop turn before microtasks drain again.
+
+Yielding between macrotasks gives browsers a window to repaint frames (`~16.6ms` at 60Hz) and lets Node.js poll socket/file descriptors—making `setTimeout(..., 0)` or `setImmediate` useful for chunking heavy CPU loops.
+
+<TopicAnchor id="m01-p4-topic-memory-management" />
+
+#### 15. Memory Management: Allocation, Reachability & Leaks
+
+JavaScript allocates objects, closures, and strings automatically on the heap and frees them when unreachable. Unlike C/C++, developers do not call `free()`, yet **memory leaks** still happen regularly in production.
+
+Leaks occur whenever code keeps **unintended strong references** alive from roots—such as unbounded global `Map` caches, forgotten `setInterval` timers, unremoved event listeners, or closures retaining large unused buffers.
+
+<TopicAnchor id="m01-p4-topic-garbage-collection" />
+
+#### 16. Garbage Collection: Mark-and-Sweep & Generational Heaps
+
+Modern JS engines (such as V8's **Orinoco** GC) determine liveness via **reachability** from **GC Roots** (global object, active Call Stack frames, active closures), rather than naive reference counting—so isolated circular references (`a.ref = b; b.ref = a`) are safely reclaimed by **Mark-and-Sweep**.
+
+To keep pauses short, V8 splits the heap into a **Young Generation** (fast Scavenger for short-lived objects) and an **Old Generation** (concurrent/incremental Mark-Sweep-Compact for long-lived data).
+
+</TopicSection>
+
+<TopicSection id="m01-p4-sec-c" letter="C" title="Internal Working & Architecture">
+
+#### 1. Event Loop Turn Order: Call Stack &rarr; Microtask Queue &rarr; Macrotask Queue
+
+A common interview trap is predicting `setTimeout(..., 0)` vs. `Promise.resolve().then(...)` vs. synchronous code. Synchronous code runs first on the Call Stack, **all** microtasks drain immediately afterward, and only then does the Event Loop dequeue the next macrotask.
+
+<DiagramCard caption="Figure 1.7 — Event Loop priority: Synchronous Call Stack runs first, then all Microtasks drain completely before the next Macrotask.">
+  <svg viewBox="0 0 820 220" role="img" aria-label="JavaScript Event Loop, Call Stack, Microtask Queue, and Macrotask Queue">
+    <rect x="10" y="10" width="800" height="200" rx="10" fill="var(--bg-subtle)" stroke="var(--border)" />
+
+    <rect x="28" y="34" width="215" height="150" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" />
+    <text x="135" y="60" textAnchor="middle" fill="var(--accent-strong)" fontSize="13.5" fontWeight="700" fontFamily="sans-serif">1. Call Stack (Sync)</text>
+    <text x="135" y="88" textAnchor="middle" fill="var(--text-primary)" fontSize="12" fontFamily="monospace">main() -&gt; fn()</text>
+    <text x="135" y="112" textAnchor="middle" fill="var(--text-secondary)" fontSize="11.5" fontFamily="sans-serif">Runs to completion</text>
+    <text x="135" y="136" textAnchor="middle" fill="var(--text-secondary)" fontSize="11.5" fontFamily="sans-serif">before any async cb</text>
+
+    <line x1="243" y1="109" x2="295" y2="109" stroke="var(--accent)" strokeWidth="2" />
+    <polygon points="295,109 285,104 285,114" fill="var(--accent)" />
+
+    <rect x="299" y="34" width="235" height="150" rx="8" fill="var(--success-soft)" stroke="var(--success)" />
+    <text x="416" y="60" textAnchor="middle" fill="var(--success)" fontSize="13.5" fontWeight="700" fontFamily="sans-serif">2. Microtask Queue</text>
+    <text x="416" y="88" textAnchor="middle" fill="var(--text-primary)" fontSize="12" fontFamily="monospace">Promise.then / await</text>
+    <text x="416" y="112" textAnchor="middle" fill="var(--text-primary)" fontSize="12" fontFamily="monospace">queueMicrotask()</text>
+    <text x="416" y="142" textAnchor="middle" fill="var(--success)" fontSize="11.5" fontWeight="700" fontFamily="sans-serif">Drained 100% per turn</text>
+    <text x="416" y="164" textAnchor="middle" fill="var(--danger)" fontSize="11" fontFamily="sans-serif">(Looping here starves I/O!)</text>
+
+    <line x1="534" y1="109" x2="586" y2="109" stroke="var(--warning)" strokeWidth="2" />
+    <polygon points="586,109 576,104 576,114" fill="var(--warning)" />
+
+    <rect x="590" y="34" width="202" height="150" rx="8" fill="var(--warning-soft)" stroke="var(--warning)" />
+    <text x="691" y="60" textAnchor="middle" fill="var(--warning)" fontSize="13.5" fontWeight="700" fontFamily="sans-serif">3. Macrotask Queue</text>
+    <text x="691" y="88" textAnchor="middle" fill="var(--text-primary)" fontSize="12" fontFamily="monospace">setTimeout / I/O</text>
+    <text x="691" y="112" textAnchor="middle" fill="var(--text-primary)" fontSize="12" fontFamily="monospace">UI Events</text>
+    <text x="691" y="142" textAnchor="middle" fill="var(--text-secondary)" fontSize="11.5" fontFamily="sans-serif">1 task per loop turn,</text>
+    <text x="691" y="164" textAnchor="middle" fill="var(--text-secondary)" fontSize="11.5" fontFamily="sans-serif">then drain Microtasks</text>
+  </svg>
+</DiagramCard>
+
+#### 2. Prototype Chain Delegation & GC Reachability
+
+When `user.toString()` runs, the engine checks `Object.hasOwn(user, "toString")`, follows `[[Prototype]]` (`Object.getPrototypeOf(user)`), and stops at the first match or `null`. Meanwhile, the Garbage Collector traces outward from GC Roots (global + active stack + live closures): any isolated cycle not reachable from a root is reclaimed.
+
+<DiagramCard caption="Figure 1.8 — Prototype chain lookup path vs. Garbage Collector reachability from GC Roots.">
+  <svg viewBox="0 0 820 205" role="img" aria-label="Prototype chain delegation and Garbage Collector reachability">
+    <rect x="10" y="10" width="800" height="185" rx="10" fill="var(--bg-subtle)" stroke="var(--border)" />
+
+    <rect x="28" y="28" width="365" height="148" rx="8" fill="var(--bg-surface)" stroke="var(--border-strong)" />
+    <text x="46" y="54" fill="var(--accent-strong)" fontSize="13" fontWeight="700" fontFamily="sans-serif">[[Prototype]] Chain Delegation</text>
+    <text x="46" y="84" fill="var(--text-primary)" fontSize="12" fontFamily="monospace">admin (own: role="admin")</text>
+    <text x="46" y="108" fill="var(--text-secondary)" fontSize="12" fontFamily="monospace">  |--&gt; User.prototype (canLogin)</text>
+    <text x="46" y="132" fill="var(--text-secondary)" fontSize="12" fontFamily="monospace">        |--&gt; Object.prototype (toString)</text>
+    <text x="46" y="156" fill="var(--text-muted)" fontSize="12" fontFamily="monospace">              |--&gt; null (end)</text>
+
+    <rect x="415" y="28" width="377" height="148" rx="8" fill="var(--bg-surface)" stroke="var(--border-strong)" />
+    <text x="433" y="54" fill="var(--success)" fontSize="13" fontWeight="700" fontFamily="sans-serif">GC Mark-and-Sweep Reachability</text>
+    <text x="433" y="84" fill="var(--success)" fontSize="12" fontFamily="monospace">GC Roots (Stack / Global / Closures)</text>
+    <text x="433" y="108" fill="var(--text-primary)" fontSize="12" fontFamily="monospace">  |--&gt; Live Cache &amp; Active Objects (KEPT)</text>
+    <text x="433" y="134" fill="var(--danger)" fontSize="12" fontFamily="monospace">Detached Cycle: A &lt;--&gt; B (UNREACHABLE)</text>
+    <text x="433" y="158" fill="var(--danger)" fontSize="11.5" fontFamily="sans-serif">Reclaimed automatically by Mark-and-Sweep</text>
+  </svg>
+</DiagramCard>
+
+</TopicSection>
+
+<TopicSection id="m01-p4-sec-d" letter="D" title="Practical Examples (Interactive)">
+
+#### Example 1: Scope, Hoisting, TDZ & Closure Encapsulation
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// 1. Lexical scope + Closure private counter with strict validation
+function createBoundedCounter(max = 10) {
+  if (!Number.isSafeInteger(max) || max < 1) {
+    throw new RangeError("max must be a positive safe integer");
+  }
+  let count = 0; // Captured in closure lexical environment
+  return {
+    increment(step = 1) {
+      if (!Number.isSafeInteger(step) || step < 1) {
+        throw new RangeError("step must be a positive safe integer");
+      }
+      if (count + step > max) throw new RangeError("Counter limit exceeded");
+      count += step;
+      return count;
+    },
+    value() {
+      return count;
+    }
+  };
+}
+
+// 2. TDZ check + var vs let loop binding capture
+let tdzCaught = false;
+{
+  try { tdzVal; } catch (e) { tdzCaught = e instanceof ReferenceError; }
+  let tdzVal = 1;
+}
+const varFns = [];
+for (var i = 0; i < 3; i++) varFns.push(() => i);
+const letFns = [];
+for (let j = 0; j < 3; j++) letFns.push(() => j);
+
+const counter = createBoundedCounter(5);
+console.log("Counter:", counter.increment(2), counter.increment(3), "| TDZ caught?", tdzCaught);
+console.log("var loop captures:", varFns.map((f) => f()));
+console.log("let loop captures:", letFns.map((f) => f()));`}
+/>
+
+#### Example 2: Prototype Chain, `Object.create` & `this` vs. Arrow Functions
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// 1. Prototypal inheritance via Object.create & shared prototype methods
+const basePolicy = {
+  describe() {
+    return \`\${this.name} (retries=\${this.retries})\`;
+  }
+};
+
+function createServiceConfig(name, retries = 3) {
+  if (typeof name !== "string" || name.trim().length === 0) {
+    throw new TypeError("name must be a non-empty string");
+  }
+  if (!Number.isSafeInteger(retries) || retries < 0) {
+    throw new RangeError("retries must be a non-negative safe integer");
+  }
+  const cfg = Object.create(basePolicy);
+  cfg.name = name.trim();
+  cfg.retries = retries;
+  return cfg;
+}
+
+// 2. Dynamic 'this' loss on detached method vs arrow/bind preservation
+class Notifier {
+  #prefix;
+  constructor(prefix) {
+    if (typeof prefix !== "string" || prefix.trim().length === 0) throw new TypeError("prefix required");
+    this.#prefix = prefix.trim();
+  }
+  format(msg) {
+    return \`[\${this.#prefix}] \${msg}\`;
+  }
+  formatAll(items) {
+    if (!Array.isArray(items)) throw new TypeError("items must be an array");
+    return items.map((item) => this.format(String(item))); // Arrow preserves lexical 'this'
+  }
+}
+
+const cfg = createServiceConfig("billing", 2);
+const notifier = new Notifier("ALERT");
+const detached = notifier.format;
+let detachedThrew = false;
+try { detached("x"); } catch { detachedThrew = true; }
+
+console.log("Proto describe:", cfg.describe(), "| Own describe?", Object.hasOwn(cfg, "describe"));
+console.log("Detached this threw?", detachedThrew, "| Arrow formatAll:", notifier.formatAll(["db", "cache"]));`}
+/>
+
+#### Example 3: Event Loop Priority Simulator & Promise State Machine
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// Deterministic Event Loop turn simulator: Sync Stack -> drain ALL Microtasks -> 1 Macrotask -> drain Microtasks
+function runEventLoopSimulation(initialSync, maxMicrotasks = 1000) {
+  if (typeof initialSync !== "function") throw new TypeError("initialSync must be a function");
+  if (!Number.isSafeInteger(maxMicrotasks) || maxMicrotasks < 1) {
+    throw new RangeError("maxMicrotasks must be a positive safe integer");
+  }
+
+  const log = [];
+  const microtasks = [];
+  const macrotasks = [];
+
+  const api = {
+    sync: (label) => log.push(\`sync:\${label}\`),
+    queueMicrotask: (fn) => {
+      if (typeof fn !== "function") throw new TypeError("microtask must be a function");
+      microtasks.push(fn);
+    },
+    setTimeout0: (fn) => {
+      if (typeof fn !== "function") throw new TypeError("macrotask must be a function");
+      macrotasks.push(fn);
+    }
+  };
+
+  function drainMicrotasks() {
+    let drained = 0;
+    while (microtasks.length > 0) {
+      if (++drained > maxMicrotasks) {
+        throw new RangeError("Microtask starvation detected");
+      }
+      const task = microtasks.shift();
+      task(api);
+    }
+  }
+
+  initialSync(api);
+  drainMicrotasks();
+  while (macrotasks.length > 0) {
+    const macro = macrotasks.shift();
+    macro(api);
+    drainMicrotasks();
+  }
+  return log;
+}
+
+const trace = runEventLoopSimulation((rt) => {
+  rt.sync("start");
+  rt.setTimeout0((t) => {
+    t.sync("macro-1");
+    t.queueMicrotask((m) => m.sync("micro-inside-macro"));
+  });
+  rt.queueMicrotask((m) => {
+    m.sync("micro-1");
+    m.queueMicrotask((m2) => m2.sync("micro-chained"));
+  });
+  rt.sync("end");
+});
+
+console.log("Execution order:", trace);`}
+/>
+
+#### Example 4: Bounded Memory Cache & `async` Promise Builder
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// Bounded LRU-style Map cache prevents unbounded Old-Gen heap growth (memory leak)
+class BoundedCache {
+  #map = new Map();
+  #maxEntries;
+
+  constructor(maxEntries = 100) {
+    if (!Number.isSafeInteger(maxEntries) || maxEntries < 1) {
+      throw new RangeError("maxEntries must be a positive safe integer");
+    }
+    this.#maxEntries = maxEntries;
+  }
+
+  set(key, value) {
+    if (typeof key !== "string" || key.length === 0) {
+      throw new TypeError("key must be a non-empty string");
+    }
+    if (this.#map.has(key)) {
+      this.#map.delete(key); // Refresh recency
+    } else if (this.#map.size >= this.#maxEntries) {
+      const oldestKey = this.#map.keys().next().value;
+      this.#map.delete(oldestKey); // Evict oldest entry
+    }
+    this.#map.set(key, value);
+  }
+
+  get(key) {
+    if (!this.#map.has(key)) return undefined;
+    const val = this.#map.get(key);
+    this.#map.delete(key);
+    this.#map.set(key, val);
+    return val;
+  }
+
+  get size() {
+    return this.#map.size;
+  }
+}
+
+async function fetchUserProfile(userId) {
+  if (typeof userId !== "string" || userId.trim().length === 0) {
+    throw new TypeError("userId must be a non-empty string");
+  }
+  return { id: userId.trim(), status: "ok" };
+}
+
+const cache = new BoundedCache(2);
+cache.set("u1", { name: "Ava" });
+cache.set("u2", { name: "Ben" });
+cache.get("u1"); // Refresh u1 so u2 becomes oldest
+cache.set("u3", { name: "Cara" }); // Evicts u2
+const p = fetchUserProfile("u1");
+console.log("Cache size:", cache.size, "| u2 evicted?", cache.get("u2") === undefined);
+console.log("async fn returns Promise?", p instanceof Promise);`}
+/>
+
+</TopicSection>
+
+<TopicSection id="m01-p4-sec-e" letter="E" title="Step-by-Step Walkthrough">
+
+Trace every step of **`runEventLoopSimulation`** in **Example 3**:
+
+1. **Synchronous Phase:** `rt.sync("start")` logs `"sync:start"`, `rt.setTimeout0(...)` queues `macro-1` into `macrotasks`, `rt.queueMicrotask(...)` queues `micro-1` into `microtasks`, and `rt.sync("end")` logs `"sync:end"`.
+2. **First Microtask Drain:** Before touching `macrotasks`, `drainMicrotasks()` runs `micro-1` (logging `"sync:micro-1"`), which schedules `micro-chained`. Because the microtask queue drains until empty, `micro-chained` runs immediately next!
+3. **Macrotask Turn 1:** Now that `microtasks` is empty, the Event Loop pops `macro-1` (`"sync:macro-1"`), which schedules `micro-inside-macro`.
+4. **Post-Macrotask Drain:** Immediately after `macro-1` finishes, `drainMicrotasks()` runs `micro-inside-macro` before any subsequent macrotask or render.
+
+</TopicSection>
+
+<TopicSection id="m01-p4-sec-f" letter="F" title="Real-World Use Cases">
+
+#### Scenario 1: React Stale Closures in Timers & Event Listeners
+
+**Problem:** A React component registers `setInterval(() => setCount(count + 1), 1000)` on mount (`[]` dependencies). Because the closure captured `count = 0` from the initial render's Lexical Environment, every tick resets `count` to `0 + 1 = 1`.
+
+**Production Solution:** Use functional state updates (`setCount((prev) => prev + 1)`) or `useRef` for mutable latest values, and always return a cleanup function (`() => clearInterval(id)`) so unmounted components do not leak closures.
+
+#### Scenario 2: Fan-Out API Calls with `Promise.allSettled` & Bounded Concurrency
+
+**Problem:** A Node.js aggregator calls 3 downstream services sequentially (`await a(); await b(); await c();`), tripling latency (`300ms -> 900ms`), or uses `Promise.all()` which aborts all results if one optional recommendation service fails.
+
+**Production Solution:** Run independent I/O concurrently with `Promise.allSettled([a(), b(), c()])`, attach `AbortSignal.timeout(ms)` so hung sockets do not pin closures, and handle each `{ status: "fulfilled" | "rejected" }` explicitly.
+
+</TopicSection>
+
+<TopicSection id="m01-p4-sec-g" letter="G" title="Common Mistakes">
+
+- **Using `var` in loops with async callbacks:** All callbacks share one function-scoped `var` binding instead of per-iteration `let` bindings.
+- **Detaching class methods (`onClick={service.save}`):** Loses the `service.` call-site receiver, turning `this` into `undefined` in strict mode.
+- **Sequential `await` inside `for` loops when calls are independent:** Creates unnecessary latency waterfalls instead of concurrent `Promise.all` / `Promise.allSettled`.
+- **Forgetting `.catch()` / `try-catch` on Promises or `async` functions:** Triggers `UnhandledPromiseRejection` crashes in Node.js.
+- **Recursive `queueMicrotask` / `Promise.then` loops:** Starves I/O, timers, and UI rendering completely.
+- **Unbounded global `Map`/`Set` caches or forgotten event listeners:** Causes objects to survive into Old Generation and leak memory until OOM.
+
+</TopicSection>
+
+<TopicSection id="m01-p4-sec-h" letter="H" title="Best Practices">
+
+- **Use `const`/`let` (never `var`)** and keep closures small so they do not accidentally retain large unused buffers.
+- **Use arrow functions for callbacks inside methods** and `.bind(this)` (or arrow fields) when passing methods as event handlers.
+- **Prefer `async`/`await` with `try/catch/finally`** and `Promise.all` / `Promise.allSettled` for concurrent independent I/O.
+- **Clean up timers, subscriptions, and `AbortController`s** in `finally` blocks or React `useEffect` cleanup callbacks.
+- **Bound all long-lived caches** (LRU / TTL / `WeakMap`) so server RSS memory stays flat under sustained traffic.
+
+</TopicSection>
+
+<TopicSection id="m01-p4-sec-i" letter="I" title="Performance & Scalability">
+
+- **Young-Gen Scavenge vs. Old-Gen Mark-Sweep-Compact:** Short-lived request objects die quickly in V8's fast Young Generation; retaining objects across requests promotes them to Old Generation, causing heavier GC pauses.
+- **Avoid Microtask Floods & Long Sync Tasks:** Any synchronous JS loop taking >50ms blocks browser frame rendering and Node.js I/O polling. Chunk CPU work with macrotasks (`setTimeout(..., 0)`) or offload to Worker Threads.
+- **Shallow Prototype Chains:** Deep `Object.create` chains slow down property misses; keep inheritance shallow (1–2 levels).
+
+</TopicSection>
+
+<TopicSection id="m01-p4-sec-j" letter="J" title="Security Considerations">
+
+- **Prototype Chain Pollution (`Object.prototype`):** Mutating `Object.prototype` (e.g., via unsafe merge of `__proto__`) affects every object delegating to `Object.prototype` across the process. Use `Map`, `Object.create(null)`, and `Object.hasOwn`.
+- **Unhandled Rejections & Error Leakage:** Uncaught async rejections can crash Node.js processes (DoS) or leak internal stack traces/tokens if passed directly to HTTP responses.
+- **Closure Secret Retention & Memory Exhaustion:** Never keep unbounded per-request buffers or raw credentials inside long-lived closures or un-evicted caches.
+
+</TopicSection>
+
+<TopicSection id="m01-p4-sec-k" letter="K" title="Comparisons & Decision Tables">
+
+#### 1. `var` vs. `let` vs. `const` & Hoisting Behavior
+
+| Keyword | Scope | Hoisting & Initial Value | Redeclaration | Reassignment |
+| --- | --- | --- | --- | --- |
+| `var` | Function / Global | Hoisted, initialized to `undefined` | Allowed | Allowed |
+| `let` | Block (`{ ... }`) | Hoisted into TDZ (`ReferenceError`) | Forbidden (`SyntaxError`) | Allowed |
+| `const` | Block (`{ ... }`) | Hoisted into TDZ (`ReferenceError`) | Forbidden (`SyntaxError`) | Forbidden (`TypeError`) |
+
+#### 2. Promise Combinators Comparison
+
+| Combinator | Resolves When | Rejects When | Best Use Case |
+| --- | --- | --- | --- |
+| `Promise.all(list)` | **All** promises fulfill | **First** promise rejects (fail-fast) | Required parallel dependencies (DB + auth) |
+| `Promise.allSettled(list)` | **All** promises settle (never rejects) | Never | Partial-success fan-outs, batch notifications |
+| `Promise.race(list)` | **First** promise settles (fulfill or reject) | **First** settled is a rejection | Request timeouts (`fetch` vs `timeoutReject`) |
+| `Promise.any(list)` | **First** promise fulfills | **All** reject (`AggregateError`) | Multi-mirror fallback requests |
+
+#### 3. Microtasks vs. Macrotasks
+
+| Queue | Examples | Execution Timing | Starvation Risk |
+| --- | --- | --- | --- |
+| **Microtask Queue** | `Promise.then`, `await`, `queueMicrotask` | Drained **100%** after every stack & macrotask | **High** (recursive microtasks freeze I/O & UI) |
+| **Macrotask Queue** | `setTimeout`, `setInterval`, I/O, UI events | **1** task per Event Loop turn | Low (yields between turns) |
+
+</TopicSection>
+
+<TopicSection id="m01-p4-sec-l" letter="L" title="Tips to Remember (Mnemonics & Mental Models)">
+
+- **Event Loop Order:** *"Sync first, drain ALL Micros, then ONE Macro, then drain ALL Micros."*
+- **`this` Binding Priority:** *"`new` > explicit (`call`/`apply`/`bind`) > implicit (`obj.fn()`) > default (`undefined` in strict mode); arrows ignore all 4 and use lexical `this`."*
+- **Closure Mental Model:** *"A closure is a backpack of live variable references carried by the inner function."*
+- **GC Rule:** *"Reachability, not reference count—isolated cycles are swept automatically; accidental global/cache roots leak."*
+
+</TopicSection>
+
+<TopicSection id="m01-p4-sec-mn" letter="M/N" title="Interview Questions & Detailed Answers">
+  <InterviewSection />
+</TopicSection>
+
+<TopicSection id="m01-p4-sec-o" letter="O" title="Practical Exercises">
+
+<ExerciseCard
+  title="Exercise 1: Memoize with Bounded Cache & Explicit `this` Preservation"
+  prompt={
+    <p>
+      Write <code>memoizeBounded(fn, maxEntries = 50)</code> that validates <code>fn</code> and <code>maxEntries</code>, caches single-argument results in a bounded <code>Map</code> (evicting oldest entries when full), and preserves the caller's <code>this</code> context via <code>fn.call(this, arg)</code>.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function memoizeBounded(fn, maxEntries = 50) {
+  if (typeof fn !== "function") throw new TypeError("fn must be a function");
+  if (!Number.isSafeInteger(maxEntries) || maxEntries < 1) {
+    throw new RangeError("maxEntries must be a positive safe integer");
+  }
+  const cache = new Map();
+  return function memoized(arg) {
+    if (cache.has(arg)) return cache.get(arg);
+    const result = fn.call(this, arg);
+    if (cache.size >= maxEntries) {
+      cache.delete(cache.keys().next().value);
+    }
+    cache.set(arg, result);
+    return result;
+  };
+}
+
+let calls = 0;
+const svc = {
+  factor: 10,
+  compute: memoizeBounded(function (x) {
+    calls++;
+    return x * this.factor;
+  }, 2)
+};
+console.log("First:", svc.compute(3), "| Cached:", svc.compute(3), "| Calls:", calls);`}
+  />
+</ExerciseCard>
+
+<ExerciseCard
+  title="Exercise 2: `once(fn)` Closure Guard & Safe Prototype-Chain Inspector"
+  prompt={
+    <p>
+      Implement <code>once(fn)</code> (invokes <code>fn</code> at most once, caching the first return value and propagating <code>this</code>/args) and <code>getPrototypeDepth(obj)</code> (counts non-null prototypes up the chain while guarding against primitives).
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function once(fn) {
+  if (typeof fn !== "function") throw new TypeError("fn must be a function");
+  let called = false;
+  let value;
+  return function wrapped(...args) {
+    if (!called) {
+      value = fn.apply(this, args);
+      called = true;
+    }
+    return value;
+  };
+}
+
+function getPrototypeDepth(obj) {
+  if (obj === null || (typeof obj !== "object" && typeof obj !== "function")) {
+    throw new TypeError("obj must be a non-null object or function");
+  }
+  let depth = 0;
+  let cur = Object.getPrototypeOf(obj);
+  while (cur !== null) {
+    depth++;
+    cur = Object.getPrototypeOf(cur);
+  }
+  return depth;
+}
+
+const init = once((x) => ({ initialized: x }));
+console.log("Once same ref?", init("db") === init("other"));
+console.log("Proto depth {} vs null-proto:", getPrototypeDepth({}), getPrototypeDepth(Object.create(null)));`}
+  />
+</ExerciseCard>
+
+<ExerciseCard
+  title="Exercise 3: Combinator Polyfill — `promiseAllSettledLite(items)`"
+  prompt={
+    <p>
+      Implement a lightweight <code>promiseAllSettledLite(items)</code> that validates an iterable array, wraps non-Promise values via <code>Promise.resolve</code>, and resolves to an ordered array of <code>&#123; status: "fulfilled", value &#125;</code> or <code>&#123; status: "rejected", reason &#125;</code> objects.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function promiseAllSettledLite(items) {
+  if (!Array.isArray(items)) {
+    return Promise.reject(new TypeError("items must be an array"));
+  }
+  if (items.length === 0) return Promise.resolve([]);
+
+  return new Promise((resolve) => {
+    const results = new Array(items.length);
+    let remaining = items.length;
+
+    for (let idx = 0; idx < items.length; idx++) {
+      Promise.resolve(items[idx]).then(
+        (value) => {
+          results[idx] = { status: "fulfilled", value };
+          if (--remaining === 0) resolve(results);
+        },
+        (reason) => {
+          results[idx] = { status: "rejected", reason };
+          if (--remaining === 0) resolve(results);
+        }
+      );
+    }
+  });
+}
+
+const settledPromise = promiseAllSettledLite([10, Promise.resolve(20)]);
+console.log("Returns Promise?", settledPromise instanceof Promise);`}
+  />
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m01-p4-sec-p" letter="P" title="Advanced Challenge">
+
+<Callout variant="warn" title="Senior Challenge: Leak-Free Async Task Coordinator">
+  <p>
+    You are building a browser/Node.js plugin host that executes untrusted async plugins with per-plugin timeouts, shared metadata, and cancellation.
+  </p>
+  <p>
+    <strong>Your Task:</strong> Explain how you (1) attach per-plugin metrics without leaking memory after plugin unload (<code>WeakMap</code>), (2) prevent microtask starvation from stalling other plugins, (3) avoid detached <code>this</code> bugs in plugin callbacks, and (4) clean up timers/listeners deterministically on timeout or rejection.
+  </p>
+</Callout>
+
+<ExerciseCard
+  title="Reference Architecture Notes"
+  prompt={null}
+  buttonLabel="Reveal Approach"
+  hideLabel="Hide Approach"
+>
+  <ol>
+    <li>Store per-plugin execution metadata in a <code>WeakMap</code> keyed by the plugin instance so unloading a plugin automatically frees its metadata during GC.</li>
+    <li>Wrap each plugin step with <code>Promise.race</code> + <code>AbortController</code> and always call <code>clearTimeout</code> inside <code>finally</code> so pending timers never pin closures on the heap.</li>
+    <li>Invoke plugin handlers with explicit receiver binding (or narrow plain-function contracts) and yield between batches via macrotasks so microtask chains cannot starve host I/O.</li>
+  </ol>
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m01-p4-sec-q" letter="Q" title="Summary & Key Takeaways">
+
+- **Scope, Hoisting & Closures:** JS uses lexical scope; `var` initializes to `undefined` while `let`/`const` enter the TDZ. Closures preserve live outer bindings on the heap—watch for `var` loop traps and stale React closures.
+- **Prototypes & `this`:** Objects delegate up `[[Prototype]]`; regular functions bind `this` at the call site (`new` &gt; `.call/.bind` &gt; `obj.fn()` &gt; `undefined`), whereas arrow functions capture `this` lexically.
+- **Async & Event Loop:** Synchronous stack runs first, then **all** microtasks (`Promise.then`, `await`, `queueMicrotask`) drain before **one** macrotask (`setTimeout`, I/O).
+- **Memory & GC:** V8 Mark-and-Sweep collects unreachable cycles automatically; prevent leaks by bounding caches, using `WeakMap`/`WeakSet`, and cleaning up timers/listeners in `finally`.
+
+</TopicSection>

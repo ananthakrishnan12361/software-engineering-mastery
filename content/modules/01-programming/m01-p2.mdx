@@ -36,6 +36,8 @@ An **object** in JavaScript is a mutable dictionary mapping string (or `Symbol`)
 
 Underneath every property sits a <GlossaryTerm definition="Metadata object describing a property's value/getter/setter and behavioral flags: writable, enumerable, and configurable.">Property Descriptor</GlossaryTerm> with four flags: `value`, `writable` (can be reassigned), `enumerable` (appears in `Object.keys` / `for..in` / `JSON.stringify`), and `configurable` (can be deleted or reconfigured). Calling `Object.freeze(obj)` sets `writable: false` and `configurable: false` on own properties—though only **shallowly**! Spread syntax `{ ...user }` is also shallow: nested objects like `user.address` remain shared by reference unless cloned deeply with `structuredClone(user)`.
 
+For dynamic key-value collections, prefer `Map` and `Set` over plain `{}`—and when attaching metadata or visited-state to objects without preventing garbage collection, use **`WeakMap`** and **`WeakSet`**. Unlike `Map`/`Set`, weak collections hold **weak references** to object keys (so entries are automatically reclaimed when the key object becomes unreachable elsewhere) and are intentionally non-enumerable (no `.size`, `.keys()`, or `for..of` iteration).
+
 <TopicAnchor id="m01-p2-topic-arrays" />
 
 #### 2. Arrays: Ordered Lists, Mutation Traps & Non-Mutating Methods
@@ -402,6 +404,97 @@ console.log("instanceof AppError & Error:", err instanceof AppError, err instanc
 console.log("Client payload:", err.toClientPayload());`}
 />
 
+#### Example 5: SOLID — Single Responsibility (SRP) & Interface Segregation (ISP)
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// SRP: Separate pure invoice math, formatting, and storage into single-purpose collaborators
+class InvoiceCalculator {
+  subtotalCents(items) {
+    if (!Array.isArray(items) || items.length === 0) {
+      throw new TypeError("items must be a non-empty array");
+    }
+    return items.reduce((sum, item) => {
+      if (!item || !Number.isSafeInteger(item.unitCents) || item.unitCents < 0) {
+        throw new TypeError("unitCents must be a non-negative safe integer");
+      }
+      if (!Number.isSafeInteger(item.qty) || item.qty <= 0) {
+        throw new TypeError("qty must be a positive safe integer");
+      }
+      const next = sum + item.unitCents * item.qty;
+      if (!Number.isSafeInteger(next)) throw new RangeError("Subtotal overflow");
+      return next;
+    }, 0);
+  }
+}
+
+class InvoiceFormatter {
+  toSummaryText(invoiceId, totalCents) {
+    if (typeof invoiceId !== "string" || invoiceId.trim().length === 0) {
+      throw new TypeError("invoiceId must be a non-empty string");
+    }
+    if (!Number.isSafeInteger(totalCents) || totalCents < 0) {
+      throw new RangeError("totalCents must be a non-negative safe integer");
+    }
+    return \`Invoice \${invoiceId}: $\${(totalCents / 100).toFixed(2)}\`;
+  }
+}
+
+// ISP: Small, segregated contracts so read-only consumers don't depend on write/refund methods
+function createReadOnlyAuditView(ledgerReader) {
+  if (!ledgerReader || typeof ledgerReader.getBalanceCents !== "function") {
+    throw new TypeError("ledgerReader must implement getBalanceCents()");
+  }
+  return {
+    snapshot() {
+      return { balanceCents: ledgerReader.getBalanceCents() };
+    }
+  };
+}
+
+const calc = new InvoiceCalculator();
+const fmt = new InvoiceFormatter();
+const total = calc.subtotalCents([{ unitCents: 1250, qty: 2 }, { unitCents: 500, qty: 1 }]);
+const auditView = createReadOnlyAuditView({ getBalanceCents: () => total });
+console.log(fmt.toSummaryText("INV-101", total));
+console.log("ISP read-only snapshot:", auditView.snapshot());`}
+/>
+
+#### Example 6: `WeakMap` & `WeakSet` for Leak-Free Object Metadata
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// WeakMap attaches per-object metadata without mutating the object or leaking memory after GC
+const requestTimings = new WeakMap();
+const processedPayloads = new WeakSet();
+
+function tagRequest(req, startedAtMs) {
+  if (!req || typeof req !== "object") {
+    throw new TypeError("WeakMap/WeakSet keys must be objects");
+  }
+  if (!Number.isFinite(startedAtMs) || startedAtMs < 0) {
+    throw new RangeError("startedAtMs must be a non-negative finite number");
+  }
+  requestTimings.set(req, { startedAtMs });
+  return requestTimings.get(req);
+}
+
+function markProcessedOnce(payload) {
+  if (!payload || typeof payload !== "object") {
+    throw new TypeError("payload must be an object");
+  }
+  if (processedPayloads.has(payload)) return false;
+  processedPayloads.add(payload);
+  return true;
+}
+
+const reqObj = { path: "/api/orders" };
+console.log("Timing tagged:", tagRequest(reqObj, 120));
+console.log("First process:", markProcessedOnce(reqObj), "| Duplicate process:", markProcessedOnce(reqObj));`}
+/>
+
 </TopicSection>
 
 <TopicSection id="m01-p2-sec-e" letter="E" title="Step-by-Step Walkthrough">
@@ -457,6 +550,7 @@ Trace every step of **Example 3** (`LedgerAccount` + `CheckoutService`):
 <TopicSection id="m01-p2-sec-i" letter="I" title="Performance & Scalability">
 
 - **`Object` vs. `Map` at Scale:** Plain objects with static shapes optimize well for fixed-schema records (V8 Hidden Classes). `Map` is optimized for dynamic dictionaries with frequent key insertions/deletions and avoids prototype chain checks.
+- **Preventing Memory Leaks with `WeakMap` / `WeakSet`:** Storing request or DOM-node metadata in a global `Map` or `Set` keeps strong references alive forever unless manually deleted. `WeakMap` and `WeakSet` allow the Garbage Collector to reclaim entries automatically once the key object is no longer referenced elsewhere.
 - **Array Operation Complexity:** `.push()` and `.pop()` at the tail are amortized `O(1)`. `.shift()` and `.unshift()` at index `0` re-index every element (`O(n)`), becoming a bottleneck on queues of 50,000+ items (use a ring buffer or head-index pointer instead).
 - **Keep Hot Arrays Dense & Homogeneous:** Avoid mixing integers, floats, and strings or leaving sparse holes in tight numeric loops so V8 stays in `PACKED_SMI` / `PACKED_DOUBLE` storage.
 - **`structuredClone` Cost:** Deep cloning huge nested payloads on every request allocates significant heap memory. Clone only at untrusted boundaries or use structural sharing for incremental updates.
@@ -474,17 +568,26 @@ Trace every step of **Example 3** (`LedgerAccount` + `CheckoutService`):
 
 <TopicSection id="m01-p2-sec-k" letter="K" title="Comparisons & Decision Tables">
 
-#### 1. Plain `Object` vs. `Map` vs. `Set`
+#### 1. Plain `Object` vs. `Map` vs. `Set` vs. `WeakMap` / `WeakSet`
 
-| Criterion | Plain `Object` | `Map` | `Set` |
-| --- | --- | --- | --- |
-| Key types | `string` and `Symbol` only | Any value (objects, functions, primitives) | Unique values only (no key-value pair) |
-| Prototype collisions | Inherits `Object.prototype` (use `Object.hasOwn`) | None (clean key space) | None |
-| Size lookup | `Object.keys(o).length` (`O(n)`) | `map.size` (`O(1)`) | `set.size` (`O(1)`) |
-| JSON serialization | Native `JSON.stringify` support | Requires `[...map]` conversion | Requires `[...set]` conversion |
-| Best fit | Fixed-shape records, DTOs, JSON payloads | Dynamic dictionaries, caches, frequent add/delete | Deduplication, `O(1)` membership tests |
+| Criterion | Plain `Object` | `Map` | `Set` | `WeakMap` / `WeakSet` |
+| --- | --- | --- | --- | --- |
+| Key / element types | `string` and `Symbol` only | Any value (objects, functions, primitives) | Unique values of any type | Objects (and non-registered `Symbol`s) only |
+| Prototype collisions | Inherits `Object.prototype` (use `Object.hasOwn`) | None (clean key space) | None | None |
+| GC & Memory behavior | Strong references (manual delete) | Strong references (manual `.delete()`) | Strong references (manual `.delete()`) | **Weak** references (auto-reclaimed by GC) |
+| Size & iteration | `Object.keys(o).length` (`O(n)`) | `map.size` (`O(1)`), iterable | `set.size` (`O(1)`), iterable | Not enumerable (no `.size`, no `for..of`) |
+| Best fit | Fixed-shape records, DTOs, JSON payloads | Dynamic dictionaries, caches, frequent add/delete | Deduplication, `O(1)` membership tests | Per-object private metadata, visited-object tracking |
 
-#### 2. Composition vs. Inheritance
+#### 2. Shallow vs. Deep Copying Strategies
+
+| Strategy | Depth | Circular Refs | Special Types (`Date`, `Map`, `Set`, `BigInt`, `fn`) | Cost & Best Fit |
+| --- | --- | --- | --- | --- |
+| `{ ...obj }`, `Object.assign()`, `[...arr]` | **Shallow** (top-level only) | Preserves top-level refs | Copies references as-is | `O(k)` fast; React/Redux structural sharing |
+| `JSON.parse(JSON.stringify(x))` | Deep (JSON subset) | **Throws** `TypeError` | Drops `undefined`/`fn`/`Symbol`; stringifies `Date`; throws on `BigInt` | Slowest & lossy; avoid for rich JS objects |
+| `structuredClone(x)` (Node 17+ / modern browsers) | **Deep** | **Supported** | Preserves `Date`, `Map`, `Set`, `RegExp`, `BigInt`; **throws** on `fn`/`Symbol`/DOM | Allocates full deep copy; untrusted/isolated snapshots |
+| Structural sharing (`{ ...s, nested: { ...s.nested } }`) | Selective paths | Manual | Preserves everything along unchanged branches | Best balance of immutability & GC efficiency |
+
+#### 3. Composition vs. Inheritance
 
 | Dimension | Composition (*Has-A*) | Inheritance (*Is-A*) |
 | --- | --- | --- |
@@ -493,7 +596,7 @@ Trace every step of **Example 3** (`LedgerAccount` + `CheckoutService`):
 | Multiple capabilities | Combine any number of collaborators cleanly | JS supports single `extends` only |
 | Best fit | Services, plugins, UI patterns, retry/auth policies | Shallow taxonomies (e.g., custom `AppError extends Error`) |
 
-#### 3. SOLID Principles Quick Decision Guide
+#### 4. SOLID Principles Quick Decision Guide
 
 | Principle | Core Question | Warning Sign of Violation |
 | --- | --- | --- |
@@ -535,7 +638,7 @@ Trace every step of **Example 3** (`LedgerAccount` + `CheckoutService`):
     code={`const FORBIDDEN_KEYS = new Set(["__proto__", "constructor", "prototype"]);
 
 function isPlainObject(value) {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
+  return value !== null && typeof value === "object" && Object.prototype.toString.call(value) === "[object Object]";
 }
 
 function safeMerge(base, override) {
@@ -556,7 +659,7 @@ function safeMerge(base, override) {
 const malicious = JSON.parse('{"theme":"dark","__proto__":{"isAdmin":true}}');
 const merged = safeMerge({ theme: "light", timeoutMs: 3000 }, malicious);
 console.log("Merged:", merged);
-console.log("Object.prototype polluted?", ({}).isAdmin === true); // false`}
+console.log("Prototype polluted?", merged.isAdmin === true || ({}).isAdmin === true); // false`}
   />
 </ExerciseCard>
 
@@ -626,13 +729,16 @@ console.log("Original first item untouched:", orders[0].id);`}
   }
 
   apply(code, subtotalCents) {
+    if (typeof code !== "string" || code.trim().length === 0) {
+      throw new TypeError("Discount code must be a non-empty string");
+    }
     if (!Number.isSafeInteger(subtotalCents) || subtotalCents < 0) {
       throw new RangeError("subtotalCents must be a non-negative safe integer");
     }
     const strategy = this.#strategies.get(code);
     if (!strategy) throw new Error(\`Unknown discount code: \${code}\`);
     const finalCents = strategy(subtotalCents);
-    if (!Number.isSafeInteger(finalCents) || finalCents < 0) {
+    if (!Number.isSafeInteger(finalCents) || finalCents < 0 || finalCents > subtotalCents) {
       throw new RangeError("Strategy violated LSP postcondition: invalid cents result");
     }
     return finalCents;

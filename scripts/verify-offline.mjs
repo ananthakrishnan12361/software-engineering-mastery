@@ -103,17 +103,26 @@ try {
   assert.equal(r3.lessonId, "m01-p2");
   assert.equal(r3.sectionId, "m01-p2-topic-solid");
 
+  const r4 = routerMod.parseHashRoute("#/lesson/m01-p3?section=m01-p3-topic-big-o");
+  assert.equal(r4.page, "lesson");
+  assert.equal(r4.lessonId, "m01-p3");
+  assert.equal(r4.sectionId, "m01-p3-topic-big-o");
+
   // Search index generated from real content covers syllabus, lesson prose, code, IQs, glossary
   const records = catalogMod.handbookCatalog.searchRecords;
   assert(records.some((r) => r.type === "Syllabus Topic" && !r.available && r.title.includes("Kafka")));
   assert(records.some((r) => r.type === "Syllabus Topic" && r.available && r.sectionId === "m01-p1-topic-variables"));
   assert(records.some((r) => r.type === "Syllabus Topic" && r.available && r.sectionId === "m01-p2-topic-solid"));
+  assert(records.some((r) => r.type === "Syllabus Topic" && r.available && r.sectionId === "m01-p3-topic-big-o"));
   assert(records.some((r) => r.type === "Code" && r.text.includes("calculateLineTotalCents")));
   assert(records.some((r) => r.type === "Code" && r.lessonId === "m01-p2" && r.text.includes("LedgerAccount")));
+  assert(records.some((r) => r.type === "Code" && r.lessonId === "m01-p3" && r.text.includes("binarySearch")));
   assert(records.some((r) => r.type === "Interview Q&A" && r.text.includes("Snowflake")));
   assert(records.some((r) => r.type === "Interview Q&A" && r.lessonId === "m01-p2" && r.text.includes("Liskov")));
+  assert(records.some((r) => r.type === "Interview Q&A" && r.lessonId === "m01-p3" && r.text.includes("Timsort")));
   assert(records.some((r) => r.type === "Glossary" && r.title === "TDZ"));
   assert(records.some((r) => r.type === "Glossary" && r.title === "Hidden Classes"));
+  assert(records.some((r) => r.type === "Glossary" && r.title === "Big O"));
 
   // Combined filter logic tests across Topics & Interviews
   const { syllabusModules, allQuestions } = catalogMod.handbookCatalog;
@@ -127,7 +136,7 @@ try {
     .filter((m) => m.category === "fundamentals")
     .flatMap((m) => m.topics)
     .filter((t) => t.status === "available");
-  assert.equal(availMod1Topics.length, 13);
+  assert.equal(availMod1Topics.length, 47);
 
   const emptyComboTopics = syllabusModules
     .filter((m) => m.category === "databases")
@@ -138,10 +147,10 @@ try {
   const iqAdvMod1 = allQuestions.filter(
     (q) => handbookMod.matchesDifficultyFilter(q.difficulty, "advanced") && q.moduleNumber === 1
   );
-  assert.equal(iqAdvMod1.length, 6);
+  assert.equal(iqAdvMod1.length, 10);
 
   const iqMod2 = allQuestions.filter((q) => q.moduleNumber === 2);
-  assert.equal(iqMod2.length, 0);
+  assert.equal(iqMod2.length, 35);
 } finally {
   await vite.close();
 }

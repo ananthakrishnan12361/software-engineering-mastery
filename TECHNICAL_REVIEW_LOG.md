@@ -118,9 +118,9 @@ For each review, add:
    - **Official Reference:** https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/hasOwn
    - **Status:** Verified
 
-3. **`Array.prototype.toSorted()` & `toReversed()` (ES2023) + Array `sort()` Stability (ES2019)**
-   - **Verified Claim:** ES2023 `toSorted()` and `toReversed()` return new copies without mutating the source array; `Array.prototype.sort()` is guaranteed stable since ES2019 (ECMA-262).
-   - **Official References:** https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/toSorted and https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/sort
+3. **`Array.prototype.toSorted()`, `toReversed()`, `toSpliced()`, `with()` (ES2023) + Array `sort()` Stability (ES2019)**
+   - **Verified Claim:** ES2023 `toSorted()`, `toReversed()`, `toSpliced()`, and `with()` return new copies without mutating the source array; `Array.prototype.sort()` is guaranteed stable since ES2019 (ECMA-262).
+   - **Official References:** https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/toSorted, https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/toSpliced, https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/with, and https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/sort
    - **Status:** Verified
 
 4. **`structuredClone()` Deep Cloning**
@@ -133,6 +133,11 @@ For each review, add:
    - **Official Reference:** https://v8.dev/blog/elements-kinds
    - **Status:** Verified
 
+6. **`WeakMap` & `WeakSet` (ES2015 + ES2023 Non-Registered `Symbol` Keys)**
+   - **Verified Claim:** `WeakMap` and `WeakSet` hold weak references to object keys (and non-registered `Symbol`s since ES2023), allowing Garbage Collection when no other strong references remain, and are intentionally non-enumerable (no `.size` or iteration).
+   - **Official References:** https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WeakMap and https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WeakSet
+   - **Status:** Verified
+
 ### 2026-11-26 — Strict Audit & Edge-Case Remediation of `M01-P2`
 - **Reviewer/model:** Gemini 4 Hydrogen (High)
 - **Files/sections reviewed:** `content/modules/01-programming/m01-p2.mdx`, `content/interviews/m01-p2.questions.ts`, `content/coverage/m01-p2.coverage.ts`, `scripts/verify-quality.mjs`, `QUALITY_GATE.md`, `TECHNICAL_REVIEW_LOG.md`
@@ -142,5 +147,131 @@ For each review, add:
   2. **Edge-Case Bugs in `M01-P2` Code:** `CheckoutService.pay(acct, -500)` charged the gateway before `account.deposit()` rejected negative cents; `LedgerAccount.deposit()` allowed silent `MAX_SAFE_INTEGER` overflow; `safeMerge` accepted strings/arrays/`null` `base` and copied forbidden keys from `base`; `topPaidOrders(orders, -1)` returned `slice(0, -1)` items; `PriceCalculator.apply("PCT10", -500)` returned `-450`.
   3. **Weak Quality Gate Checks:** `scripts/verify-quality.mjs` checked `.demo-error` instead of `.demo-output.is-error`, only clicked Block 1 in DOM, didn't open `<ExerciseCard>` solutions in Chrome, allowed shared primary headings across topics, and didn't verify Rule M3 `https://` doc links.
   4. **Interview Question Gaps & M3 URLs:** `m01-p2-iq-4` follow-up was vague about comparator failure (`Infinity - Infinity === NaN`), `iq-7` Step 8 omitted explicit `__proto__`/`constructor`/`prototype` blocklist alongside `Object.hasOwn`, and `Classes` / `Composition vs. Inheritance & LSP` lacked dedicated Basic/Intermediate questions.
-- **Corrections made:** Expanded all 9 topics in `m01-p2.mdx` Section B into standalone subsections, added `Example 4` (`AppError` -> `RateLimitError` with `extends`/`super`/`instanceof`), fixed all 5 code edge-case bugs, added `iq-8` & `iq-9`, tightened `m01-p2.coverage.ts` + `scripts/verify-quality.mjs`, and added full `https://` official documentation links above.
+- **Corrections made:** Expanded all 9 topics in `m01-p2.mdx` Section B into standalone subsections, added `Example 4` (`AppError` -> `RateLimitError` with `extends`/`super`/`instanceof`), `Example 5` (SRP + ISP), `Example 6` (`WeakMap`/`WeakSet`), Shallow vs. Deep Copying table, fixed `safeMerge` (`isPlainObject` + inline check) & `PriceCalculator.apply` (`finalCents <= subtotalCents`), added `iq-8` & `iq-9`, tightened `m01-p2.coverage.ts` (9 runnable blocks, 13 safety mutations) + `scripts/verify-quality.mjs`, and added full `https://` official documentation links above.
 - **Status:** Corrected
+
+
+---
+
+## Module 01 Part 3 (`M01-P3`) Technical Review Log — 2026-11-26
+
+1. **ES2019 `Array.prototype.sort()` Stability, ES2023 `toSorted()`, & Timsort in V8**
+   - **Verified Claim:** `Array.prototype.sort()` is guaranteed stable in ECMAScript since ES2019, `Array.prototype.toSorted()` (ES2023) returns a sorted copy without mutating the source array, and V8 implements Timsort (`O(n log n)` worst-case, `O(n)` on nearly sorted runs).
+   - **Official References:** https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/sort, https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/toSorted, and https://v8.dev/blog/array-sort
+   - **Status:** Verified
+
+2. **`Map` & `Set` Insertion-Order & Average `O(1)` Lookup**
+   - **Verified Claim:** ECMAScript `Map` and `Set` preserve insertion order and are specified to run in sublinear time on average (implemented via hash tables such as V8's `OrderedHashTable`).
+   - **Official References:** https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map and https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set
+   - **Status:** Verified
+
+3. **ECMAScript Tail Position Calls vs. V8 Stack Limits**
+   - **Verified Claim:** Although ES2015 specified Proper Tail Calls in strict mode, V8/Node.js does not enable TCO in production; deep graph/tree traversals require explicit heap-allocated stacks/queues to avoid `RangeError: Maximum call stack size exceeded`.
+   - **Official Reference:** https://tc39.es/ecma262/#sec-tail-position-calls
+   - **Status:** Verified
+
+
+---
+
+## Module 01 Part 4 (`M01-P4`) Technical Review Log — 2026-11-26
+
+1. **Event Loop, Microtasks & `queueMicrotask`**
+   - **Verified Claim:** Microtasks (`Promise.then/.catch/.finally`, `await` continuations, `queueMicrotask`) drain completely after each synchronous task and macrotask before the next macrotask or render.
+   - **Official References:** https://developer.mozilla.org/en-US/docs/Web/API/HTML_DOM_API/Microtask_guide and https://developer.mozilla.org/en-US/docs/Web/API/Window/queueMicrotask
+   - **Status:** Verified
+
+2. **`Promise.allSettled` (ES2020) & `Promise.any` (ES2021)**
+   - **Verified Claim:** `Promise.allSettled` waits for all promises to settle without short-circuiting; `Promise.any` resolves on the first fulfillment or rejects with `AggregateError` if all reject.
+   - **Official References:** https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/allSettled and https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/any
+   - **Status:** Verified
+
+3. **V8 Orinoco Garbage Collector (Reachability & Generational Heaps)**
+   - **Verified Claim:** V8 uses reachability-based Mark-and-Sweep (collecting isolated reference cycles) across Young Generation (Scavenger) and Old Generation (Mark-Sweep-Compact) heaps.
+   - **Official Reference:** https://v8.dev/blog/trash-talk
+   - **Status:** Verified
+
+4. **`AbortSignal.timeout()` & Node.js `perf_hooks.monitorEventLoopDelay()`**
+   - **Verified Claim:** `AbortSignal.timeout(ms)` creates an automatically aborting signal after `ms` milliseconds for bounding outbound I/O; `perf_hooks.monitorEventLoopDelay()` tracks Node.js Event Loop lag percentiles.
+   - **Official References:** https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal/timeout_static and https://nodejs.org/api/perf_hooks.html#perf_hooksmonitoreventloopdelayoptions
+   - **Status:** Verified
+
+
+---
+
+## Module 01 Part 5 (`M01-P5`) Technical Review Log — 2026-11-26
+
+1. **TypeScript Structural Typing, Generics, Narrowing, `strict` Mode & `interface` vs `type`**
+   - **Verified Claim:** TypeScript uses structural type compatibility, erases type annotations during compilation to JS, narrows `unknown` via control-flow guards, enforces exhaustiveness via `never`, and enforces `strictNullChecks`/`noImplicitAny`/`strictFunctionTypes` under `"strict": true`.
+   - **Official References:** https://www.typescriptlang.org/docs/handbook/type-compatibility.html, https://www.typescriptlang.org/docs/handbook/2/generics.html, https://www.typescriptlang.org/docs/handbook/2/narrowing.html, https://www.typescriptlang.org/docs/handbook/2/everyday-types.html, and https://www.typescriptlang.org/tsconfig/#strict
+   - **Status:** Verified
+
+
+---
+
+## Module 02 Part 1 (`M02-P1`) Technical Review Log — 2026-11-26
+
+1. **React Render & Commit, State as a Snapshot, Automatic Batching, Reconciliation Keys, Concurrent Rendering & JSX**
+   - **Verified Claim:** React separates pure Render from DOM Commit, compares state updates with `Object.is`, batches state updates automatically in React 18+ (`flushSync` opts out), supports concurrent `startTransition` & `<StrictMode>` dev checks, escapes JSX text automatically (unlike `dangerouslySetInnerHTML`), and uses `key` + `type` for list reconciliation.
+   - **Official References:** https://react.dev/learn/render-and-commit, https://react.dev/learn/state-as-a-snapshot, https://react.dev/learn/queueing-a-series-of-state-updates, https://react.dev/learn/rendering-lists#keeping-list-items-in-order-with-key, https://react.dev/blog/2022/03/29/react-v18#new-feature-automatic-batching, https://react.dev/reference/react-dom/flushSync, https://react.dev/reference/react/StrictMode, https://react.dev/reference/react/startTransition, https://react.dev/learn/writing-markup-with-jsx, and https://react.dev/reference/react-dom/components/common#dangerously-setting-the-inner-html
+   - **Status:** Verified
+
+
+---
+
+## Module 02 Part 2 (`M02-P2`) Technical Review Log — 2026-11-26
+
+1. **React Rules of Hooks, Built-in Hooks & `React.memo`**
+   - **Verified Claim:** Hooks must be called unconditionally at the top level (`rules-of-hooks`); `useEffect` runs post-commit with cleanup before re-runs/unmount; `useMemo`/`useCallback`/`React.memo` rely on `Object.is` shallow reference checks.
+   - **Official References:** https://react.dev/reference/rules/rules-of-hooks, https://react.dev/reference/react/useState, https://react.dev/reference/react/useEffect, https://react.dev/reference/react/useRef, https://react.dev/reference/react/useContext, https://react.dev/reference/react/useMemo, https://react.dev/reference/react/useCallback, https://react.dev/reference/react/memo, and https://react.dev/learn/reusing-logic-with-custom-hooks
+   - **Status:** Verified
+
+---
+
+### Module 02 Part 3 (M02-P3) Technical Review Log — 2026-11-26
+
+- **Scope:** State management, Context API, Redux, Redux Toolkit, React Query / TanStack Query, React Router, Forms, Validation, API integration, Authentication, Authorization.
+- **Official Documentation Verified (`M3`):**
+  - React Context (`createContext`, `useContext`, React 19 `<Context value={...}>`): `https://react.dev/reference/react/createContext` and `https://react.dev/learn/passing-data-deeply-with-context`
+  - Redux & Redux Toolkit (`createSlice`, `configureStore`, Immer immutable updates): `https://redux-toolkit.js.org/api/createSlice` and `https://redux-toolkit.js.org/usage/immer-reducers`
+  - TanStack Query (`useQuery`, `staleTime`, `gcTime`, request deduplication, `invalidateQueries`): `https://tanstack.com/query/latest/docs/framework/react/guides/caching`
+  - React Router (Routes, `<Outlet />`, `useSearchParams`, `<Navigate>`): `https://reactrouter.com/start/library/routing`
+  - OWASP Frontend Auth / Token Storage & Open Redirect Prevention: `https://cheatsheetseries.owasp.org/cheatsheets/JSON_Web_Token_for_Java_Cheat_Sheet.html`
+- **Verification Scope:** `npm run quality` + fresh Round 1/2 `research` subagent audit covering `m02-p3.mdx`, `m02-p3.questions.ts`, and `m02-p3.coverage.ts`.
+
+---
+
+### Module 02 Part 4 (M02-P4) Technical Review Log — 2026-11-26
+
+- **Scope:** Error boundaries, Lazy loading, Code splitting, Performance optimization, Rendering optimization, Memoization, Frontend caching, Accessibility, Responsive design, Security, XSS, CSRF, Large frontend architecture, Component design patterns, Testing, Unit testing, Integration testing, Frontend debugging.
+- **Official Documentation Verified (`M3`):**
+  - React Error Boundaries (`getDerivedStateFromError`, `componentDidCatch`), React Compiler (React 19) & `lazy` + `Suspense`: `https://react.dev/reference/react/Component#catching-rendering-errors-with-an-error-boundary`, `https://react.dev/learn/react-compiler`, and `https://react.dev/reference/react/lazy`
+  - Core Web Vitals (`LCP`, `INP`, `CLS`): `https://web.dev/articles/vitals`
+  - WAI-ARIA / WCAG 2.2 Accessibility & Semantic HTML: `https://www.w3.org/WAI/standards-guidelines/wcag/`
+  - OWASP XSS Prevention & CSRF Prevention Cheat Sheets: `https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html` and `https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html`
+  - Feature-Sliced Design (FSD v2.1) & React Testing Library: `https://feature-sliced.design/docs/get-started/overview` and `https://testing-library.com/docs/react-testing-library/intro/`
+- **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m02-p4.mdx`, `m02-p4.questions.ts`, and `m02-p4.coverage.ts`.
+
+---
+
+### Module 03 Part 1 (M03-P1) Technical Review Log — 2026-11-26
+
+- **Scope:** Node.js architecture, V8, libuv, Event loop, Thread pool, Worker threads, Process vs thread, Async I/O, Streams, Buffers, File handling.
+- **Official Documentation Verified (`M3`):**
+  - Node.js Event Loop, Timers & `process.nextTick()`: `https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick`
+  - Node.js Don't Block the Event Loop (Worker Pool & Worker Threads): `https://nodejs.org/en/learn/asynchronous-work/dont-block-the-event-loop` and `https://nodejs.org/api/worker_threads.html`
+  - Node.js Streams, Backpressure & `stream/promises` `pipeline()`: `https://nodejs.org/en/learn/modules/backpressuring-in-streams` and `https://nodejs.org/api/stream.html#streampipelinesource-transforms-destination-options`
+  - Node.js `Buffer` (`Buffer.alloc` vs deprecated `new Buffer`) & `node:fs/promises`: `https://nodejs.org/api/buffer.html` and `https://nodejs.org/api/fs.html`
+  - V8 Blog (Elements Kinds / Hidden Classes / Ignition & TurboFan): `https://v8.dev/blog`
+- **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m03-p1.mdx`, `m03-p1.questions.ts`, and `m03-p1.coverage.ts`.
+
+---
+
+### Module 03 Part 2 (M03-P2) Technical Review Log — 2026-11-26
+
+- **Scope:** Express, Middleware, Routing, REST API, API design, HTTP, HTTP methods, Status codes, Headers, Request lifecycle, API versioning, API validation, Error handling, Logging.
+- **Official Documentation Verified (`M3`):**
+  - Express 5 Routing, Middleware & Error Handling: `https://expressjs.com/en/guide/error-handling.html` and `https://expressjs.com/en/5x/api.html`
+  - HTTP Semantics (RFC 9110 — Safe & Idempotent Methods, Status Codes, Headers): `https://www.rfc-editor.org/rfc/rfc9110.html`
+  - Problem Details for HTTP APIs (RFC 9457): `https://www.rfc-editor.org/rfc/rfc9457.html`
+  - Node.js HTTP Server Timeouts (`headersTimeout`, `requestTimeout`): `https://nodejs.org/api/http.html`
+- **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m03-p2.mdx`, `m03-p2.questions.ts`, and `m03-p2.coverage.ts`.

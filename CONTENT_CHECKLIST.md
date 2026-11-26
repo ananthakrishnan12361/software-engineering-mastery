@@ -50,44 +50,44 @@ Split into 5 parts:
 - [x] SOLID fundamentals
 
 #### M01-P3 Topics
-- [ ] Algorithms
-- [ ] Data structures
-- [ ] Time complexity
-- [ ] Space complexity
-- [ ] Big O
-- [ ] Recursion
-- [ ] Sorting
-- [ ] Searching
-- [ ] Hash maps
-- [ ] Stacks
-- [ ] Queues
-- [ ] Trees
-- [ ] Graph fundamentals
+- [x] Algorithms
+- [x] Data structures
+- [x] Time complexity
+- [x] Space complexity
+- [x] Big O
+- [x] Recursion
+- [x] Sorting
+- [x] Searching
+- [x] Hash maps
+- [x] Stacks
+- [x] Queues
+- [x] Trees
+- [x] Graph fundamentals
 
 #### M01-P4 Topics
-- [ ] JavaScript
-- [ ] ES6+
-- [ ] Closures
-- [ ] Scope
-- [ ] Hoisting
-- [ ] Prototype
-- [ ] Prototypal inheritance
-- [ ] `this`
-- [ ] Arrow functions
-- [ ] Promises
-- [ ] Async/await
-- [ ] Event loop
-- [ ] Microtasks
-- [ ] Macrotasks
-- [ ] Memory management
-- [ ] Garbage collection
+- [x] JavaScript
+- [x] ES6+
+- [x] Closures
+- [x] Scope
+- [x] Hoisting
+- [x] Prototype
+- [x] Prototypal inheritance
+- [x] `this`
+- [x] Arrow functions
+- [x] Promises
+- [x] Async/await
+- [x] Event loop
+- [x] Microtasks
+- [x] Macrotasks
+- [x] Memory management
+- [x] Garbage collection
 
 #### M01-P5 Topics
-- [ ] TypeScript fundamentals
-- [ ] Type systems
-- [ ] Generics
-- [ ] Interfaces
-- [ ] Type safety
+- [x] TypeScript fundamentals
+- [x] Type systems
+- [x] Generics
+- [x] Interfaces
+- [x] Type safety
 
 ---
 
@@ -99,52 +99,52 @@ Split into 4 parts:
 - **M02-P4**: Error boundaries, lazy loading, code splitting, performance & rendering optimization, memoization, frontend caching, accessibility, responsive design, security (XSS, CSRF), large frontend architecture, component design patterns, testing (unit, integration), frontend debugging
 
 #### Topics
-- [ ] React architecture
-- [ ] Components
-- [ ] Props
-- [ ] State
-- [ ] Rendering
-- [ ] Virtual DOM
-- [ ] JSX
-- [ ] Hooks
-- [ ] `useState`
-- [ ] `useEffect`
-- [ ] `useRef`
-- [ ] `useContext`
-- [ ] `useMemo`
-- [ ] `useCallback`
-- [ ] `React.memo`
-- [ ] Custom hooks
-- [ ] Component lifecycle concepts
-- [ ] State management
-- [ ] Context API
-- [ ] Redux
-- [ ] Redux Toolkit
-- [ ] React Query / TanStack Query
-- [ ] React Router
-- [ ] Forms
-- [ ] Validation
-- [ ] API integration
-- [ ] Authentication
-- [ ] Authorization
-- [ ] Error boundaries
-- [ ] Lazy loading
-- [ ] Code splitting
-- [ ] Performance optimization
-- [ ] Rendering optimization
-- [ ] Memoization
-- [ ] Frontend caching
-- [ ] Accessibility
-- [ ] Responsive design
-- [ ] Security
-- [ ] XSS
-- [ ] CSRF
-- [ ] Large frontend architecture
-- [ ] Component design patterns
-- [ ] Testing
-- [ ] Unit testing
-- [ ] Integration testing
-- [ ] Frontend debugging
+- [x] React architecture
+- [x] Components
+- [x] Props
+- [x] State
+- [x] Rendering
+- [x] Virtual DOM
+- [x] JSX
+- [x] Hooks
+- [x] `useState`
+- [x] `useEffect`
+- [x] `useRef`
+- [x] `useContext`
+- [x] `useMemo`
+- [x] `useCallback`
+- [x] `React.memo`
+- [x] Custom hooks
+- [x] Component lifecycle concepts
+- [x] State management
+- [x] Context API
+- [x] Redux
+- [x] Redux Toolkit
+- [x] React Query / TanStack Query
+- [x] React Router
+- [x] Forms
+- [x] Validation
+- [x] API integration
+- [x] Authentication
+- [x] Authorization
+- [x] Error boundaries
+- [x] Lazy loading
+- [x] Code splitting
+- [x] Performance optimization
+- [x] Rendering optimization
+- [x] Memoization
+- [x] Frontend caching
+- [x] Accessibility
+- [x] Responsive design
+- [x] Security
+- [x] XSS
+- [x] CSRF
+- [x] Large frontend architecture
+- [x] Component design patterns
+- [x] Testing
+- [x] Unit testing
+- [x] Integration testing
+- [x] Frontend debugging
 
 ---
 
@@ -156,31 +156,31 @@ Split into 4 parts:
 - **M03-P4**: Production Backend Patterns (pagination, filtering, sorting, file uploads, background jobs, queue systems, WebSockets, connection pooling, microservices, modular monolith, backend design patterns, dependency injection, testing — unit/integration/API tests, performance optimization)
 
 #### Topics
-- [ ] Node.js architecture
-- [ ] V8
-- [ ] libuv
-- [ ] Event loop
-- [ ] Thread pool
-- [ ] Worker threads
-- [ ] Process vs thread
-- [ ] Async I/O
-- [ ] Streams
-- [ ] Buffers
-- [ ] File handling
-- [ ] Express
-- [ ] Middleware
-- [ ] Routing
-- [ ] REST API
-- [ ] API design
-- [ ] HTTP
-- [ ] HTTP methods
-- [ ] Status codes
-- [ ] Headers
-- [ ] Request lifecycle
-- [ ] API versioning
-- [ ] API validation
-- [ ] Error handling
-- [ ] Logging
+- [x] Node.js architecture
+- [x] V8
+- [x] libuv
+- [x] Event loop
+- [x] Thread pool
+- [x] Worker threads
+- [x] Process vs thread
+- [x] Async I/O
+- [x] Streams
+- [x] Buffers
+- [x] File handling
+- [x] Express
+- [x] Middleware
+- [x] Routing
+- [x] REST API
+- [x] API design
+- [x] HTTP
+- [x] HTTP methods
+- [x] Status codes
+- [x] Headers
+- [x] Request lifecycle
+- [x] API versioning
+- [x] API validation
+- [x] Error handling
+- [x] Logging
 - [ ] Authentication
 - [ ] JWT
 - [ ] Refresh tokens

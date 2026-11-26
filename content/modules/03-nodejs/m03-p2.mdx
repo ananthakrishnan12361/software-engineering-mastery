@@ -1,0 +1,643 @@
+<Callout variant="info" title="Topics Covered in Part 2 (M03-P2)">
+  <p>
+    This part of Module 3 covers 14 core HTTP &amp; Express API engineering topics: <strong>Express</strong>, <strong>Middleware</strong>, <strong>Routing</strong>, <strong>REST API</strong>, <strong>API design</strong>, <strong>HTTP</strong>, <strong>HTTP methods</strong>, <strong>Status codes</strong>, <strong>Headers</strong>, <strong>Request lifecycle</strong>, <strong>API versioning</strong>, <strong>API validation</strong>, <strong>Error handling</strong>, and <strong>Logging</strong>.
+  </p>
+</Callout>
+
+<TopicSection id="m03-p2-sec-a" letter="A" title="Topic Introduction">
+
+#### What is this?
+
+Backend web services expose business capabilities over **HTTP** using structured **REST APIs**. In Node.js, **Express** provides a minimal, composable **routing** and **middleware** pipeline that guides every incoming request through its **request lifecycle**—parsing **headers** and bodies, enforcing **API validation** and **API versioning**, handling failures cleanly in centralized **error handling**, and emitting structured **logging** with correlation IDs.
+
+#### Why does it exist & what problem does it solve?
+
+Without disciplined HTTP and Express patterns, teams end up with inconsistent JSON error shapes, `200 OK` responses hiding error payloads, duplicated `try/catch` blocks leaking stack traces to users, unvalidated request bodies crashing database queries, and unstructured `console.log` text that is impossible to search during an outage.
+
+#### Where is it used in real-world software?
+
+Every RESTful microservice, BFF gateway, SaaS public API, and internal platform service relies on these exact HTTP semantics, middleware chains, validation boundaries, and structured logging conventions.
+
+</TopicSection>
+
+<TopicSection id="m03-p2-sec-b" letter="B" title="Fundamentals (Simple Mental Models)">
+
+<TopicAnchor id="m03-p2-topic-express" />
+
+#### 1. Express: Minimalist HTTP Application & Router Framework
+
+**Express** wraps Node's native `node:http` server with a clean `app` and `express.Router()` abstraction. Rather than forcing a rigid ORM or folder structure, Express models request handling as a sequential pipeline of `(req, res, next)` functions.
+
+In **Express 5**, async route handlers that return a rejected Promise automatically forward errors to error-handling middleware—eliminating the Express 4 footgun where unhandled async rejections hung requests forever without `express-async-errors` or manual `next(err)`.
+
+<TopicAnchor id="m03-p2-topic-middleware" />
+
+#### 2. Middleware: Composable Pipeline Stages (`next()` & `next(err)`)
+
+**Middleware** is a function `(req, res, next)` that inspects or transforms `req`/`res`, ends the response early (`res.status(401).json(...)`), or hands control to the next stage via `next()`. Calling `next(err)` skips all remaining regular middleware and routes, jumping straight to the nearest 4-argument error handler `(err, req, res, next)`.
+
+Order matters: mount request-ID and logging middleware **first**, body size limits (`express.json({ limit: "100kb" })`) before routes, route handlers in the middle, and 404 + error middleware **last**.
+
+<TopicAnchor id="m03-p2-topic-routing" />
+
+#### 3. Routing: Path Matching, Params, Query Strings & Modular Routers
+
+**Routing** maps `(HTTP method, URL path)` pairs to handler functions. Use `express.Router()` to group domain endpoints (`/v1/orders`, `/v1/users`) into separate modules with route parameters (`req.params.orderId`) for resource identity and query strings (`req.query.status`) for filtering, sorting, and pagination.
+
+Remember that Express matches routes top-to-bottom: always register static paths (`/orders/export`) *before* parameterized paths (`/orders/:id`), otherwise `"export"` is captured as `:id`.
+
+<TopicAnchor id="m03-p2-topic-rest-api" />
+
+#### 4. REST API: Resource-Oriented Design & Statelessness
+
+**REST (Representational State Transfer)** models APIs around **nouns (resources)** such as `/orders` and `/orders/:id/items` rather than RPC verbs like `/createOrder` or `/deleteUserById`.
+
+Two core REST constraints drive scalability: **statelessness** (every HTTP request carries all auth/context needed to process it without sticky server RAM sessions) and **uniform interface** (standard HTTP methods, status codes, and media types).
+
+<TopicAnchor id="m03-p2-topic-api-design" />
+
+#### 5. API Design: Predictable Contracts, Envelopes & Pagination
+
+Good **API design** makes the common case obvious and breaking changes rare. Use consistent camelCase or snake_case field naming across the entire API, return machine-readable error codes (`type`, `title`, `status`, `detail`, `errors`) following **RFC 9457 Problem Details**, and paginate list endpoints by default.
+
+Design mutations around **idempotency** where retries can occur (e.g., `Idempotency-Key` header on `POST /payments`) and avoid leaking internal database table names or auto-increment internals if public UUIDs/ULIDs fit better.
+
+<TopicAnchor id="m03-p2-topic-http" />
+
+#### 6. HTTP: Request/Response Wire Model, Keep-Alive & TLS
+
+**HTTP** is a request-response application protocol over TCP (HTTP/1.1, HTTP/2) or QUIC (HTTP/3). Each message carries a start/status line (`GET /v1/orders HTTP/1.1` or `HTTP/1.1 200 OK`), **headers** metadata, an empty line, and an optional **body**.
+
+In production Node.js servers, `http.Server` enables **keep-alive** connections so clients reuse TCP/TLS sockets across requests; keep `headersTimeout` and `requestTimeout` configured strictly to defend against Slowloris attacks.
+
+<TopicAnchor id="m03-p2-topic-http-methods" />
+
+#### 7. HTTP Methods: Safety & Idempotency Guarantees
+
+HTTP defines clear semantics for each method: **`GET`** and **`HEAD`** are **safe** (no state change) and **idempotent**; **`PUT`** (full replace) and **`DELETE`** are **idempotent** (repeating the same request leaves the resource in the same state); **`POST`** is neither safe nor inherently idempotent; **`PATCH`** applies partial updates.
+
+Respecting safety and idempotency allows browsers, CDNs, and reverse proxies to cache `GET` responses and retry timed-out `GET`/`PUT` calls safely without corrupting data.
+
+<TopicAnchor id="m03-p2-topic-status-codes" />
+
+#### 8. Status Codes: Communicating Exact Outcomes to Clients
+
+Choose **HTTP status codes** accurately so clients, caches, and monitoring dashboards react properly: **`200 OK`** (read/update), **`201 Created`** (with `Location` header on `POST`), **`204 No Content`** (delete), **`400 Bad Request`** (malformed JSON/syntax), **`401 Unauthorized`** (missing/invalid AuthN), **`403 Forbidden`** (insufficient AuthZ), **`404 Not Found`**, **`409 Conflict`**, **`422 Unprocessable Content`** (semantic validation error), **`429 Too Many Requests`**, and **`500`/`503`** for server failures.
+
+Never return `200 OK` with `{ ok: false, error: "Not found" }`—that breaks HTTP clients, CDNs, and synthetic uptime alerts.
+
+<TopicAnchor id="m03-p2-topic-headers" />
+
+#### 9. Headers: Content Negotiation, Caching, Correlation & Security
+
+**HTTP headers** carry metadata orthogonal to the JSON body: `Content-Type: application/json`, `Accept` (content negotiation), `Cache-Control` / `ETag` (caching), `Authorization: Bearer ...`, `X-Request-Id` (distributed tracing), and `Location` (created resource URI).
+
+Header names are **case-insensitive** in HTTP (`req.get("x-request-id")` in Express normalizes casing), responses that vary by request headers should declare `Vary` (such as `Vary: Accept`), and sensitive headers (`Authorization`, `Cookie`, `Set-Cookie`) must always be stripped from application logs.
+
+<TopicAnchor id="m03-p2-topic-request-lifecycle" />
+
+#### 10. Request Lifecycle: End-to-End Flow & Timeout Hygiene
+
+Every HTTP request follows a deterministic **request lifecycle**: TCP/TLS accept -> HTTP parse -> correlation ID + logging start -> security/CORS/rate-limit middleware -> body parsing -> auth & schema validation -> controller/service/DB call -> response serialization -> `res.on("finish")` latency log.
+
+Attach an `AbortController` or request deadline so if the client disconnects (`res.on("close")` before `res.writableEnded`), downstream DB queries or external API calls abort instead of wasting server capacity.
+
+<TopicAnchor id="m03-p2-topic-api-versioning" />
+
+#### 11. API Versioning: Evolving Contracts Without Breaking Clients
+
+**API versioning** lets you introduce breaking contract changes safely while supporting older mobile or partner clients. The two main approaches are **URI path versioning** (`/v1/orders`, `/v2/orders` — explicit, easy to route and cache) and **Header / Media-Type versioning** (`Accept: application/vnd.acme.v2+json` — cleaner URLs, slightly harder to test in a browser).
+
+Prefer additive, backward-compatible changes first (adding optional fields) and publish clear `Deprecation` and `Sunset` headers when retiring old versions.
+
+<TopicAnchor id="m03-p2-topic-api-validation" />
+
+#### 12. API Validation: Fail-Fast Schema Parsing at the Edge
+
+**API validation** parses untrusted `req.body`, `req.params`, and `req.query` against a strict schema (e.g., **Zod**) *before* business logic runs. Strip or reject unknown fields (preventing mass-assignment attacks like `{ role: "admin" }`), check numeric bounds and string lengths, and normalize trimmed inputs.
+
+Return structured field-level errors (`400` or `422`) immediately so malformed payloads never reach the database or cause cryptic `500` crashes.
+
+<TopicAnchor id="m03-p2-topic-error-handling" />
+
+#### 13. Error Handling: Centralized 4-Arg Handler & Safe Redaction
+
+Centralized **error handling** separates **operational errors** (`AppError` subclasses: `NotFoundError 404`, `ValidationError 422`, `ConflictError 409`) from unexpected **programmer/infrastructure bugs** (`TypeError`, DB connection loss -> `500`).
+
+In Express, a single final `(err, req, res, next)` middleware logs the full internal error + `requestId`, returns exact safe details for operational `4xx` errors, and returns a generic `"Internal server error"` message for `5xx` errors—never leaking SQL queries, file paths, or stack traces in production.
+
+<TopicAnchor id="m03-p2-topic-logging" />
+
+#### 14. Logging: Structured JSON, Correlation IDs & PII Redaction
+
+Production **logging** emits single-line **structured JSON** (via `pino` or `winston`) instead of plain strings so log aggregators (Datadog, ELK, CloudWatch) can index and alert on `requestId`, `method`, `path`, `statusCode`, and `durationMs`.
+
+Always propagate `X-Request-Id` across services, log at `res.on("finish")` after status and latency are known, and redact secrets (`authorization`, `cookie`, `password`, `token`) automatically at the logger serializer layer.
+
+</TopicSection>
+
+<TopicSection id="m03-p2-sec-c" letter="C" title="Internal Working & Architecture">
+
+#### 1. Express Request Lifecycle & Middleware Error Short-Circuiting
+
+Express executes registered middleware sequentially via `next()`. Calling `next(err)` immediately bypasses remaining normal handlers and jumps to the 4-argument `(err, req, res, next)` error middleware at the bottom of the stack.
+
+<DiagramCard caption="Figure 3.3 — Normal requests flow through middleware to the route handler, while next(err) short-circuits straight to the centralized 4-arg error handler.">
+  <svg viewBox="0 0 820 195" role="img" aria-label="Express request lifecycle and next(err) short-circuit flow">
+    <rect x="10" y="10" width="800" height="175" rx="10" fill="var(--bg-subtle)" stroke="var(--border)" />
+
+    <rect x="24" y="34" width="160" height="90" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" />
+    <text x="104" y="60" textAnchor="middle" fill="var(--accent-strong)" fontSize="12.5" fontWeight="700" fontFamily="sans-serif">1. RequestId + Log</text>
+    <text x="104" y="86" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">next()</text>
+
+    <line x1="184" y1="79" x2="216" y2="79" stroke="var(--accent)" strokeWidth="2" />
+    <polygon points="216,79 206,74 206,84" fill="var(--accent)" />
+
+    <rect x="220" y="34" width="175" height="90" rx="8" fill="var(--bg-surface)" stroke="var(--border-strong)" />
+    <text x="307" y="60" textAnchor="middle" fill="var(--text-primary)" fontSize="12.5" fontWeight="700" fontFamily="sans-serif">2. Parse &amp; Validate</text>
+    <text x="307" y="86" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">Zod schema check</text>
+
+    <line x1="395" y1="79" x2="427" y2="79" stroke="var(--accent)" strokeWidth="2" />
+    <polygon points="427,79 417,74 417,84" fill="var(--accent)" />
+
+    <rect x="431" y="34" width="165" height="90" rx="8" fill="var(--success-soft)" stroke="var(--success)" />
+    <text x="513" y="60" textAnchor="middle" fill="var(--success)" fontSize="12.5" fontWeight="700" fontFamily="sans-serif">3. Route Handler</text>
+    <text x="513" y="86" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">res.status(201)</text>
+
+    <line x1="596" y1="79" x2="628" y2="79" stroke="var(--danger)" strokeWidth="2" />
+    <polygon points="628,79 618,74 618,84" fill="var(--danger)" />
+
+    <rect x="632" y="34" width="164" height="90" rx="8" fill="var(--danger-soft)" stroke="var(--danger)" />
+    <text x="714" y="60" textAnchor="middle" fill="var(--danger)" fontSize="12.5" fontWeight="700" fontFamily="sans-serif">4. Error Handler</text>
+    <text x="714" y="86" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">(err, req, res, next)</text>
+
+    <text x="410" y="158" textAnchor="middle" fill="var(--warning)" fontSize="12" fontWeight="700" fontFamily="monospace">next(err) skips remaining routes and jumps directly to Error Handler</text>
+  </svg>
+</DiagramCard>
+
+#### 2. API Validation & RFC 9457 Problem Details Boundary
+
+Validation happens at the HTTP boundary before service logic executes, translating operational errors into explicit `4xx` Problem Details and redacting unexpected `500` errors before serialization.
+
+<DiagramCard caption="Figure 3.4 — Schema validation catches malformed input early (422), while centralized error handling separates operational 4xx from redacted 500 responses.">
+  <svg viewBox="0 0 820 175" role="img" aria-label="API validation and RFC 9457 Problem Details error normalization">
+    <rect x="10" y="10" width="800" height="155" rx="10" fill="var(--bg-subtle)" stroke="var(--border)" />
+
+    <rect x="28" y="32" width="230" height="110" rx="8" fill="var(--warning-soft)" stroke="var(--warning)" />
+    <text x="143" y="58" textAnchor="middle" fill="var(--warning)" fontSize="13" fontWeight="700" fontFamily="sans-serif">Edge Validation</text>
+    <text x="143" y="86" textAnchor="middle" fill="var(--text-primary)" fontSize="11.5" fontFamily="monospace">Invalid body -&gt; 422</text>
+    <text x="143" y="112" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Field-level errors array</text>
+
+    <line x1="258" y1="87" x2="298" y2="87" stroke="var(--accent)" strokeWidth="2" />
+    <polygon points="298,87 288,82 288,92" fill="var(--accent)" />
+
+    <rect x="302" y="32" width="230" height="110" rx="8" fill="var(--success-soft)" stroke="var(--success)" />
+    <text x="417" y="58" textAnchor="middle" fill="var(--success)" fontSize="13" fontWeight="700" fontFamily="sans-serif">Operational AppError</text>
+    <text x="417" y="86" textAnchor="middle" fill="var(--text-primary)" fontSize="11.5" fontFamily="monospace">404 / 409 / 403</text>
+    <text x="417" y="112" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Safe message + requestId</text>
+
+    <line x1="532" y1="87" x2="572" y2="87" stroke="var(--danger)" strokeWidth="2" />
+    <polygon points="572,87 562,82 562,92" fill="var(--danger)" />
+
+    <rect x="576" y="32" width="216" height="110" rx="8" fill="var(--danger-soft)" stroke="var(--danger)" />
+    <text x="684" y="58" textAnchor="middle" fill="var(--danger)" fontSize="13" fontWeight="700" fontFamily="sans-serif">Unexpected Bug</text>
+    <text x="684" y="86" textAnchor="middle" fill="var(--text-primary)" fontSize="11.5" fontFamily="monospace">500 Internal Error</text>
+    <text x="684" y="112" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Log stack; redact response</text>
+  </svg>
+</DiagramCard>
+
+</TopicSection>
+
+<TopicSection id="m03-p2-sec-d" letter="D" title="Practical Examples (Interactive)">
+
+#### Example 1: Express Router, Correlation IDs, Zod Validation & Centralized Error Handler (TypeScript Reference)
+
+<CodeBlock
+  lang="typescript"
+  code={`import crypto from "node:crypto";
+import express, { type NextFunction, type Request, type Response } from "express";
+import { z } from "zod";
+
+class AppError extends Error {
+  constructor(
+    public readonly statusCode: number,
+    message: string,
+    public readonly code: string
+  ) {
+    super(message);
+  }
+}
+
+const CreateOrderSchema = z.object({
+  sku: z.string().trim().min(1).max(64),
+  quantity: z.number().int().min(1).max(100)
+}).strict();
+
+export function buildOrdersApp() {
+  const app = express();
+  app.use(express.json({ limit: "64kb" }));
+
+  // 1. Correlation ID + finish latency logging
+  app.use((req, res, next) => {
+    const requestId = req.get("x-request-id") || crypto.randomUUID();
+    res.locals.requestId = requestId;
+    res.setHeader("X-Request-Id", requestId);
+    const start = Date.now();
+    res.on("finish", () => {
+      console.log(JSON.stringify({ requestId, method: req.method, path: req.path, status: res.statusCode, ms: Date.now() - start }));
+    });
+    next();
+  });
+
+  // 2. Versioned REST route with strict schema validation
+  app.post("/v1/orders", (req: Request, res: Response, next: NextFunction) => {
+    const parsed = CreateOrderSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return next(new AppError(422, "Validation failed", "VALIDATION_ERROR"));
+    }
+    const orderId = crypto.randomUUID();
+    res.status(201).location("/v1/orders/" + orderId).json({ id: orderId, ...parsed.data });
+  });
+
+  // 3. Centralized 4-arg error handler (redacts unexpected 500s)
+  app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+    const requestId = res.locals.requestId as string | undefined;
+    if (err instanceof AppError) {
+      return res.status(err.statusCode).json({ status: err.statusCode, code: err.code, detail: err.message, requestId });
+    }
+    if (err instanceof SyntaxError && "body" in err) {
+      return res.status(400).json({ status: 400, code: "INVALID_JSON", detail: "Malformed JSON payload", requestId });
+    }
+    console.error("Unhandled API error", { requestId, err });
+    return res.status(500).json({ status: 500, code: "INTERNAL_ERROR", detail: "Internal server error", requestId });
+  });
+
+  return app;
+}`}
+/>
+
+#### Example 2: Express-Style Middleware & `next(err)` Pipeline Simulator (`createExpressPipeline`)
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// Models Express sequential middleware, next(err) short-circuiting, and 4-arg error handlers
+function createExpressPipeline() {
+  const stack = [];
+
+  return {
+    use(fn) {
+      if (typeof fn !== "function") throw new TypeError("Middleware must be a function");
+      stack.push(fn);
+    },
+    handle(req) {
+      if (!req || typeof req !== "object" || typeof req.path !== "string") {
+        throw new TypeError("req must be an object with string path");
+      }
+      const res = { statusCode: 200, headers: {}, body: null, sent: false };
+      res.status = (code) => {
+        res.statusCode = code;
+        return res;
+      };
+      res.json = (data) => {
+        res.body = data;
+        res.sent = true;
+        return res;
+      };
+
+      let idx = 0;
+      function next(err) {
+        if (res.sent) return;
+        while (idx < stack.length) {
+          const fn = stack[idx++];
+          const isErrorHandler = fn.length === 4;
+          if (err && !isErrorHandler) continue;
+          if (!err && isErrorHandler) continue;
+          try {
+            if (isErrorHandler) fn(err, req, res, next);
+            else fn(req, res, next);
+            return;
+          } catch (thrown) {
+            err = thrown;
+          }
+        }
+        if (!res.sent) {
+          res.status(err ? 500 : 404).json({ error: err ? "Internal server error" : "Not Found" });
+        }
+      }
+
+      next();
+      return res;
+    }
+  };
+}
+
+const app = createExpressPipeline();
+const trace = [];
+app.use((req, _res, next) => { trace.push("logger:" + req.path); next(); });
+app.use((req, _res, next) => {
+  if (req.fail) return next(new Error("Bad payload"));
+  trace.push("route");
+  next();
+});
+app.use((err, _req, res, _next) => {
+  trace.push("errHandler");
+  res.status(400).json({ error: err.message });
+});
+
+const out = app.handle({ path: "/v1/orders", fail: true });
+console.log("Trace:", trace, "| Res:", out.statusCode, out.body);`}
+/>
+
+#### Example 3: Strict API Validator & Problem Details Normalizer (`validateOrderPayload`, `toProblemDetails`)
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// Models edge validation (rejecting unknown fields) + RFC 9457 Problem Details error normalization
+function validateOrderPayload(body) {
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return { ok: false, status: 400, errors: [{ field: "body", message: "JSON object required" }] };
+  }
+  const allowed = new Set(["sku", "quantity"]);
+  const errors = [];
+  for (const key of Object.keys(body)) {
+    if (!allowed.has(key)) errors.push({ field: key, message: "Unknown field rejected" });
+  }
+  const sku = typeof body.sku === "string" ? body.sku.trim() : "";
+  if (sku.length < 2 || sku.length > 40) {
+    errors.push({ field: "sku", message: "sku must be 2-40 characters" });
+  }
+  if (!Number.isInteger(body.quantity) || body.quantity < 1 || body.quantity > 100) {
+    errors.push({ field: "quantity", message: "quantity must be an integer 1-100" });
+  }
+  return errors.length > 0
+    ? { ok: false, status: 422, errors }
+    : { ok: true, status: 200, data: { sku, quantity: body.quantity } };
+}
+
+function toProblemDetails({ statusCode, detail, requestId, isOperational }) {
+  if (!Number.isInteger(statusCode) || statusCode < 400 || statusCode > 599) {
+    throw new RangeError("statusCode must be 400-599");
+  }
+  return {
+    type: statusCode === 422 ? "urn:problem:validation" : "urn:problem:http-" + statusCode,
+    status: statusCode,
+    detail: isOperational ? String(detail || "Request failed") : "Internal server error",
+    requestId: requestId || null
+  };
+}
+
+console.log("Valid:", validateOrderPayload({ sku: " SKU-9 ", quantity: 3 }));
+console.log("Mass-assign blocked:", validateOrderPayload({ sku: "SKU-9", quantity: 1, role: "admin" }).errors);
+console.log("Redacted 500:", toProblemDetails({ statusCode: 500, detail: "SELECT * FROM secret_tbl", requestId: "req-1", isOperational: false }));`}
+/>
+
+</TopicSection>
+
+<TopicSection id="m03-p2-sec-e" letter="E" title="Step-by-Step Walkthrough">
+
+Trace **`createExpressPipeline`** (**Example 2**) when `req.fail` is `true`:
+
+1. **Request Enters Logger:** `idx = 0`, `fn.length === 3` (normal middleware). It records `"logger:/v1/orders"` and calls `next()`.
+2. **Route Calls `next(err)`:** `idx = 1`, route detects `req.fail` and calls `next(new Error("Bad payload"))` without sending a response.
+3. **Skip Non-Error Middleware & Enter 4-Arg Handler:** `idx = 2`, `fn.length === 4` (`isErrorHandler === true`) and `err` is truthy, so Express invokes `(err, req, res, next)`, setting `statusCode = 400` and `res.sent = true`.
+4. **404/500 Fallback:** If no handler calls `res.json()`, reaching the end of `stack` emits `500` when `err` is present or `404 Not Found` otherwise.
+
+</TopicSection>
+
+<TopicSection id="m03-p2-sec-f" letter="F" title="Real-World Use Cases">
+
+#### Scenario 1: Stopping Mass Assignment & Stack-Trace Leaks in a Public API
+
+**Problem:** An Express `POST /users` handler spreads `req.body` directly into the ORM (`User.create(req.body)`), letting callers set `isAdmin: true`, while raw DB errors return `500` with SQL table names in JSON.
+
+**Production Solution:** Parse `req.body` through a `.strict()` validation schema allowlisting only permitted fields, and route all thrown errors through a centralized 4-arg handler that redacts non-operational `500` details while logging the full stack with `requestId`.
+
+#### Scenario 2: Versioning a Breaking Order Response Without Breaking Mobile Apps
+
+**Problem:** A mobile app expects `totalCents: number`, while a new web client needs itemized tax lines under `totals: { subtotalCents, taxCents }`.
+
+**Production Solution:** Keep `/v1/orders` serving the legacy shape with `Deprecation` / `Sunset` headers while launching `/v2/orders` with the new contract, giving mobile users months to upgrade cleanly.
+
+</TopicSection>
+
+<TopicSection id="m03-p2-sec-g" letter="G" title="Common Mistakes">
+
+- **Returning `200 OK` for validation or auth errors:** Breaks HTTP client error handling, metrics, and proxy caching.
+- **Registering `/orders/:id` before `/orders/summary`:** Express matches `:id = "summary"` and never reaches the summary handler.
+- **Accepting unbounded `express.json()` bodies or unvalidated `req.body`:** Enables memory DoS and mass-assignment vulnerabilities.
+- **Logging raw `req.headers` or `req.body`:** Writes `Authorization` bearer tokens, cookies, and passwords into plaintext log stores.
+- **Leaking `err.stack` or DB errors to API clients in production:** Exposes internal architecture to attackers.
+
+</TopicSection>
+
+<TopicSection id="m03-p2-sec-h" letter="H" title="Best Practices">
+
+- **Use Express 5 (or async wrappers)** so rejected async handlers always reach centralized error middleware.
+- **Validate `body`, `params`, and `query` at the route edge** with strict schemas (rejecting unknown keys) before touching services or databases.
+- **Attach `X-Request-Id` on every request** and log structured JSON (`requestId`, `method`, `path`, `status`, `durationMs`) on `res.on("finish")`.
+- **Use RFC 9457 Problem Details** (`type`, `status`, `detail`, `requestId`) for uniform error responses across all endpoints.
+
+</TopicSection>
+
+<TopicSection id="m03-p2-sec-i" letter="I" title="Performance & Scalability">
+
+- **Stateless REST Horizontally:** Keeping request state in tokens/DB rather than server memory lets any container serve any request behind a load balancer.
+- **Payload Caps & Compression:** Bound JSON body size (`limit: "64kb"`–`"1mb"`) and enable HTTP caching (`ETag`, `Cache-Control`) on safe `GET` responses.
+- **Async Logging Overhead:** Use fast structured JSON loggers (e.g., `pino`) writing asynchronously to stdout rather than blocking the event loop with synchronous file writes.
+
+</TopicSection>
+
+<TopicSection id="m03-p2-sec-j" letter="J" title="Security Considerations">
+
+- **Strict Input Allowlisting:** Always strip or reject unknown properties in `req.body` (`z.object(...).strict()`) to stop mass assignment.
+- **Redacted Error Responses:** Never send `err.stack`, SQL syntax, or filesystem paths in HTTP `500` responses.
+- **Log Sanitization:** Scrub `authorization`, `cookie`, `set-cookie`, `password`, and API keys in structured logger serializers, and strip `\r`/`\n` from user-supplied log fields to prevent log injection.
+
+</TopicSection>
+
+<TopicSection id="m03-p2-sec-k" letter="K" title="Comparisons & Decision Tables">
+
+#### 1. HTTP Methods: Safety & Idempotency
+
+| Method | Typical Use | Safe? | Idempotent? |
+| --- | --- | --- | --- |
+| `GET` | Read resource / list | Yes | Yes |
+| `HEAD` | Read headers / check existence | Yes | Yes |
+| `POST` | Create resource / non-idempotent action | No | No (unless `Idempotency-Key`) |
+| `PUT` | Full replace / upsert at known URI | No | Yes |
+| `PATCH` | Partial update | No | Depends on operation |
+| `DELETE` | Remove resource | No | Yes |
+
+#### 2. Common HTTP Status Codes
+
+| Code | Meaning | When to Return |
+| --- | --- | --- |
+| `200` / `201` / `204` | OK / Created / No Content | Successful read, resource creation (+ `Location`), or delete |
+| `400` / `422` | Bad Request / Unprocessable Content | Malformed syntax (`400`) vs. schema/business validation failure (`422`) |
+| `401` / `403` | Unauthorized / Forbidden | Missing/invalid identity (`401`) vs. missing permission (`403`) |
+| `404` / `409` / `429` | Not Found / Conflict / Too Many Requests | Missing resource, duplicate/version conflict, or rate limit |
+| `500` / `503` | Internal Error / Service Unavailable | Unexpected bug (`500`, redacted) or downstream overload (`503`) |
+
+#### 3. API Versioning Strategies
+
+| Strategy | Example | Pros | Cons |
+| --- | --- | --- | --- |
+| **URI Path** | `/v1/orders`, `/v2/orders` | Explicit, CDN-cacheable, easy to test | URL changes between versions |
+| **Header / Media Type** | `Accept: application/vnd.acme.v2+json` | Clean stable URLs | Harder to test in browser, needs `Vary: Accept` |
+
+</TopicSection>
+
+<TopicSection id="m03-p2-sec-l" letter="L" title="Tips to Remember (Mnemonics & Mental Models)">
+
+- **"Static routes before `:param` routes; 404 and 4-arg error middleware last."**
+- **"Safe = read-only (`GET`/`HEAD`); Idempotent = same result if retried (`GET`/`PUT`/`DELETE`)."**
+- **"401 = Who are you?; 403 = Not allowed; 422 = Valid JSON, invalid fields."**
+- **"Log full details internally with `requestId`; return redacted Problem Details externally."**
+
+</TopicSection>
+
+<TopicSection id="m03-p2-sec-mn" letter="M/N" title="Interview Questions & Detailed Answers">
+
+<InterviewSection lessonId="m03-p2" />
+
+</TopicSection>
+
+<TopicSection id="m03-p2-sec-o" letter="O" title="Practical Exercises">
+
+<ExerciseCard
+  title="Exercise 1: HTTP Method Safety & Accept-Header Version Parser (classifyMethod, parseApiVersion)"
+  prompt={
+    <p>
+      Implement <code>classifyMethod(method)</code> returning <code>&#123; safe, idempotent &#125;</code> for standard HTTP methods and <code>parseApiVersion(acceptHeader)</code> extracting the integer version from vendor headers like <code>application/vnd.acme.v2+json</code> (defaulting to <code>1</code>).
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function classifyMethod(method) {
+  if (typeof method !== "string" || !method.trim()) {
+    throw new TypeError("method must be a non-empty string");
+  }
+  const upper = method.trim().toUpperCase();
+  const table = {
+    GET: { safe: true, idempotent: true },
+    HEAD: { safe: true, idempotent: true },
+    OPTIONS: { safe: true, idempotent: true },
+    PUT: { safe: false, idempotent: true },
+    DELETE: { safe: false, idempotent: true },
+    POST: { safe: false, idempotent: false },
+    PATCH: { safe: false, idempotent: false }
+  };
+  if (!Object.hasOwn(table, upper)) throw new RangeError("Unsupported HTTP method: " + upper);
+  return table[upper];
+}
+
+function parseApiVersion(acceptHeader) {
+  if (acceptHeader === undefined || acceptHeader === null || acceptHeader === "") return 1;
+  if (typeof acceptHeader !== "string") throw new TypeError("acceptHeader must be a string");
+  const marker = ".v";
+  const idx = acceptHeader.indexOf(marker);
+  if (idx === -1) return 1;
+  const rest = acceptHeader.slice(idx + marker.length);
+  const plusIdx = rest.indexOf("+");
+  const numStr = plusIdx === -1 ? rest : rest.slice(0, plusIdx);
+  if (!numStr || numStr.trim() !== numStr) throw new RangeError("Invalid API version");
+  const ver = Number(numStr);
+  if (!Number.isInteger(ver) || ver < 1) throw new RangeError("Invalid API version");
+  return ver;
+}
+
+console.log("PUT:", classifyMethod("put"), "| POST:", classifyMethod("POST"));
+console.log("Version:", parseApiVersion("application/vnd.acme.v2+json"));`}
+  />
+</ExerciseCard>
+
+<ExerciseCard
+  title="Exercise 2: Structured JSON Logger With Secret Redaction (createApiLogger)"
+  prompt={
+    <p>
+      Implement <code>createApiLogger()</code> that formats single-line JSON log entries containing <code>requestId</code>, <code>status</code>, and <code>headers</code> while case-insensitively redacting <code>authorization</code>, <code>cookie</code>, <code>set-cookie</code>, and <code>password</code> fields.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function createApiLogger() {
+  const sensitive = new Set(["authorization", "cookie", "set-cookie", "password", "token"]);
+
+  function redactObject(obj) {
+    if (!obj || typeof obj !== "object" || Array.isArray(obj)) return {};
+    const out = Object.create(null);
+    for (const [k, v] of Object.entries(obj)) {
+      out[k] = sensitive.has(k.toLowerCase()) ? "[REDACTED]" : v;
+    }
+    return out;
+  }
+
+  return {
+    formatEntry(entry) {
+      if (!entry || typeof entry !== "object") throw new TypeError("entry must be an object");
+      if (typeof entry.requestId !== "string" || !entry.requestId.trim()) {
+        throw new TypeError("requestId is required");
+      }
+      return JSON.stringify({
+        requestId: entry.requestId,
+        method: entry.method || "GET",
+        status: entry.status ?? 200,
+        headers: redactObject(entry.headers)
+      });
+    }
+  };
+}
+
+const logger = createApiLogger();
+const line = logger.formatEntry({
+  requestId: "req-42",
+  method: "POST",
+  status: 201,
+  headers: { Authorization: "Bearer secret123", "Content-Type": "application/json" }
+});
+console.log("Log:", line);`}
+  />
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m03-p2-sec-p" letter="P" title="Advanced Challenge">
+
+<Callout variant="warn" title="Senior Challenge: Hardening a Legacy Express 4 API Before Public Launch">
+  <p>
+    A legacy Express 4 API returns <code>200 OK</code> with <code>&#123; error: "..." &#125;</code> on failures, crashes the process on unhandled async route rejections, accepts unvalidated <code>req.body</code> spreads, and logs raw <code>req.headers</code>.
+  </p>
+  <p>
+    <strong>Your Task:</strong> Propose a clean migration plan covering (1) Express 5 / async error forwarding + 4-arg centralized error handler, (2) strict schema validation + RFC 9457 Problem Details, and (3) correlation IDs + secret-redacting structured JSON logs.
+  </p>
+</Callout>
+
+<ExerciseCard
+  title="Reference Architecture Notes"
+  prompt={null}
+  buttonLabel="Reveal Approach"
+  hideLabel="Hide Approach"
+>
+  <ol>
+    <li>Upgrade to Express 5 (or wrap async routes) and route all failures to one final <code>(err, req, res, next)</code> handler returning RFC 9457 Problem Details with accurate <code>4xx</code>/<code>5xx</code> codes and redacted <code>500</code> messages.</li>
+    <li>Add <code>.strict()</code> Zod validation middleware on every endpoint and enforce <code>express.json(&#123; limit: "64kb" &#125;)</code>.</li>
+    <li>Attach <code>X-Request-Id</code> early, log on <code>res.on("finish")</code> in single-line JSON, and redact <code>authorization</code>/<code>cookie</code>/<code>password</code> keys automatically.</li>
+  </ol>
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m03-p2-sec-q" letter="Q" title="Summary & Key Takeaways">
+
+- **Express & Middleware:** Order matters—correlation logging and body limits first, static routes before `:param` routes, 404 and 4-arg `(err, req, res, next)` last.
+- **REST & HTTP Semantics:** Respect safe (`GET`/`HEAD`) vs. idempotent (`GET`/`PUT`/`DELETE`) methods and accurate status codes (`201`, `401`, `403`, `422`, `429`, `500`).
+- **Validation & Versioning:** Parse untrusted inputs with strict schemas at the edge, and evolve contracts additively or via `/v1`/`/v2` or `Accept` headers.
+- **Errors & Logging:** Return redacted RFC 9457 Problem Details externally while emitting structured JSON logs with `requestId` and scrubbed secrets internally.
+
+</TopicSection>
