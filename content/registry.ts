@@ -3,17 +3,21 @@ import type {
   InterviewQuestion,
   LessonRecord,
   ModuleRecord,
-  SearchRecord
-} from "@/pages/handbook";
+  SearchRecord,
+  SyllabusModule
+} from "@/entities/handbook";
 
 import M01P1Mdx from "./modules/01-programming/m01-p1.mdx";
 import m01p1Raw from "./modules/01-programming/m01-p1.mdx?raw";
 import { m01p1Questions } from "./interviews/m01-p1.questions";
+import { SYLLABUS_MODULES } from "./syllabus";
 
 export interface HandbookCatalog {
   modules: ModuleRecord[];
   lessons: LessonRecord[];
+  syllabusModules: SyllabusModule[];
   questionsByLesson: Record<string, InterviewQuestion[]>;
+  allQuestions: InterviewQuestion[];
   glossaryEntries: GlossaryEntry[];
   searchRecords: SearchRecord[];
 }
@@ -47,11 +51,11 @@ function extractGlossaryFromMdx(rawMdx: string, lessonId: string): GlossaryEntry
 function extractSearchRecordsFromMdx(
   rawMdx: string,
   lessonId: string,
-  lessonTitle: string
+  lessonTitle: string,
+  moduleNumber: number
 ): SearchRecord[] {
   const records: SearchRecord[] = [];
 
-  // Index each TopicSection (A-Q)
   const sectionRe =
     /<TopicSection\s+id="([^"]+)"\s+letter="([^"]+)"\s+title="([^"]+)">([\s\S]*?)<\/TopicSection>/g;
   let match: RegExpExecArray | null;
@@ -60,19 +64,21 @@ function extractSearchRecordsFromMdx(
     const cleanText = body
       .replace(/<svg[\s\S]*?<\/svg>/gi, " ")
       .replace(/<[^>]+>/g, " ")
+      .replace(/\{\`[\s\S]*?\`\}/g, " ")
       .replace(/\s+/g, " ")
       .trim();
 
     records.push({
       id: `sec:${secId}`,
-      type: "Topic",
+      type: "Section",
       title: `${lessonTitle} — ${letter}. ${title}`,
-      text: cleanText,
+      text: `${title} ${cleanText}`,
+      available: true,
+      moduleNumber,
       lessonId,
       sectionId: secId
     });
 
-    // Index code blocks within the section
     const codeRe = /<CodeBlock\s+lang="([^"]+)"[\s\S]*?code=\{`([\s\S]*?)`\}\s*\/>/g;
     let codeMatch: RegExpExecArray | null;
     let codeIdx = 0;
@@ -83,6 +89,8 @@ function extractSearchRecordsFromMdx(
         type: "Code",
         title: `${lessonTitle} (${codeMatch[1]})`,
         text: codeMatch[2],
+        available: true,
+        moduleNumber,
         lessonId,
         sectionId: secId
       });
@@ -168,6 +176,8 @@ const lessons: LessonRecord[] = [
         label: "I can answer the Basic, Intermediate, Advanced, and Senior/Architect interview questions without notes."
       }
     ],
+    prevLessonId: null,
+    nextLessonId: null,
     Content: M01P1Mdx
   }
 ];
@@ -175,6 +185,8 @@ const lessons: LessonRecord[] = [
 const questionsByLesson: Record<string, InterviewQuestion[]> = {
   "m01-p1": m01p1Questions
 };
+
+const allQuestions: InterviewQuestion[] = [...m01p1Questions];
 
 const glossaryEntries: GlossaryEntry[] = extractGlossaryFromMdx(m01p1Raw, "m01-p1").sort((a, b) =>
   a.term.localeCompare(b.term)
@@ -189,14 +201,32 @@ function buildSearchRecords(): SearchRecord[] {
       type: "Lesson",
       title: lesson.title,
       text: lesson.objectives.join(" "),
+      available: true,
+      moduleNumber: lesson.moduleNumber,
       lessonId: lesson.id,
       sectionId: lesson.id
     });
   }
 
-  records.push(...extractSearchRecordsFromMdx(m01p1Raw, "m01-p1", lessons[0].title));
+  records.push(...extractSearchRecordsFromMdx(m01p1Raw, "m01-p1", lessons[0].title, 1));
 
-  for (const q of m01p1Questions) {
+  for (const mod of SYLLABUS_MODULES) {
+    for (const topic of mod.topics) {
+      records.push({
+        id: `syllabus:${topic.id}`,
+        type: "Syllabus Topic",
+        title: `${topic.title} (Module ${mod.number}: ${mod.title})`,
+        text: `${topic.group ? `${topic.group} ` : ""}${topic.title} Module ${mod.number} ${mod.title}`,
+        available: topic.status === "available",
+        moduleNumber: mod.number,
+        lessonId: topic.lessonId,
+        sectionId: topic.anchorId,
+        badgeText: topic.status === "available" ? "Available" : "Not written yet"
+      });
+    }
+  }
+
+  for (const q of allQuestions) {
     const answerText = [
       ...(q.paragraphs?.map((p) => `${p.label ?? ""} ${p.body}`) ?? []),
       ...(q.numberedSteps?.map((s) => `${s.title} ${s.body}`) ?? []),
@@ -205,11 +235,14 @@ function buildSearchRecords(): SearchRecord[] {
 
     records.push({
       id: `iq:${q.id}`,
-      type: `Interview (${q.difficulty})`,
+      type: "Interview Q&A",
       title: `${q.number}. ${q.question}`,
       text: `${q.question} ${answerText}`,
+      available: true,
+      moduleNumber: q.moduleNumber,
       lessonId: q.lessonId,
-      sectionId: q.id
+      sectionId: q.id,
+      badgeText: q.difficulty
     });
   }
 
@@ -219,6 +252,7 @@ function buildSearchRecords(): SearchRecord[] {
       type: "Glossary",
       title: g.term,
       text: `${g.term}: ${g.definition}`,
+      available: true,
       lessonId: g.lessonId,
       sectionId: g.sectionId
     });
@@ -230,7 +264,9 @@ function buildSearchRecords(): SearchRecord[] {
 export const handbookCatalog: HandbookCatalog = {
   modules,
   lessons,
+  syllabusModules: SYLLABUS_MODULES,
   questionsByLesson,
+  allQuestions,
   glossaryEntries,
   searchRecords: buildSearchRecords()
 };

@@ -2,14 +2,21 @@
   .topbar,
   .sidebar,
   .toc-aside,
-  .lesson-actions,
+  .lesson-action-strip,
+  .lesson-prev-next,
   .code-toolbar-actions,
   .iq-toolbar {
     display: none !important;
   }
 
-  .portal-layout {
+  .portal-layout,
+  .portal-layout.has-toc {
     display: block;
+  }
+
+  .main-content {
+    max-width: 100%;
+    padding: 0;
   }
 
   .topic-section-body {

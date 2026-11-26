@@ -13,6 +13,7 @@ export interface InterviewSubbox {
 export interface InterviewQuestion {
   id: string;
   lessonId: string;
+  moduleNumber: number;
   number: number;
   difficulty: DifficultyLevel;
   question: string;
@@ -44,6 +45,8 @@ export interface LessonRecord {
   objectives: string[];
   sections: TocSectionMeta[];
   masteryItems: MasteryItemMeta[];
+  prevLessonId: string | null;
+  nextLessonId: string | null;
   Content: ComponentType<{ components?: MdxComponentsProp }>;
 }
 
@@ -58,6 +61,26 @@ export interface ModuleRecord {
   lessonIds: string[];
 }
 
+export type SyllabusTopicStatus = "available" | "unwritten";
+
+export interface SyllabusTopic {
+  id: string;
+  moduleNumber: number;
+  title: string;
+  group?: string;
+  status: SyllabusTopicStatus;
+  lessonId?: string;
+  anchorId?: string;
+}
+
+export interface SyllabusModule {
+  number: number;
+  title: string;
+  category: CategoryId;
+  topics: SyllabusTopic[];
+  notes?: string;
+}
+
 export interface GlossaryEntry {
   term: string;
   definition: string;
@@ -65,11 +88,22 @@ export interface GlossaryEntry {
   sectionId: string;
 }
 
+export type SearchRecordType =
+  | "Syllabus Topic"
+  | "Lesson"
+  | "Section"
+  | "Code"
+  | "Interview Q&A"
+  | "Glossary";
+
 export interface SearchRecord {
   id: string;
-  type: string;
+  type: SearchRecordType;
   title: string;
   text: string;
-  lessonId: string;
-  sectionId: string;
+  available: boolean;
+  moduleNumber?: number;
+  lessonId?: string;
+  sectionId?: string;
+  badgeText?: string;
 }

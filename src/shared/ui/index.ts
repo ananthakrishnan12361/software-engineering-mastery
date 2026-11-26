@@ -9,4 +9,5 @@ export { GlossaryTerm, type GlossaryTermProps } from "./GlossaryTerm";
 export { Modal, type ModalProps } from "./Modal";
 export { ProgressBar, type ProgressBarProps } from "./ProgressBar";
 export { RichText, type RichTextProps } from "./RichText";
+export { TopicAnchor, type TopicAnchorProps } from "./TopicAnchor";
 export { TopicSection, type TopicSectionProps } from "./TopicSection";

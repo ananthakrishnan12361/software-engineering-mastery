@@ -1,4 +1,17 @@
-export type ThemeMode = "dark" | "light";
+export type ThemeMode = "light" | "dark" | "sepia";
+
+export type FontSizePx = 16 | 17 | 18 | 20;
+
+export const FONT_SIZE_OPTIONS: FontSizePx[] = [16, 17, 18, 20];
+
+export type PageId =
+  | "home"
+  | "topics"
+  | "lesson"
+  | "interviews"
+  | "glossary"
+  | "bookmarks"
+  | "progress";
 
 export type CategoryId =
   | "fundamentals"
@@ -44,4 +57,10 @@ export const DIFFICULTY_LABELS: Record<DifficultyLevel, string> = {
   "senior-architect": "Senior / Architect",
   senior: "Senior",
   architect: "Architect"
+};
+
+export const THEME_LABELS: Record<ThemeMode, string> = {
+  light: "Light",
+  dark: "Dark",
+  sepia: "Sepia"
 };

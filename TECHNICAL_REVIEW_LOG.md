@@ -74,3 +74,19 @@ For each review, add:
 - **Unresolved questions:** Live interactive GUI clicks in a desktop browser remain for user verification before deleting `legacy/`.
 - **Sources checked:** npm registry (`npm view`), Vite 8 / `@vitejs/plugin-react` / `vite-plugin-singlefile` / MDX v3 / `remark-gfm` / Steiger documentation.
 - **Status:** Accepted with caveat
+
+### 2026-11-26 — Phase 3 UI Redesign, 28-Module Syllabus Audit & Multi-Viewport Checks
+- **Reviewer/model:** Gemini 4 Hydrogen (High)
+- **Files/sections reviewed:** `content/syllabus.ts`, `content/registry.ts`, `src/shared/styles/*`, `src/app/*`, `src/pages/*`, `src/entities/*`, `scripts/*`
+- **Review scope:** Syllabus separation (real topics vs. instruction bullets), explicit topic anchors, filter & search rules, Steiger FSD rules, contrast tokens, and 5-width x 3-theme Chrome rendering.
+- **Findings:**
+  1. **Syllabus Duplicate & Instruction Audit (`COURSE_modeule_in_detiles.md`):**
+     - Module 5 lists `Transactions` twice (lines 467 and 492); `content/syllabus.ts` keeps 46 unique topics.
+     - Module 19 lists `Vector storage` twice (lines 1179 and 1192); `content/syllabus.ts` keeps 27 unique topics and places the 6 generic evaluation criteria (`When to choose each`, `Cost`, `Scaling`, `Complexity`, `Performance`, `Trade-offs`) in module notes.
+     - Modules 8, 15, 25, 26, 27, 28 instruction bullets (`Compare...`, `For every design, explain...`, `For each project, include...`, `For every topic include...`, `For every lesson...`, study-time constraints, difficulty level lists) were separated into `module.notes` rather than fake topic entries.
+  2. **Steiger Rule (`fsd/no-ui-in-app`):** Initial `src/app/ui/` directory triggered `fsd/no-ui-in-app`; moved `AppShell.tsx` and `SearchOverlay.tsx` to `src/app/`. `steiger ./src` passes with 0 errors and 0 disabled rules.
+  3. **360px Header & Badge Wrapping Polish:** Visual screenshot inspection of `lesson-360-light.png` and `interviews-1440-sepia.png` caught slight topbar crowding at `360px` and wrapping inside `Senior / Architect` pill badges. Fixed via `@media (max-width: 440px)` compact theme icon + `white-space: nowrap` on `.badge`.
+- **Corrections made:** Updated `global.css`, `AppShell.tsx`, `content/syllabus.ts`, and verification scripts.
+- **Unresolved questions:** None blocking; manual mouse/keyboard feel across physical mobile devices remains for user inspection.
+- **Sources checked:** `COURSE_modeule_in_detiles.md`, headless Chrome screenshots across 360/390/768/1024/1440px in Light/Dark/Sepia.
+- **Status:** Corrected

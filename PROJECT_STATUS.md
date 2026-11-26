@@ -1,47 +1,38 @@
 # Project Status — Software Engineering Mastery Handbook
 
 ## Current objective
-Maintain a complete, technically accurate, offline-capable React + TypeScript + MDX learning portal structured with Feature-Sliced Design v2.1 and bundled into `dist/software_engineering_mastery.html`.
+Maintain a comfortable, offline-capable React + TypeScript + MDX learning portal built with Feature-Sliced Design v2.1 and bundled into `dist/software_engineering_mastery.html`.
 
 ## Overall status
-**Phase 2 (React + TypeScript + Vite 8 + FSD v2.1 Migration) complete — awaiting user verification before removing `legacy/`**
+**Phase 3 (Reading-Comfort Redesign, 28-Module Syllabus & Multi-Page Hash Portal) complete — awaiting user verification**
 
 ## Current phase
-Phase 2 complete: Legacy v1 files archived in `legacy/`; new React 19 + TypeScript + Vite 8 + MDX + `vite-plugin-singlefile` application built under strict FSD v2.1 ("pages first") with zero Steiger findings; Module 1 Part 1 (`M01-P1`) migrated with 100% parity.
+Phase 3 complete: Implemented Light / Soft Dark / Sepia themes (`--border-control`, `color-scheme`, `16–20px` font control, `1.7` line-height, `72ch` column), compact Lesson & Home layouts, All Topics page (28 modules, 945 topics), grouped `Ctrl+K` / mobile full-screen Search, combined URL-persisted Filters, and 7 hash-routed pages.
 
 ## Completed
-- [x] Read and analyze all 8 specification and companion `.md` files
-- [x] Confirm approved master prompt (`COURSE_modeule_in_detiles.md`) and resolve conflicts
-- [x] Reconcile `COURSE_OUTLINE.md` (28 modules) and create `CONTENT_CHECKLIST.md`
-- [x] Phase 1: Build and verify vanilla HTML/CSS/JS v1 portal + `M01-P1` (now archived in `legacy/`)
-- [x] Archive v1 source (`index.html`, `assets/`, `modules/`, `build.js`, `software_engineering_mastery_v1.html`) into `legacy/`
-- [x] Scaffold Vite 8 + React 19 + TypeScript + `@mdx-js/rollup` + `remark-gfm` + `vite-plugin-singlefile` + Steiger (`@feature-sliced/steiger-plugin`)
-- [x] Implement FSD v2.1 architecture (`src/app`, `src/pages/handbook`, `src/entities/progress`, `src/shared`)
-- [x] Migrate `M01-P1` prose to `content/modules/01-programming/m01-p1.mdx` and 14 interview Q&As to `content/interviews/m01-p1.questions.ts`
-- [x] Verify `tsc --noEmit`, `vite build`, `steiger ./src`, content parity, offline bundle, and `sem_handbook_v1` JSON import
+- [x] Phase 1 & 2: Legacy v1 archived in `legacy/`, React 19 + TS + Vite 8 + MDX + `vite-plugin-singlefile` + Steiger setup
+- [x] Reading Comfort: Light (`#F7F6F2`), Soft Dark (`#15181E`), Sepia (`#F3EAD8`) themes with WCAG AA tokens, `--border-control`, `color-scheme`, `16–20px` font size control, `72ch` column, `44px` touch targets, reduced motion
+- [x] Simple Layout & 7 Hash Pages: Home, All Topics, Lesson, Interviews, Glossary, Bookmarks, Progress
+- [x] All Topics & Syllabus: Typed 28-module syllabus (`content/syllabus.ts`, 945 topics) with explicit `TopicAnchor` links verified by `scripts/verify-syllabus.mjs`
+- [x] Search: Real-content grouped search (`Ctrl+K` / full-screen mobile) with keyboard navigation and `Not written yet` marking
+- [x] Filters: Combined URL-persisted filters on All Topics & Interviews with `Senior/Architect` / `Senior` / `Architect` matching and safe fallback to `"all"`
+- [x] Verification: `tsc`, `vite build`, `steiger ./src`, `verify:syllabus`, `verify:parity`, `verify:offline`, and headless Chrome CDP checks at `360`, `390`, `768`, `1024`, `1440` widths across all 3 themes
 
 ## Module progress
-Use `COURSE_OUTLINE.md` and `CONTENT_CHECKLIST.md` to track module and part status. Currently complete: `M01-P1` (migrated to MDX + typed Q&A).
+Use `COURSE_OUTLINE.md` and `CONTENT_CHECKLIST.md` to track module and part status. Currently written: `M01-P1` (`4` topics available, `941` not written yet).
 
 ## Current task
-STOP after Phase 2 migration verification and await user approval to remove `legacy/` and begin writing Module 1 Part 2 (`M01-P2`).
+STOP after Phase 3 verification and await user review before removing `legacy/` or writing `M01-P2`.
 
 ## Next actions
-1. User verifies `dist/software_engineering_mastery.html` in a browser and approves removing `legacy/`.
-2. Upon approval, begin authoring `M01-P2` (`content/modules/01-programming/m01-p2.mdx` + `content/interviews/m01-p2.questions.ts`).
+1. User inspects `dist/software_engineering_mastery.html` across themes/devices and approves removing `legacy/`.
+2. Upon approval, begin authoring `M01-P2` (`content/modules/01-programming/m01-p2.mdx` + `content/interviews/m01-p2.questions.ts`) and mapping its `TopicAnchor`s in `content/syllabus.ts`.
 
 ## Decisions
-1. **Master Prompt Precedence**: `COURSE_modeule_in_detiles.md` is the authoritative syllabus source of truth, updated with Section 8 ("Approved Changes").
-2. **React + Vite 8 + Singlefile Build**: React 19 (`^19.3.1`), TypeScript (`^7.0.2`), Vite 8 (`^8.3.8`), `@vitejs/plugin-react` (`^6.3.0`), `@mdx-js/rollup` + `@mdx-js/react` (`^3.1.1`), `remark-gfm` (`^4.0.1`), and `vite-plugin-singlefile` (`^2.3.4`) emit a single offline bundle `dist/software_engineering_mastery.html`.
-3. **FSD v2.1 (Pages First)**: Strictly follows `app -> pages -> widgets -> features -> entities -> shared`. Single-use UI/domain logic lives in `src/pages/handbook/`; `src/entities/progress/` is shared between `app` and `pages/handbook`; `src/shared/` holds stateless props-driven UI, styles, pure libs, and config with zero upward imports. Enforced with Steiger (`steiger ./src`) with zero disabled rules.
-4. **Content Isolation**: Course MDX and typed interview banks reside only in root `content/`, using type-only imports from `@/pages/handbook`. Only `src/app/App.tsx` loads `content/registry.ts` and passes data down.
-5. **Routing & Persistence**: Uses hash routing (`#/lesson/<lessonId>?section=<sectionId>`) and preserves `localStorage` compatibility under `sem_handbook_v1`.
-6. **Lesson Format & Difficulty Levels**: Sections A–Q + Learning Objectives, Estimated Study Duration, and Mastery Assessment; 4 difficulty levels everywhere except Module 26 (5 levels).
+1. **Three Reading Themes**: Soft Light (`#F7F6F2`), Soft Dark (`#15181E`), and Sepia (`#F3EAD8`) with dedicated `--border-control` (`#767064`, `#737D8D`, `#7D6E52`) and zero pure `#000`/`#fff`.
+2. **FSD v2.1 Layout**: `AppShell` and `SearchOverlay` live in `src/app/` (no `app/ui` segment), 7 route pages live in `src/pages/`, shared domain models & `InterviewQuestionCard` live in `src/entities/handbook/`, persistence lives in `src/entities/progress/`, and stateless props-only primitives live in `src/shared/`. Enforced via `steiger ./src` with zero disabled rules.
+3. **Topic Anchors & Inherited Status**: Every written topic has an explicit `<TopicAnchor id="..." />` mapped in `content/syllabus.ts`. Topic completion/bookmark status is explicitly labeled as inherited from its parent lesson; unwritten topics never show completed or bookmarked.
+4. **Filter Compatibility**: Old saved `sem_handbook_v1` filters never hide Lesson page content; invalid URL filter params fall back to `"all"`.
 
 ## Known issues / blockers
-- Legacy v1 files remain in `legacy/` pending user verification and removal approval.
-
-## Working rules
-- Do not mark work complete unless files exist and have been checked.
-- Do not overwrite completed work without a reason.
-- Record blockers, conflicts, and version-sensitive claims in `TECHNICAL_REVIEW_LOG.md`.
+- Legacy v1 files remain in `legacy/` pending user approval to delete.

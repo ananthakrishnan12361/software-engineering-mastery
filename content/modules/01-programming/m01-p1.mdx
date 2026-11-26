@@ -20,12 +20,16 @@ Every layer of production software depends on these primitives. A React UI compo
 
 <TopicSection id="m01-p1-sec-b" letter="B" title="Fundamentals (Simple Mental Models)">
 
+<TopicAnchor id="m01-p1-topic-fundamentals" />
+
 #### 1. Programming Fundamentals: Expressions, Statements & Control Flow
 
 A program is a sequence of instructions executed step by step unless redirected by control flow. Two terms cause frequent confusion:
 
 - <GlossaryTerm definition="A unit of code that evaluates to a single value (for example: 2 + 3, user.name, or calculateTax(100)).">Expression</GlossaryTerm>: Anything that produces a value (e.g., `price * 1.1`).
 - <GlossaryTerm definition="A complete instruction that performs an action (for example: let x = 5;, if (...) {}, or return x;).">Statement</GlossaryTerm>: An instruction that performs an action (e.g., declaring a variable, branching with `if`, looping with `for`).
+
+<TopicAnchor id="m01-p1-topic-variables" />
 
 #### 2. Variables: Labels, Not Boxes
 
@@ -36,12 +40,16 @@ Beginners often picture a variable as a physical box holding a value. A more acc
 - **Reassignment** moves the label to point to a different value (`total = 50;`).
 - `const` prevents *reassignment* of the label, **not** mutation of an object's internal properties.
 
+<TopicAnchor id="m01-p1-topic-data-types" />
+
 #### 3. Data Types: The 8 ECMAScript Types
 
 JavaScript is <GlossaryTerm definition="A type discipline where values have types at runtime rather than variables having fixed compile-time types.">dynamically typed</GlossaryTerm>: variables do not have fixed types, **values** do. ECMAScript defines **8 data types**—7 primitives and 1 reference type:
 
 - **Primitives (immutable, stored/copied by value):** `number` (64-bit IEEE-754 float), `bigint` (arbitrary-precision integers like `9007199254740993n`), `string` (immutable UTF-16 code units), `boolean` (`true`/`false`), `undefined` (declared but unassigned), `null` (intentional absence of an object value), `symbol` (guaranteed-unique identifier).
 - **Reference type (mutable, copied by reference value):** `object` (plain objects, arrays, functions, `Date`, `Map`, `Set`, `RegExp`).
+
+<TopicAnchor id="m01-p1-topic-functions" />
 
 #### 4. Functions: Inputs, Scope, Return Values & First-Class Citizenship
 

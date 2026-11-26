@@ -1,5 +1,5 @@
-import type { ThemeMode } from "@/shared/config";
-import { readStorageJson, writeStorageJson, removeStorageKey } from "@/shared/lib";
+import { FONT_SIZE_OPTIONS, type FontSizePx, type ThemeMode } from "@/shared/config";
+import { readStorageJson, removeStorageKey, writeStorageJson } from "@/shared/lib";
 
 export const STORAGE_KEY = "sem_handbook_v1";
 
@@ -11,6 +11,8 @@ export interface HandbookFilters {
 
 export interface HandbookProgressState {
   theme: ThemeMode | null;
+  fontSize?: FontSizePx;
+  lastLessonId?: string;
   completedLessons: Record<string, number>;
   bookmarks: Record<string, number>;
   masteryChecks: Record<string, boolean>;
@@ -21,6 +23,7 @@ export interface HandbookProgressState {
 export function createDefaultProgressState(): HandbookProgressState {
   return {
     theme: null,
+    fontSize: 16,
     completedLessons: {},
     bookmarks: {},
     masteryChecks: {},
@@ -41,7 +44,15 @@ export function normalizeProgressState(raw: unknown): HandbookProgressState {
   const defaults = createDefaultProgressState();
   if (!isPlainRecord(raw)) return defaults;
 
-  const theme = raw.theme === "dark" || raw.theme === "light" ? raw.theme : null;
+  const theme: ThemeMode | null =
+    raw.theme === "light" || raw.theme === "dark" || raw.theme === "sepia" ? raw.theme : null;
+
+  const fontSize: FontSizePx =
+    typeof raw.fontSize === "number" && FONT_SIZE_OPTIONS.includes(raw.fontSize as FontSizePx)
+      ? (raw.fontSize as FontSizePx)
+      : 16;
+
+  const lastLessonId = typeof raw.lastLessonId === "string" ? raw.lastLessonId : undefined;
 
   const completedLessons: Record<string, number> = {};
   if (isPlainRecord(raw.completedLessons)) {
@@ -80,6 +91,8 @@ export function normalizeProgressState(raw: unknown): HandbookProgressState {
 
   return {
     theme,
+    fontSize,
+    lastLessonId,
     completedLessons,
     bookmarks,
     masteryChecks,

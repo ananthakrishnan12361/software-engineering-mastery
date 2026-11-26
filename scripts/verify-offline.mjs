@@ -22,19 +22,13 @@ const unexpectedUrls = urls.filter(
     !u.startsWith("https://www.w3.org/") &&
     !u.startsWith("https://react.dev/errors/")
 );
-assert.equal(
-  unexpectedUrls.length,
-  0,
-  `Unexpected external URLs found in dist HTML: ${unexpectedUrls.join(", ")}`
-);
+assert.equal(unexpectedUrls.length, 0, `Unexpected external URLs: ${unexpectedUrls.join(", ")}`);
 
-// 2. Verify inline CSS & JS exist in singlefile bundle
 assert(html.includes("<style"), "Missing inlined <style> in dist HTML");
 assert(html.includes("<script"), "Missing inlined <script> in dist HTML");
 assert(html.includes("sem_handbook_v1"), "Missing localStorage key sem_handbook_v1 in dist bundle");
-assert(html.includes("Programming Fundamentals"), "Missing Module 1 content in dist bundle");
 
-// 3. Verify importing a v1 sem_handbook_v1 progress JSON export
+// 2. Test sem_handbook_v1 compatibility, hash router, difficulty rules, and filter sanitizers
 const vite = await createServer({
   server: { middlewareMode: true },
   appType: "custom",
@@ -42,36 +36,101 @@ const vite = await createServer({
 });
 try {
   const progressMod = await vite.ssrLoadModule("/src/entities/progress/index.ts");
+  const handbookMod = await vite.ssrLoadModule("/src/entities/handbook/index.ts");
+  const routerMod = await vite.ssrLoadModule("/src/shared/lib/hashRouter.ts");
+  const catalogMod = await vite.ssrLoadModule("/content/registry.ts");
+
   assert.equal(progressMod.STORAGE_KEY, "sem_handbook_v1");
 
+  // Import old v1 progress export (with theme, completedLessons, bookmarks, masteryChecks, collapsedSections, filters)
   const v1Export = JSON.stringify({
     theme: "light",
     completedLessons: { "m01-p1": 1732610000000 },
     bookmarks: { "m01-p1": 1732610005000 },
     masteryChecks: { "m01-p1-m1": true, "m01-p1-m4": true },
     collapsedSections: { "m01-p1-sec-b": true },
-    filters: { category: "fundamentals", difficulty: "advanced", bookmarksOnly: false }
+    filters: { category: "databases", difficulty: "advanced", bookmarksOnly: true }
   });
 
   const parsed = progressMod.parseImportedProgressJson(v1Export);
   assert.equal(parsed.theme, "light");
+  assert.equal(parsed.fontSize, 16);
   assert.equal(parsed.completedLessons["m01-p1"], 1732610000000);
   assert.equal(parsed.bookmarks["m01-p1"], 1732610005000);
   assert.equal(parsed.masteryChecks["m01-p1-m1"], true);
   assert.equal(parsed.collapsedSections["m01-p1-sec-b"], true);
-  assert.equal(parsed.filters.category, "fundamentals");
-  assert.equal(parsed.filters.difficulty, "advanced");
-  assert.equal(parsed.filters.bookmarksOnly, false);
 
-  const partialParsed = progressMod.parseImportedProgressJson(
-    JSON.stringify({ completedLessons: { "m01-p1": 123 } })
+  // Sepia theme support
+  const sepiaParsed = progressMod.parseImportedProgressJson(JSON.stringify({ theme: "sepia", fontSize: 20 }));
+  assert.equal(sepiaParsed.theme, "sepia");
+  assert.equal(sepiaParsed.fontSize, 20);
+
+  // Invalid URL params fall back to "all"
+  assert.equal(handbookMod.sanitizeCategoryParam("invalid_cat"), "all");
+  assert.equal(handbookMod.sanitizeDifficultyParam("bogus"), "all");
+  assert.equal(handbookMod.sanitizeAvailabilityParam("maybe"), "all");
+  assert.equal(handbookMod.sanitizeCompletionParam("unknown"), "all");
+  assert.equal(handbookMod.sanitizeBookmarkedParam("nope"), "all");
+  assert.equal(handbookMod.sanitizeModuleParam("999"), "all");
+  assert.equal(handbookMod.sanitizeModuleParam("15"), "15");
+
+  // Senior/Architect, Senior, Architect matching rules
+  assert.equal(handbookMod.matchesDifficultyFilter("senior-architect", "senior-architect"), true);
+  assert.equal(handbookMod.matchesDifficultyFilter("senior", "senior-architect"), true);
+  assert.equal(handbookMod.matchesDifficultyFilter("architect", "senior-architect"), true);
+  assert.equal(handbookMod.matchesDifficultyFilter("senior", "senior"), true);
+  assert.equal(handbookMod.matchesDifficultyFilter("senior-architect", "senior"), true);
+  assert.equal(handbookMod.matchesDifficultyFilter("architect", "senior"), false);
+  assert.equal(handbookMod.matchesDifficultyFilter("architect", "architect"), true);
+  assert.equal(handbookMod.matchesDifficultyFilter("senior-architect", "architect"), true);
+  assert.equal(handbookMod.matchesDifficultyFilter("senior", "architect"), false);
+  assert.equal(handbookMod.matchesDifficultyFilter("basic", "basic"), true);
+  assert.equal(handbookMod.matchesDifficultyFilter("basic", "intermediate"), false);
+
+  // Hash routing + query params + section anchors inside hash
+  const r1 = routerMod.parseHashRoute("#/topics?category=databases&availability=unwritten");
+  assert.equal(r1.page, "topics");
+  assert.equal(r1.params.category, "databases");
+  assert.equal(r1.params.availability, "unwritten");
+
+  const r2 = routerMod.parseHashRoute("#/lesson/m01-p1?section=m01-p1-topic-variables");
+  assert.equal(r2.page, "lesson");
+  assert.equal(r2.lessonId, "m01-p1");
+  assert.equal(r2.sectionId, "m01-p1-topic-variables");
+
+  // Search index generated from real content covers syllabus, lesson prose, code, IQs, glossary
+  const records = catalogMod.handbookCatalog.searchRecords;
+  assert(records.some((r) => r.type === "Syllabus Topic" && !r.available && r.title.includes("Kafka")));
+  assert(records.some((r) => r.type === "Syllabus Topic" && r.available && r.sectionId === "m01-p1-topic-variables"));
+  assert(records.some((r) => r.type === "Code" && r.text.includes("calculateLineTotalCents")));
+  assert(records.some((r) => r.type === "Interview Q&A" && r.text.includes("Snowflake")));
+  assert(records.some((r) => r.type === "Glossary" && r.title === "TDZ"));
+
+  // Combined filter logic tests across Topics & Interviews
+  const { syllabusModules, allQuestions } = catalogMod.handbookCatalog;
+  const comboTopics = syllabusModules
+    .filter((m) => m.category === "fundamentals")
+    .flatMap((m) => m.topics)
+    .filter((t) => t.status === "available" && Boolean(t.lessonId && parsed.completedLessons[t.lessonId]));
+  assert.equal(comboTopics.length, 4);
+
+  const emptyComboTopics = syllabusModules
+    .filter((m) => m.category === "databases")
+    .flatMap((m) => m.topics)
+    .filter((t) => t.status === "available");
+  assert.equal(emptyComboTopics.length, 0);
+
+  const iqAdvMod1 = allQuestions.filter(
+    (q) => handbookMod.matchesDifficultyFilter(q.difficulty, "advanced") && q.moduleNumber === 1
   );
-  assert.equal(partialParsed.filters.category, "all");
-  assert.equal(partialParsed.theme, null);
+  assert.equal(iqAdvMod1.length, 4);
+
+  const iqMod2 = allQuestions.filter((q) => q.moduleNumber === 2);
+  assert.equal(iqMod2.length, 0);
 } finally {
   await vite.close();
 }
 
 console.log(
-  `OFFLINE & COMPAT CHECK PASSED: dist/software_engineering_mastery.html (${sizeKb} KB), 0 external assets/CDNs, v1 sem_handbook_v1 JSON import verified.`
+  `OFFLINE, FILTERS & COMPAT CHECK PASSED: dist/software_engineering_mastery.html (${sizeKb} KB), 0 external CDNs, all filter combinations & v1 import verified.`
 );

@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
+import {
+  InterviewQuestionCard,
+  matchesDifficultyFilter,
+  type InterviewQuestion
+} from "@/entities/handbook";
 import type { DifficultyLevel } from "@/shared/config";
 import { Button } from "@/shared/ui";
-import type { InterviewQuestion } from "../model/types";
-import { InterviewQuestionCard } from "./InterviewQuestionCard";
 
-export interface InterviewBankProps {
+export interface LessonInterviewBankProps {
   questions: InterviewQuestion[];
-  globalDifficulty: string;
   forcedOpenId: string | null;
 }
 
@@ -15,11 +17,11 @@ const FILTER_OPTIONS: Array<{ value: "all" | DifficultyLevel; label: string }> =
   { value: "basic", label: "Basic" },
   { value: "intermediate", label: "Intermediate" },
   { value: "advanced", label: "Advanced" },
-  { value: "senior-architect", label: "Senior/Architect" }
+  { value: "senior-architect", label: "Senior / Architect" }
 ];
 
-export function InterviewBank({ questions, globalDifficulty, forcedOpenId }: InterviewBankProps) {
-  const [localFilter, setLocalFilter] = useState<string>("all");
+export function LessonInterviewBank({ questions, forcedOpenId }: LessonInterviewBankProps) {
+  const [difficulty, setDifficulty] = useState<string>("all");
   const [revealedIds, setRevealedIds] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -28,17 +30,17 @@ export function InterviewBank({ questions, globalDifficulty, forcedOpenId }: Int
     }
   }, [forcedOpenId, questions]);
 
-  const effectiveDifficulty = globalDifficulty !== "all" ? globalDifficulty : localFilter;
-
-  const visibleQuestions = useMemo(() => {
-    if (effectiveDifficulty === "all") return questions;
-    return questions.filter((q) => q.difficulty === effectiveDifficulty);
-  }, [questions, effectiveDifficulty]);
+  const visibleQuestions = useMemo(
+    () => questions.filter((q) => matchesDifficultyFilter(q.difficulty, difficulty)),
+    [questions, difficulty]
+  );
 
   const counts = useMemo(() => {
     const map: Record<string, number> = { all: questions.length };
-    for (const q of questions) {
-      map[q.difficulty] = (map[q.difficulty] ?? 0) + 1;
+    for (const opt of FILTER_OPTIONS) {
+      if (opt.value !== "all") {
+        map[opt.value] = questions.filter((q) => matchesDifficultyFilter(q.difficulty, opt.value)).length;
+      }
     }
     return map;
   }, [questions]);
@@ -49,14 +51,8 @@ export function InterviewBank({ questions, globalDifficulty, forcedOpenId }: Int
 
   function handleRevealAll() {
     const next: Record<string, boolean> = { ...revealedIds };
-    for (const q of visibleQuestions) {
-      next[q.id] = true;
-    }
+    for (const q of visibleQuestions) next[q.id] = true;
     setRevealedIds(next);
-  }
-
-  function handleHideAll() {
-    setRevealedIds({});
   }
 
   return (
@@ -66,25 +62,23 @@ export function InterviewBank({ questions, globalDifficulty, forcedOpenId }: Int
           {FILTER_OPTIONS.map((opt) => {
             const count = counts[opt.value] ?? 0;
             if (opt.value !== "all" && count === 0) return null;
-            const active = effectiveDifficulty === opt.value;
             return (
               <Button
                 key={opt.value}
                 variant="small"
-                className="iq-filter-btn"
-                aria-pressed={active}
-                onClick={() => setLocalFilter(opt.value)}
+                aria-pressed={difficulty === opt.value}
+                onClick={() => setDifficulty(opt.value)}
               >
                 {opt.label} ({count})
               </Button>
             );
           })}
         </div>
-        <div className="module-toolbar-actions">
+        <div className="lesson-action-strip">
           <Button variant="small" onClick={handleRevealAll}>
             Reveal All
           </Button>
-          <Button variant="small" onClick={handleHideAll}>
+          <Button variant="small" onClick={() => setRevealedIds({})}>
             Hide All
           </Button>
         </div>
@@ -92,7 +86,7 @@ export function InterviewBank({ questions, globalDifficulty, forcedOpenId }: Int
 
       <div className="iq-list">
         {visibleQuestions.length === 0 ? (
-          <p className="muted-note">No interview questions match the active difficulty filter.</p>
+          <p className="muted-note">No interview questions match this difficulty filter.</p>
         ) : (
           visibleQuestions.map((q) => (
             <InterviewQuestionCard

@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 export type BadgeVariant =
   | "accent"
   | "neutral"
+  | "unwritten"
   | "basic"
   | "intermediate"
   | "advanced"

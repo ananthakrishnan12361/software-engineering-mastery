@@ -1,9 +1,10 @@
-import type { InterviewQuestion } from "@/pages/handbook";
+import type { InterviewQuestion } from "@/entities/handbook";
 
 export const m01p1Questions: InterviewQuestion[] = [
   {
     id: "m01-p1-iq-1",
     lessonId: "m01-p1",
+    moduleNumber: 1,
     number: 1,
     difficulty: "basic",
     question: "What is the difference between `null` and `undefined` in JavaScript?",
@@ -32,6 +33,7 @@ export const m01p1Questions: InterviewQuestion[] = [
   {
     id: "m01-p1-iq-2",
     lessonId: "m01-p1",
+    moduleNumber: 1,
     number: 2,
     difficulty: "basic",
     question: "What is the difference between `var`, `let`, and `const`?",
@@ -55,6 +57,7 @@ export const m01p1Questions: InterviewQuestion[] = [
   {
     id: "m01-p1-iq-3",
     lessonId: "m01-p1",
+    moduleNumber: 1,
     number: 3,
     difficulty: "basic",
     question: "What are the data types in JavaScript, and how do primitives differ from objects?",
@@ -78,6 +81,7 @@ export const m01p1Questions: InterviewQuestion[] = [
   {
     id: "m01-p1-iq-4",
     lessonId: "m01-p1",
+    moduleNumber: 1,
     number: 4,
     difficulty: "basic",
     question: "What is the difference between `==` and `===`?",
@@ -101,6 +105,7 @@ export const m01p1Questions: InterviewQuestion[] = [
   {
     id: "m01-p1-iq-5",
     lessonId: "m01-p1",
+    moduleNumber: 1,
     number: 5,
     difficulty: "intermediate",
     question: "Why does `0.1 + 0.2 !== 0.3` in JavaScript, and how do you handle money safely?",
@@ -128,6 +133,7 @@ export const m01p1Questions: InterviewQuestion[] = [
   {
     id: "m01-p1-iq-6",
     lessonId: "m01-p1",
+    moduleNumber: 1,
     number: 6,
     difficulty: "intermediate",
     question: "Is JavaScript pass-by-value or pass-by-reference? Explain with an example.",
@@ -151,6 +157,7 @@ export const m01p1Questions: InterviewQuestion[] = [
   {
     id: "m01-p1-iq-7",
     lessonId: "m01-p1",
+    moduleNumber: 1,
     number: 7,
     difficulty: "intermediate",
     question: "Explain the Temporal Dead Zone (TDZ) and why `let`/`const` still hoist.",
@@ -175,6 +182,7 @@ export const m01p1Questions: InterviewQuestion[] = [
   {
     id: "m01-p1-iq-8",
     lessonId: "m01-p1",
+    moduleNumber: 1,
     number: 8,
     difficulty: "intermediate",
     question: "What is a pure function, and why do React and backend pipelines care about purity?",
@@ -198,6 +206,7 @@ export const m01p1Questions: InterviewQuestion[] = [
   {
     id: "m01-p1-iq-9",
     lessonId: "m01-p1",
+    moduleNumber: 1,
     number: 9,
     difficulty: "advanced",
     question: "How does V8 internally represent numbers vs. objects, and why can mixing types slow down a hot function?",
@@ -221,6 +230,7 @@ export const m01p1Questions: InterviewQuestion[] = [
   {
     id: "m01-p1-iq-10",
     lessonId: "m01-p1",
+    moduleNumber: 1,
     number: 10,
     difficulty: "advanced",
     question: "Why does `Number.MAX_SAFE_INTEGER + 1 === Number.MAX_SAFE_INTEGER + 2` evaluate to `true`, and how does this break distributed systems?",
@@ -244,6 +254,7 @@ export const m01p1Questions: InterviewQuestion[] = [
   {
     id: "m01-p1-iq-11",
     lessonId: "m01-p1",
+    moduleNumber: 1,
     number: 11,
     difficulty: "advanced",
     question: "Does JavaScript support Proper Tail Calls (TCO) in production, and how do you avoid call-stack overflow on deep data?",
@@ -271,6 +282,7 @@ export const m01p1Questions: InterviewQuestion[] = [
   {
     id: "m01-p1-iq-12",
     lessonId: "m01-p1",
+    moduleNumber: 1,
     number: 12,
     difficulty: "advanced",
     question: "Explain how JavaScript's abstract type coercion (`ToPrimitive`, `ToNumber`, `ToBoolean`) leads to subtle bugs and security flaws.",
@@ -294,6 +306,7 @@ export const m01p1Questions: InterviewQuestion[] = [
   {
     id: "m01-p1-iq-13",
     lessonId: "m01-p1",
+    moduleNumber: 1,
     number: 13,
     difficulty: "senior-architect",
     question: "Your multi-service Node.js + PostgreSQL + React platform is experiencing 1-cent billing discrepancies and occasional cross-account mix-ups on newly migrated 64-bit Snowflake IDs. Diagnose and design the fix end-to-end.",
@@ -351,6 +364,7 @@ export const m01p1Questions: InterviewQuestion[] = [
   {
     id: "m01-p1-iq-14",
     lessonId: "m01-p1",
+    moduleNumber: 1,
     number: 14,
     difficulty: "senior-architect",
     question: "Design a defensive API validation and transformation pipeline for a high-throughput Node.js gateway handling untrusted nested JSON payloads.",

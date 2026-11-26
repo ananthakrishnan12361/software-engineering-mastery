@@ -1,59 +1,102 @@
 import { useEffect, useState } from "react";
+import type { PageId } from "@/shared/config";
 
-export interface HashRoute {
+export interface AppRoute {
+  page: PageId;
   lessonId: string | null;
   sectionId: string | null;
+  params: Record<string, string>;
 }
 
-export function parseHashRoute(hash: string): HashRoute {
+const VALID_PAGES = new Set<PageId>([
+  "home",
+  "topics",
+  "lesson",
+  "interviews",
+  "glossary",
+  "bookmarks",
+  "progress"
+]);
+
+export function parseHashRoute(hash: string): AppRoute {
   const cleaned = hash.replace(/^#/, "");
-  if (!cleaned) return { lessonId: null, sectionId: null };
-
-  // Support #/lesson/<lessonId>?section=<sectionId>
-  if (cleaned.startsWith("/lesson/")) {
-    const [pathPart, queryPart] = cleaned.split("?");
-    const lessonId = decodeURIComponent(pathPart.slice("/lesson/".length).split("/")[0] || "").trim() || null;
-    const params = new URLSearchParams(queryPart || "");
-    const sectionId = params.get("section")?.trim() || null;
-    return { lessonId, sectionId };
+  if (!cleaned || cleaned === "/" || cleaned === "/home") {
+    return { page: "home", lessonId: null, sectionId: null, params: {} };
   }
 
-  // Fallback for legacy anchor links like #m01-p1-sec-c or #m01-p1
-  const matchLesson = cleaned.match(/^(m\d+-p\d+)/i);
-  if (matchLesson) {
-    return {
-      lessonId: matchLesson[1].toLowerCase(),
-      sectionId: cleaned.toLowerCase() === matchLesson[1].toLowerCase() ? null : cleaned
-    };
+  const [rawPath, rawQuery] = cleaned.split("?");
+  const searchParams = new URLSearchParams(rawQuery || "");
+  const params: Record<string, string> = {};
+  for (const [k, v] of searchParams.entries()) {
+    params[k] = v;
   }
 
-  return { lessonId: null, sectionId: cleaned };
+  // Legacy lesson anchor fallback (#m01-p1 or #m01-p1-sec-c)
+  if (!rawPath.startsWith("/")) {
+    const matchLesson = rawPath.match(/^(m\d+-p\d+)/i);
+    if (matchLesson) {
+      const lessonId = matchLesson[1].toLowerCase();
+      const sectionId = rawPath.toLowerCase() === lessonId ? null : rawPath;
+      return { page: "lesson", lessonId, sectionId, params };
+    }
+    return { page: "home", lessonId: null, sectionId: null, params };
+  }
+
+  const parts = rawPath.split("/").filter(Boolean);
+  const head = (parts[0] || "home") as PageId;
+
+  if (head === "lesson") {
+    const lessonId = parts[1] ? decodeURIComponent(parts[1]) : null;
+    const sectionId = params.section?.trim() || null;
+    return { page: "lesson", lessonId, sectionId, params };
+  }
+
+  if (VALID_PAGES.has(head)) {
+    return { page: head, lessonId: null, sectionId: null, params };
+  }
+
+  return { page: "home", lessonId: null, sectionId: null, params };
 }
 
-export function buildHashHref(lessonId: string, sectionId?: string | null): string {
-  const base = `#/lesson/${encodeURIComponent(lessonId)}`;
-  if (sectionId) {
-    return `${base}?section=${encodeURIComponent(sectionId)}`;
+export function buildPageHash(
+  page: PageId,
+  options?: { lessonId?: string | null; sectionId?: string | null; params?: Record<string, string> }
+): string {
+  const basePath =
+    page === "lesson" && options?.lessonId
+      ? `/lesson/${encodeURIComponent(options.lessonId)}`
+      : `/${page}`;
+
+  const sp = new URLSearchParams();
+  if (options?.sectionId) {
+    sp.set("section", options.sectionId);
   }
-  return base;
+  if (options?.params) {
+    for (const [k, v] of Object.entries(options.params)) {
+      if (v && v !== "all") sp.set(k, v);
+    }
+  }
+  const qs = sp.toString();
+  return `#${basePath}${qs ? `?${qs}` : ""}`;
 }
 
-export function navigateToHash(lessonId: string, sectionId?: string | null): void {
-  const next = buildHashHref(lessonId, sectionId);
+export function navigateHash(
+  page: PageId,
+  options?: { lessonId?: string | null; sectionId?: string | null; params?: Record<string, string> }
+): void {
+  const next = buildPageHash(page, options);
   if (window.location.hash !== next) {
     window.location.hash = next;
-  } else if (sectionId) {
+  } else {
     window.dispatchEvent(new HashChangeEvent("hashchange"));
   }
 }
 
-export function useHashRoute(): HashRoute {
-  const [route, setRoute] = useState<HashRoute>(() => parseHashRoute(window.location.hash));
+export function useAppRoute(): AppRoute {
+  const [route, setRoute] = useState<AppRoute>(() => parseHashRoute(window.location.hash));
 
   useEffect(() => {
-    const onHashChange = () => {
-      setRoute(parseHashRoute(window.location.hash));
-    };
+    const onHashChange = () => setRoute(parseHashRoute(window.location.hash));
     window.addEventListener("hashchange", onHashChange);
     return () => window.removeEventListener("hashchange", onHashChange);
   }, []);
