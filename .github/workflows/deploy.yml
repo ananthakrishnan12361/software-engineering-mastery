@@ -33,10 +33,13 @@ jobs:
       - name: Verify and build bundle
         run: npm run check
 
-      - name: Prepare GitHub Pages entry point
-        run: cp dist/software_engineering_mastery.html dist/index.html
-      - name: Verify index.html exists
-        run: ls -l dist/index.html
+      - name: Prepare GitHub Pages entry point and verify
+        run: |
+          cp dist/software_engineering_mastery.html dist/index.html
+          echo "Listing dist folder:"
+          ls -l dist
+          echo "Listing index.html:"
+          ls -l dist/index.html
 
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@v3
