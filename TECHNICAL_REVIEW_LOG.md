@@ -214,3 +214,13 @@ For each review, add:
    - **Verified Claim:** React separates pure Render from DOM Commit, compares state updates with `Object.is`, batches state updates automatically in React 18+ (`flushSync` opts out), supports concurrent `startTransition` & `<StrictMode>` dev checks, escapes JSX text automatically (unlike `dangerouslySetInnerHTML`), and uses `key` + `type` for list reconciliation.
    - **Official References:** https://react.dev/learn/render-and-commit, https://react.dev/learn/state-as-a-snapshot, https://react.dev/learn/queueing-a-series-of-state-updates, https://react.dev/learn/rendering-lists#keeping-list-items-in-order-with-key, https://react.dev/blog/2022/03/29/react-v18#new-feature-automatic-batching, https://react.dev/reference/react-dom/flushSync, https://react.dev/reference/react/StrictMode, https://react.dev/reference/react/startTransition, https://react.dev/learn/writing-markup-with-jsx, and https://react.dev/reference/react-dom/components/common#dangerously-setting-the-inner-html
    - **Status:** Verified
+
+
+---
+
+## Module 02 Part 2 (`M02-P2`) Technical Review Log — 2026-11-26
+
+1. **React Rules of Hooks, Built-in Hooks & `React.memo`**
+   - **Verified Claim:** Hooks must be called unconditionally at the top level (`rules-of-hooks`); `useEffect` runs post-commit with cleanup before re-runs/unmount; `useMemo`/`useCallback`/`React.memo` rely on `Object.is` shallow reference checks.
+   - **Official References:** https://react.dev/reference/rules/rules-of-hooks, https://react.dev/reference/react/useState, https://react.dev/reference/react/useEffect, https://react.dev/reference/react/useRef, https://react.dev/reference/react/useContext, https://react.dev/reference/react/useMemo, https://react.dev/reference/react/useCallback, https://react.dev/reference/react/memo, and https://react.dev/learn/reusing-logic-with-custom-hooks
+   - **Status:** Verified

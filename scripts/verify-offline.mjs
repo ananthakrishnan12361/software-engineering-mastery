@@ -150,7 +150,7 @@ try {
   assert.equal(iqAdvMod1.length, 10);
 
   const iqMod2 = allQuestions.filter((q) => q.moduleNumber === 2);
-  assert.equal(iqMod2.length, 9);
+  assert.equal(iqMod2.length, 18);
 } finally {
   await vite.close();
 }

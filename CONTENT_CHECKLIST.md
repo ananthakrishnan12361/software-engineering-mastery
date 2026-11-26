@@ -106,15 +106,15 @@ Split into 4 parts:
 - [x] Rendering
 - [x] Virtual DOM
 - [x] JSX
-- [ ] Hooks
-- [ ] `useState`
-- [ ] `useEffect`
-- [ ] `useRef`
-- [ ] `useContext`
-- [ ] `useMemo`
-- [ ] `useCallback`
-- [ ] `React.memo`
-- [ ] Custom hooks
+- [x] Hooks
+- [x] `useState`
+- [x] `useEffect`
+- [x] `useRef`
+- [x] `useContext`
+- [x] `useMemo`
+- [x] `useCallback`
+- [x] `React.memo`
+- [x] Custom hooks
 - [x] Component lifecycle concepts
 - [ ] State management
 - [ ] Context API

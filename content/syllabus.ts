@@ -344,15 +344,51 @@ export const SYLLABUS_MODULES: SyllabusModule[] = [
         lessonId: "m02-p1",
         anchorId: "m02-p1-topic-jsx"
       },
-      "Hooks",
-      "useState",
-      "useEffect",
-      "useRef",
-      "useContext",
-      "useMemo",
-      "useCallback",
-      "React.memo",
-      "Custom hooks",
+      {
+        title: "Hooks",
+        lessonId: "m02-p2",
+        anchorId: "m02-p2-topic-hooks"
+      },
+      {
+        title: "useState",
+        lessonId: "m02-p2",
+        anchorId: "m02-p2-topic-usestate"
+      },
+      {
+        title: "useEffect",
+        lessonId: "m02-p2",
+        anchorId: "m02-p2-topic-useeffect"
+      },
+      {
+        title: "useRef",
+        lessonId: "m02-p2",
+        anchorId: "m02-p2-topic-useref"
+      },
+      {
+        title: "useContext",
+        lessonId: "m02-p2",
+        anchorId: "m02-p2-topic-usecontext"
+      },
+      {
+        title: "useMemo",
+        lessonId: "m02-p2",
+        anchorId: "m02-p2-topic-usememo"
+      },
+      {
+        title: "useCallback",
+        lessonId: "m02-p2",
+        anchorId: "m02-p2-topic-usecallback"
+      },
+      {
+        title: "React.memo",
+        lessonId: "m02-p2",
+        anchorId: "m02-p2-topic-reactmemo"
+      },
+      {
+        title: "Custom hooks",
+        lessonId: "m02-p2",
+        anchorId: "m02-p2-topic-custom-hooks"
+      },
       {
         title: "Component lifecycle concepts",
         lessonId: "m02-p1",

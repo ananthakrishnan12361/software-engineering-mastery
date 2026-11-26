@@ -19,12 +19,15 @@ import M01P5Mdx from "./modules/01-programming/m01-p5.mdx";
 import m01p5Raw from "./modules/01-programming/m01-p5.mdx?raw";
 import M02P1Mdx from "./modules/02-react/m02-p1.mdx";
 import m02p1Raw from "./modules/02-react/m02-p1.mdx?raw";
+import M02P2Mdx from "./modules/02-react/m02-p2.mdx";
+import m02p2Raw from "./modules/02-react/m02-p2.mdx?raw";
 import { m01p1Questions } from "./interviews/m01-p1.questions";
 import { m01p2Questions } from "./interviews/m01-p2.questions";
 import { m01p3Questions } from "./interviews/m01-p3.questions";
 import { m01p4Questions } from "./interviews/m01-p4.questions";
 import { m01p5Questions } from "./interviews/m01-p5.questions";
 import { m02p1Questions } from "./interviews/m02-p1.questions";
+import { m02p2Questions } from "./interviews/m02-p2.questions";
 import { SYLLABUS_MODULES } from "./syllabus";
 
 export interface HandbookCatalog {
@@ -132,11 +135,11 @@ const modules: ModuleRecord[] = [
     number: 2,
     title: "React & Frontend Engineering",
     category: "frontend",
-    partSummary: "Part 1 of 4",
+    partSummary: "Parts 1–2 of 4",
     scopeSummary:
-      "Scope (Part 1): React Architecture, Components, Props, State, Rendering, Virtual DOM, JSX & Component Lifecycle Concepts",
-    lead: "Master React's declarative UI model, Fiber render/commit phases, immutable state updates, keyed reconciliation, and production frontend engineering.",
-    lessonIds: ["m02-p1"]
+      "Scope (Parts 1–2): React Architecture, Components, Props, State, Rendering, Virtual DOM, JSX, Lifecycle, Hooks & Memoization",
+    lead: "Master React's declarative UI model, Fiber render/commit phases, Hooks, effect synchronization, and targeted memoization.",
+    lessonIds: ["m02-p1", "m02-p2"]
   }
 ];
 
@@ -503,8 +506,65 @@ const lessons: LessonRecord[] = [
       }
     ],
     prevLessonId: "m01-p5",
-    nextLessonId: null,
+    nextLessonId: "m02-p2",
     Content: M02P1Mdx
+  },
+  {
+    id: "m02-p2",
+    moduleId: "module-2",
+    moduleNumber: 2,
+    moduleTitle: "React & Frontend Engineering",
+    partLabel: "Lesson M02-P2",
+    title: "Part 2: React Hooks, Effect Synchronization, Context & Memoization",
+    category: "frontend",
+    duration: "100 min (45m theory · 35m practice · 20m review)",
+    objectives: [
+      "Explain the Rules of Hooks and how React stores hook slots by positional call order on Fiber nodes.",
+      "Use useState (lazy initializers, functional updaters), useRef, and useContext without stale closures or re-render storms.",
+      "Synchronize external systems cleanly with useEffect + AbortController cleanup and avoid derived-state anti-patterns.",
+      "Apply useMemo, useCallback, React.memo, and custom hooks intentionally based on shallow Object.is reference checks."
+    ],
+    sections: [
+      { id: "m02-p2-objectives", title: "Learning Objectives" },
+      { id: "m02-p2-sec-a", letter: "A", title: "Topic Introduction" },
+      { id: "m02-p2-sec-b", letter: "B", title: "Fundamentals (Simple Mental Models)" },
+      { id: "m02-p2-sec-c", letter: "C", title: "Internal Working & Architecture" },
+      { id: "m02-p2-sec-d", letter: "D", title: "Practical Examples (Interactive)" },
+      { id: "m02-p2-sec-e", letter: "E", title: "Step-by-Step Walkthrough" },
+      { id: "m02-p2-sec-f", letter: "F", title: "Real-World Use Cases" },
+      { id: "m02-p2-sec-g", letter: "G", title: "Common Mistakes" },
+      { id: "m02-p2-sec-h", letter: "H", title: "Best Practices" },
+      { id: "m02-p2-sec-i", letter: "I", title: "Performance & Scalability" },
+      { id: "m02-p2-sec-j", letter: "J", title: "Security Considerations" },
+      { id: "m02-p2-sec-k", letter: "K", title: "Comparisons & Decision Tables" },
+      { id: "m02-p2-sec-l", letter: "L", title: "Tips to Remember (Mnemonics & Mental Models)" },
+      { id: "m02-p2-sec-mn", letter: "M/N", title: "Interview Questions & Detailed Answers" },
+      { id: "m02-p2-sec-o", letter: "O", title: "Practical Exercises" },
+      { id: "m02-p2-sec-p", letter: "P", title: "Advanced Challenge" },
+      { id: "m02-p2-sec-q", letter: "Q", title: "Summary & Key Takeaways" },
+      { id: "m02-p2-mastery", title: "Mastery Assessment" }
+    ],
+    masteryItems: [
+      {
+        id: "m02-p2-m1",
+        label: "I can explain the Rules of Hooks using Fiber positional hook slots."
+      },
+      {
+        id: "m02-p2-m2",
+        label: "I can write race-free useEffect hooks with AbortController cleanup and avoid derived-state effects."
+      },
+      {
+        id: "m02-p2-m3",
+        label: "I can explain when useMemo, useCallback, and React.memo help vs. when inline props defeat them."
+      },
+      {
+        id: "m02-p2-m4",
+        label: "I completed the M02-P2 exercises and can answer the interview questions without notes."
+      }
+    ],
+    prevLessonId: "m02-p1",
+    nextLessonId: null,
+    Content: M02P2Mdx
   }
 ];
 
@@ -514,7 +574,8 @@ const questionsByLesson: Record<string, InterviewQuestion[]> = {
   "m01-p3": m01p3Questions,
   "m01-p4": m01p4Questions,
   "m01-p5": m01p5Questions,
-  "m02-p1": m02p1Questions
+  "m02-p1": m02p1Questions,
+  "m02-p2": m02p2Questions
 };
 
 const allQuestions: InterviewQuestion[] = [
@@ -523,7 +584,8 @@ const allQuestions: InterviewQuestion[] = [
   ...m01p3Questions,
   ...m01p4Questions,
   ...m01p5Questions,
-  ...m02p1Questions
+  ...m02p1Questions,
+  ...m02p2Questions
 ];
 
 function mergeGlossaryEntries(...batches: GlossaryEntry[][]): GlossaryEntry[] {
@@ -545,7 +607,8 @@ const glossaryEntries: GlossaryEntry[] = mergeGlossaryEntries(
   extractGlossaryFromMdx(m01p3Raw, "m01-p3"),
   extractGlossaryFromMdx(m01p4Raw, "m01-p4"),
   extractGlossaryFromMdx(m01p5Raw, "m01-p5"),
-  extractGlossaryFromMdx(m02p1Raw, "m02-p1")
+  extractGlossaryFromMdx(m02p1Raw, "m02-p1"),
+  extractGlossaryFromMdx(m02p2Raw, "m02-p2")
 );
 
 function buildSearchRecords(): SearchRecord[] {
@@ -570,6 +633,7 @@ function buildSearchRecords(): SearchRecord[] {
   records.push(...extractSearchRecordsFromMdx(m01p4Raw, "m01-p4", lessons[3].title, 1));
   records.push(...extractSearchRecordsFromMdx(m01p5Raw, "m01-p5", lessons[4].title, 1));
   records.push(...extractSearchRecordsFromMdx(m02p1Raw, "m02-p1", lessons[5].title, 2));
+  records.push(...extractSearchRecordsFromMdx(m02p2Raw, "m02-p2", lessons[6].title, 2));
 
   for (const mod of SYLLABUS_MODULES) {
     for (const topic of mod.topics) {
