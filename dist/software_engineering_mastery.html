@@ -1,0 +1,4061 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Software Engineering Mastery Handbook</title>
+  <style id="handbook-styles">
+/* ==========================================================================
+   Software Engineering Mastery Handbook — Stylesheet
+   Zero external dependencies. Supports dark/light themes, desktop/tablet/mobile.
+   ========================================================================== */
+
+:root {
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+  --header-h: 60px;
+  --sidebar-w: 296px;
+  --toc-w: 240px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --transition: 160ms ease;
+}
+
+/* Dark Theme (Default) */
+html[data-theme="dark"] {
+  --bg-page: #0d1117;
+  --bg-surface: #161b22;
+  --bg-elevated: #1f2630;
+  --bg-subtle: #12171e;
+  --bg-code: #0b0f14;
+  --border: #2b3340;
+  --border-strong: #3c4657;
+  --text-primary: #e6edf3;
+  --text-secondary: #a5b1c2;
+  --text-muted: #7d8898;
+  --accent: #58a6ff;
+  --accent-soft: rgba(88, 166, 255, 0.14);
+  --accent-strong: #79c0ff;
+  --success: #3fb950;
+  --success-soft: rgba(63, 185, 80, 0.14);
+  --warning: #d29922;
+  --warning-soft: rgba(210, 153, 34, 0.14);
+  --danger: #f85149;
+  --danger-soft: rgba(248, 81, 73, 0.14);
+  --purple: #bc8cff;
+  --purple-soft: rgba(188, 140, 255, 0.14);
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+
+  /* Syntax highlighting */
+  --tok-kw: #ff7b72;
+  --tok-str: #a5d6ff;
+  --tok-num: #79c0ff;
+  --tok-com: #8b949e;
+  --tok-fn: #d2a8ff;
+  --tok-bi: #ffa657;
+}
+
+/* Light Theme */
+html[data-theme="light"] {
+  --bg-page: #f6f8fa;
+  --bg-surface: #ffffff;
+  --bg-elevated: #f0f3f7;
+  --bg-subtle: #f8fafc;
+  --bg-code: #f3f6fa;
+  --border: #d8dee4;
+  --border-strong: #b8c2cc;
+  --text-primary: #1f2328;
+  --text-secondary: #4b5563;
+  --text-muted: #6e7781;
+  --accent: #0969da;
+  --accent-soft: rgba(9, 105, 218, 0.1);
+  --accent-strong: #0550ae;
+  --success: #1a7f37;
+  --success-soft: rgba(26, 127, 55, 0.1);
+  --warning: #9a6700;
+  --warning-soft: rgba(154, 103, 0, 0.11);
+  --danger: #cf222e;
+  --danger-soft: rgba(207, 34, 46, 0.1);
+  --purple: #8250df;
+  --purple-soft: rgba(130, 80, 223, 0.1);
+  --shadow: 0 10px 30px rgba(31, 35, 40, 0.12);
+
+  /* Syntax highlighting */
+  --tok-kw: #cf222e;
+  --tok-str: #0a3069;
+  --tok-num: #0550ae;
+  --tok-com: #6e7781;
+  --tok-fn: #8250df;
+  --tok-bi: #953800;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: calc(var(--header-h) + 16px);
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.65;
+  background: var(--bg-page);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  background: var(--accent);
+  color: #fff;
+  padding: 8px 14px;
+  z-index: 9999;
+  border-radius: var(--radius-sm);
+}
+.skip-link:focus {
+  left: 12px;
+  top: 12px;
+}
+
+/* Topbar */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  height: var(--header-h);
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 16px;
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 13px;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+  min-width: 0;
+}
+
+.brand-title {
+  font-weight: 700;
+  font-size: 15px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.brand-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Search */
+.topbar-search {
+  position: relative;
+  flex: 1 1 340px;
+  max-width: 480px;
+}
+
+.search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 10px;
+  font-size: 13px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.search-box input {
+  width: 100%;
+  height: 36px;
+  padding: 0 32px 0 32px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-subtle);
+  color: var(--text-primary);
+  font-size: 14px;
+  outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.search-box input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.search-clear {
+  position: absolute;
+  right: 6px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 18px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 2px 6px;
+}
+
+.search-results {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  max-height: 70vh;
+  overflow-y: auto;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow);
+  z-index: 200;
+  padding: 6px;
+}
+
+.search-result-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 9px 10px;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.search-result-item:hover,
+.search-result-item:focus-visible {
+  background: var(--bg-elevated);
+  outline: none;
+}
+
+.search-result-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+.search-result-title {
+  font-weight: 600;
+  font-size: 13.5px;
+}
+
+.search-result-snippet {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.search-result-snippet mark {
+  background: var(--warning-soft);
+  color: var(--text-primary);
+  padding: 0 2px;
+  border-radius: 3px;
+}
+
+.search-empty {
+  padding: 14px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* Topbar Actions */
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.toolbar-select {
+  height: 34px;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-subtle);
+  color: var(--text-primary);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.icon-btn,
+.pill-btn,
+.btn-small,
+.btn-primary,
+.btn-secondary,
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-subtle);
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
+}
+
+.icon-btn {
+  width: 34px;
+  height: 34px;
+  font-size: 16px;
+}
+
+.pill-btn {
+  height: 34px;
+  padding: 0 10px;
+}
+
+.pill-btn[aria-pressed="true"] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
+
+.icon-btn:hover,
+.pill-btn:hover,
+.btn-small:hover {
+  background: var(--bg-elevated);
+  border-color: var(--border-strong);
+}
+
+.btn-small {
+  padding: 5px 10px;
+  font-size: 12.5px;
+}
+
+.btn-primary {
+  padding: 8px 14px;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.btn-primary:hover {
+  filter: brightness(1.08);
+}
+
+.btn-secondary {
+  padding: 8px 14px;
+}
+
+.btn-danger {
+  padding: 8px 14px;
+  background: var(--danger-soft);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.count-badge {
+  background: var(--bg-elevated);
+  border-radius: 999px;
+  padding: 1px 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+/* Main 3-column Portal Layout */
+.portal-layout {
+  display: grid;
+  grid-template-columns: var(--sidebar-w) minmax(0, 1fr) var(--toc-w);
+  min-height: calc(100vh - var(--header-h));
+}
+
+/* Sidebar */
+.sidebar {
+  position: sticky;
+  top: var(--header-h);
+  height: calc(100vh - var(--header-h));
+  overflow-y: auto;
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border);
+  padding: 14px 12px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sidebar.collapsed-desktop {
+  display: none;
+}
+
+.portal-layout.sidebar-hidden {
+  grid-template-columns: minmax(0, 1fr) var(--toc-w);
+}
+
+.sidebar-progress-card {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px;
+}
+
+.progress-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12.5px;
+  margin-bottom: 6px;
+}
+
+.progress-label {
+  color: var(--text-secondary);
+}
+
+.progress-track {
+  width: 100%;
+  height: 8px;
+  background: var(--bg-elevated);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--success));
+  border-radius: 999px;
+  transition: width 220ms ease;
+}
+
+.sidebar-stats {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+.sidebar-filter-wrap input {
+  width: 100%;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-subtle);
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nav-module {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-subtle);
+  overflow: hidden;
+}
+
+.nav-module-header {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  padding: 8px 10px;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.nav-module-header:hover {
+  background: var(--bg-elevated);
+}
+
+.nav-module-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.nav-lesson-list {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--border);
+  padding: 4px;
+  gap: 2px;
+}
+
+.nav-lesson-list[hidden] {
+  display: none;
+}
+
+.nav-lesson-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 12.5px;
+  line-height: 1.35;
+}
+
+.nav-lesson-link:hover,
+.nav-lesson-link.active {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.nav-lesson-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.status-done {
+  color: var(--success);
+}
+
+.status-bookmark {
+  color: var(--warning);
+}
+
+/* Main Content */
+.main-content {
+  padding: 24px 32px 64px;
+  max-width: 980px;
+  width: 100%;
+  margin: 0 auto;
+  min-width: 0;
+}
+
+.active-filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  margin-bottom: 18px;
+  font-size: 13.5px;
+}
+
+/* Module Header */
+.module {
+  margin-bottom: 42px;
+}
+
+.module-header {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 22px 24px;
+  margin-bottom: 22px;
+}
+
+.module-kicker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border: 1px solid transparent;
+}
+
+.badge-accent {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  border-color: rgba(88, 166, 255, 0.25);
+}
+
+.badge-neutral {
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  border-color: var(--border);
+}
+
+.badge-basic {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.badge-intermediate {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.badge-advanced {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+.badge-senior-architect,
+.badge-senior,
+.badge-architect {
+  background: var(--purple-soft);
+  color: var(--purple);
+}
+
+.module-header h1 {
+  margin: 0 0 8px;
+  font-size: 28px;
+  line-height: 1.25;
+}
+
+.module-lead {
+  margin: 0 0 14px;
+  color: var(--text-secondary);
+}
+
+.module-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+/* Lesson Card */
+.lesson {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-bottom: 28px;
+}
+
+.lesson-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 18px;
+}
+
+.lesson-title-wrap h2 {
+  margin: 4px 0 6px;
+  font-size: 23px;
+  line-height: 1.3;
+}
+
+.lesson-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.lesson-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.complete-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-subtle);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  user-select: none;
+}
+
+.complete-toggle.is-done {
+  background: var(--success-soft);
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.complete-toggle input {
+  accent-color: var(--success);
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+
+/* Objectives & Callouts */
+.lesson-objectives {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  margin-bottom: 20px;
+}
+
+.lesson-objectives h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  color: var(--accent-strong);
+}
+
+.lesson-objectives ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.callout {
+  border-radius: var(--radius-md);
+  padding: 13px 16px;
+  margin: 14px 0;
+  border: 1px solid var(--border);
+  border-left-width: 4px;
+  background: var(--bg-subtle);
+}
+
+.callout-info { border-left-color: var(--accent); }
+.callout-tip { border-left-color: var(--success); }
+.callout-warn { border-left-color: var(--warning); }
+.callout-danger { border-left-color: var(--danger); }
+
+.callout-title {
+  font-weight: 700;
+  font-size: 13.5px;
+  margin-bottom: 4px;
+}
+
+/* Topic Sections A-Q */
+.topic-section {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  margin-bottom: 14px;
+  background: var(--bg-page);
+  overflow: hidden;
+}
+
+.topic-section-header {
+  width: 100%;
+  background: var(--bg-subtle);
+  border: none;
+  color: var(--text-primary);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+
+.topic-section-header:hover {
+  background: var(--bg-elevated);
+}
+
+.topic-section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16.5px;
+  font-weight: 700;
+}
+
+.section-letter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: 12.5px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.topic-chevron {
+  color: var(--text-muted);
+  transition: transform var(--transition);
+  font-size: 13px;
+}
+
+.topic-section[data-collapsed="true"] .topic-chevron {
+  transform: rotate(-90deg);
+}
+
+.topic-section-body {
+  padding: 16px 18px 18px;
+  border-top: 1px solid var(--border);
+}
+
+.topic-section[data-collapsed="true"] .topic-section-body {
+  display: none;
+}
+
+.topic-section-body h4 {
+  margin: 18px 0 8px;
+  font-size: 15.5px;
+  color: var(--text-primary);
+}
+
+.topic-section-body h4:first-child {
+  margin-top: 0;
+}
+
+.topic-section-body p {
+  margin: 0 0 12px;
+}
+
+.topic-section-body ul,
+.topic-section-body ol {
+  margin: 0 0 12px;
+  padding-left: 22px;
+}
+
+.topic-section-body li {
+  margin-bottom: 5px;
+}
+
+code {
+  font-family: var(--font-mono);
+  font-size: 0.89em;
+  background: var(--bg-elevated);
+  padding: 2px 5px;
+  border-radius: 4px;
+}
+
+dfn {
+  font-style: normal;
+  font-weight: 600;
+  border-bottom: 1px dashed var(--accent);
+  cursor: help;
+}
+
+/* Code Blocks & Interactive Demos */
+.code-block {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-code);
+  margin: 14px 0;
+  overflow: hidden;
+}
+
+.code-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 12px;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+
+.code-lang {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.code-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.code-block pre {
+  margin: 0;
+  padding: 14px 16px;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  line-height: 1.55;
+  tab-size: 2;
+}
+
+.code-block pre code {
+  background: transparent;
+  padding: 0;
+  font-size: inherit;
+}
+
+.tok-kw { color: var(--tok-kw); font-weight: 600; }
+.tok-str { color: var(--tok-str); }
+.tok-num { color: var(--tok-num); }
+.tok-com { color: var(--tok-com); font-style: italic; }
+.tok-fn { color: var(--tok-fn); }
+.tok-bi { color: var(--tok-bi); }
+
+.demo-editor {
+  width: 100%;
+  min-height: 130px;
+  padding: 12px 14px;
+  border: none;
+  border-top: 1px solid var(--border);
+  background: var(--bg-code);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.demo-output {
+  border-top: 1px solid var(--border);
+  background: var(--bg-subtle);
+  padding: 10px 14px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  white-space: pre-wrap;
+  color: var(--success);
+}
+
+.demo-output.is-error {
+  color: var(--danger);
+}
+
+/* Diagrams */
+.diagram-card {
+  margin: 16px 0;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+}
+
+.diagram-card svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.diagram-card figcaption {
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* Comparison Tables */
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  margin: 14px 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  text-align: left;
+}
+
+th, td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+th {
+  background: var(--bg-elevated);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+tr:last-child td {
+  border-bottom: none;
+}
+
+/* Interview Question Cards */
+.iq-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.iq-filter-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.iq-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+.iq-header {
+  padding: 13px 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.iq-q-wrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex: 1 1 320px;
+}
+
+.iq-question {
+  font-weight: 600;
+  font-size: 14.5px;
+}
+
+.iq-answer {
+  border-top: 1px solid var(--border);
+  padding: 14px 16px;
+  background: var(--bg-subtle);
+}
+
+.iq-answer[hidden] {
+  display: none;
+}
+
+.iq-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.iq-subbox {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 13.5px;
+}
+
+.iq-subbox h5 {
+  margin: 0 0 6px;
+  font-size: 12.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+/* Exercises & Mastery Assessment */
+.exercise-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+
+.exercise-solution {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+}
+
+.mastery-box {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--bg-subtle);
+  padding: 16px 18px;
+  margin-top: 18px;
+}
+
+.mastery-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.mastery-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mastery-item label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.mastery-item input {
+  margin-top: 4px;
+  accent-color: var(--success);
+}
+
+/* Right Table of Contents */
+.toc-aside {
+  border-left: 1px solid var(--border);
+  padding: 20px 14px;
+  background: var(--bg-page);
+}
+
+.toc-sticky {
+  position: sticky;
+  top: calc(var(--header-h) + 18px);
+  max-height: calc(100vh - var(--header-h) - 36px);
+  overflow-y: auto;
+}
+
+.toc-header {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.toc-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.toc-link {
+  display: block;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  padding: 4px 8px;
+  border-left: 2px solid transparent;
+  border-radius: 0 4px 4px 0;
+}
+
+.toc-link:hover,
+.toc-link.active {
+  color: var(--accent-strong);
+  border-left-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* Modals */
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.modal[hidden] {
+  display: none;
+}
+
+.modal-card {
+  width: 100%;
+  max-width: 680px;
+  max-height: 85vh;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.modal-body {
+  padding: 16px 18px;
+  overflow-y: auto;
+}
+
+.modal-search {
+  width: 100%;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-subtle);
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+
+.glossary-entry {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.glossary-entry:last-child {
+  border-bottom: none;
+}
+
+.backup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.file-import-label {
+  cursor: pointer;
+}
+
+.muted-note {
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 48px 20px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 1180px) {
+  .portal-layout {
+    grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+  }
+  .toc-aside {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .portal-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sidebar {
+    position: fixed;
+    top: var(--header-h);
+    left: 0;
+    bottom: 0;
+    width: min(310px, 86vw);
+    z-index: 150;
+    transform: translateX(-105%);
+    transition: transform 200ms ease;
+    box-shadow: var(--shadow);
+  }
+
+  .sidebar.open-mobile {
+    transform: translateX(0);
+    display: flex;
+  }
+
+  .sidebar-backdrop.visible {
+    display: block;
+    position: fixed;
+    inset: var(--header-h) 0 0 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 140;
+  }
+
+  .main-content {
+    padding: 16px 14px 48px;
+  }
+
+  .lesson {
+    padding: 16px;
+  }
+
+  .topbar-actions .btn-label {
+    display: none;
+  }
+
+  #category-filter,
+  #difficulty-filter {
+    max-width: 118px;
+  }
+}
+
+@media (max-width: 600px) {
+  .brand-sub {
+    display: none;
+  }
+  .topbar {
+    gap: 8px;
+    padding: 0 10px;
+  }
+  .topbar-search {
+    flex: 1 1 130px;
+  }
+  #category-filter {
+    display: none;
+  }
+}
+
+@media print {
+  .topbar, .sidebar, .toc-aside, .lesson-actions, .code-toolbar-actions, .iq-toolbar {
+    display: none !important;
+  }
+  .portal-layout {
+    display: block;
+  }
+  .topic-section[data-collapsed="true"] .topic-section-body,
+  .iq-answer[hidden] {
+    display: block !important;
+  }
+}
+
+</style>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to content</a>
+
+  <!-- Mobile / Tablet Sidebar Backdrop -->
+  <div id="sidebar-backdrop" class="sidebar-backdrop" hidden></div>
+
+  <!-- Top Navigation & Global Controls -->
+  <header class="topbar" role="banner">
+    <div class="topbar-left">
+      <button type="button" id="sidebar-toggle" class="icon-btn" aria-label="Toggle navigation sidebar" aria-expanded="false" aria-controls="sidebar">
+        <span aria-hidden="true">&#9776;</span>
+      </button>
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">&lt;/&gt;</span>
+        <div class="brand-text">
+          <span class="brand-title">Software Engineering Mastery</span>
+          <span class="brand-sub" id="build-meta">Offline Engineering Handbook</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="topbar-search">
+      <div class="search-box">
+        <span class="search-icon" aria-hidden="true">&#128269;</span>
+        <input
+          type="search"
+          id="global-search"
+          placeholder="Search topics, code, interview Q&amp;A, glossary... (Ctrl+K)"
+          aria-label="Search across the entire handbook"
+          autocomplete="off"
+        />
+        <button type="button" id="search-clear" class="search-clear" aria-label="Clear search" hidden>&times;</button>
+      </div>
+      <div id="search-results" class="search-results" role="region" aria-label="Search results" hidden></div>
+    </div>
+
+    <div class="topbar-actions">
+      <select id="category-filter" class="toolbar-select" aria-label="Filter by category">
+        <option value="all">All Categories</option>
+        <option value="fundamentals">Fundamentals &amp; Languages</option>
+        <option value="frontend">Frontend &amp; React</option>
+        <option value="backend">Backend &amp; APIs</option>
+        <option value="databases">Databases &amp; Indexing</option>
+        <option value="architecture">System Design &amp; Distributed</option>
+        <option value="ai">AI, LLM &amp; RAG</option>
+        <option value="devops">DevOps, Cloud &amp; SRE</option>
+        <option value="quality">Security &amp; Testing</option>
+        <option value="career">Projects, Interviews &amp; Roadmap</option>
+      </select>
+
+      <select id="difficulty-filter" class="toolbar-select" aria-label="Filter interview questions by difficulty">
+        <option value="all">All Difficulties</option>
+        <option value="basic">Basic</option>
+        <option value="intermediate">Intermediate</option>
+        <option value="advanced">Advanced</option>
+        <option value="senior-architect">Senior / Architect</option>
+        <option value="senior">Senior (Mod 26)</option>
+        <option value="architect">Architect (Mod 26)</option>
+      </select>
+
+      <button type="button" id="bookmarks-filter-btn" class="pill-btn" aria-pressed="false" title="Show bookmarked lessons only">
+        <span aria-hidden="true">&#9733;</span> <span class="btn-label">Bookmarks</span> <span id="bookmark-count" class="count-badge">0</span>
+      </button>
+
+      <button type="button" id="glossary-btn" class="pill-btn" title="Open glossary">
+        <span aria-hidden="true">&#128214;</span> <span class="btn-label">Glossary</span>
+      </button>
+
+      <button type="button" id="progress-modal-btn" class="pill-btn" title="View progress and backup">
+        <span id="topbar-progress-pct">0%</span>
+      </button>
+
+      <button type="button" id="theme-toggle" class="icon-btn" aria-label="Toggle dark or light theme" title="Toggle theme">
+        <span id="theme-icon" aria-hidden="true">&#9788;</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="portal-layout">
+    <!-- Left Navigation Sidebar -->
+    <aside id="sidebar" class="sidebar" aria-label="Course modules navigation">
+      <div class="sidebar-progress-card">
+        <div class="progress-row">
+          <span class="progress-label">Course Progress</span>
+          <strong id="sidebar-progress-text">0 / 0 lessons</strong>
+        </div>
+        <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="sidebar-progress-bar-wrap">
+          <div class="progress-fill" id="sidebar-progress-fill" style="width: 0%"></div>
+        </div>
+        <div class="sidebar-stats">
+          <span id="sidebar-pct-label">0% complete</span>
+          <span id="sidebar-bookmarks-label">0 bookmarked</span>
+        </div>
+      </div>
+
+      <div class="sidebar-filter-wrap">
+        <input
+          type="search"
+          id="sidebar-filter"
+          placeholder="Filter modules or lessons..."
+          aria-label="Filter sidebar navigation"
+        />
+      </div>
+
+      <nav id="sidebar-nav" class="sidebar-nav" aria-label="Module list"></nav>
+    </aside>
+
+    <!-- Main Learning Area -->
+    <main id="main-content" class="main-content" tabindex="-1">
+      <!-- Active Filter Banner -->
+      <div id="active-filter-bar" class="active-filter-bar" hidden>
+        <span id="active-filter-summary"></span>
+        <button type="button" id="clear-filters-btn" class="btn-small">Reset Filters</button>
+      </div>
+
+      <!-- Course Modules Container -->
+      <div id="handbook-content">
+        <!-- SOURCE: modules/01-programming.html -->
+<section class="module" id="module-1" data-module-number="1" data-module-title="Programming Fundamentals &amp; JavaScript" data-category="fundamentals">
+  <header class="module-header">
+    <div class="module-kicker">
+      <span class="badge badge-accent">Module 01</span>
+      <span class="badge badge-neutral">Category: Fundamentals &amp; Languages</span>
+      <span class="badge badge-neutral">Part 1 of 5</span>
+    </div>
+    <h1>Module 1: Programming Fundamentals &amp; JavaScript</h1>
+    <p class="module-lead">
+      Build rock-solid engineering mental models from how source code executes in memory to production JavaScript internals, precision hazards, type coercion traps, function call stacks, and senior interview trade-offs.
+    </p>
+    <div class="module-toolbar">
+      <span class="badge badge-neutral">Scope (Part 1): Programming Fundamentals, Variables, Data Types, Functions</span>
+      <div>
+        <button type="button" class="btn-small" data-action="expand-all">Expand All Sections</button>
+        <button type="button" class="btn-small" data-action="collapse-all">Collapse All Sections</button>
+      </div>
+    </div>
+  </header>
+
+  <article class="lesson" id="m01-p1" data-lesson-id="m01-p1" data-lesson-title="Part 1: Programming Fundamentals, Variables, Data Types &amp; Functions" data-category="fundamentals" data-duration="75 min">
+    <header class="lesson-header">
+      <div class="lesson-title-wrap">
+        <div class="lesson-meta-row">
+          <span class="badge badge-accent">Lesson M01-P1</span>
+          <span class="badge badge-neutral">Estimated Study Time: 75 min (35m theory · 25m practice · 15m review)</span>
+        </div>
+        <h2>Programming Fundamentals, Variables, Data Types &amp; Functions</h2>
+      </div>
+      <div class="lesson-actions">
+        <label class="complete-toggle">
+          <input type="checkbox" class="lesson-complete-cb" />
+          <span>Mark Complete</span>
+        </label>
+        <button type="button" class="pill-btn lesson-bookmark-btn" aria-pressed="false">&#9734; Bookmark</button>
+      </div>
+    </header>
+
+    <div class="lesson-objectives" id="m01-p1-objectives">
+      <h3>Learning Objectives</h3>
+      <ul>
+        <li>Trace how source code is parsed, represented in memory (Stack vs. Heap), and executed by a runtime such as V8/Node.js.</li>
+        <li>Explain the exact difference between variable declaration, initialization, assignment, binding mutability, and the Temporal Dead Zone (<code>var</code>, <code>let</code>, <code>const</code>).</li>
+        <li>Distinguish all 8 ECMAScript data types, IEEE-754 floating-point precision limits, <code>BigInt</code>, and pass-by-value vs. pass-by-sharing semantics.</li>
+        <li>Design predictable, testable functions using pure transformations, higher-order composition, explicit boundary validation, and stack-safe iteration.</li>
+        <li>Recognize and prevent production bugs and security vulnerabilities caused by type coercion, 64-bit ID truncation, and unbounded recursion.</li>
+      </ul>
+    </div>
+
+    <!-- SECTION A -->
+    <section class="topic-section" id="m01-p1-sec-a" data-section="A">
+      <button type="button" class="topic-section-header">
+        <span class="topic-section-title">
+          <span class="section-letter">A</span>
+          <span class="topic-section-title-text">Topic Introduction</span>
+        </span>
+        <span class="topic-chevron" aria-hidden="true">&#9662;</span>
+      </button>
+      <div class="topic-section-body">
+        <h4>What is this?</h4>
+        <p>
+          <strong>Programming fundamentals</strong> are the core building blocks every software system relies on: how instructions are structured and executed, how data is named and stored in memory (<dfn data-definition="A named binding in a lexical environment that points to a value or memory reference.">variables</dfn>), how the runtime interprets raw bits (<dfn data-definition="A classification that tells the runtime how to store a value in memory and which operations are valid on it.">data types</dfn>), and how reusable units of logic accept inputs and produce outputs (<dfn data-definition="A reusable, callable block of logic that executes within its own call stack frame.">functions</dfn>).
+        </p>
+
+        <h4>Why does it exist &amp; what problem does it solve?</h4>
+        <p>
+          CPUs only understand binary instructions and raw memory addresses. Writing large applications directly in binary or assembly is slow, error-prone, and tied to one hardware architecture. High-level languages such as JavaScript, TypeScript, Python, and Java solve this by giving engineers:
+        </p>
+        <ul>
+          <li><strong>Named abstractions (variables)</strong> instead of raw hex memory addresses.</li>
+          <li><strong>Data types</strong> so the runtime knows whether <code>01000001</code> means the integer <code>65</code>, the character <code>"A"</code>, or part of a floating-point decimal.</li>
+          <li><strong>Functions</strong> to decompose complex business workflows into small, named, testable, reusable units with isolated local state.</li>
+        </ul>
+
+        <h4>Where is it used in real-world software?</h4>
+        <p>
+          Every layer of production software depends on these primitives. A React UI component is a JavaScript function returning UI descriptions from state variables. A Node.js/Express route handler is a function validating JSON types and transforming data. Even severe production outages—such as billing rounding errors, corrupted 64-bit database IDs in JSON, or authentication bypasses via loose type coercion—usually trace back to misunderstood fundamentals rather than exotic frameworks.
+        </p>
+      </div>
+    </section>
+
+    <!-- SECTION B -->
+    <section class="topic-section" id="m01-p1-sec-b" data-section="B">
+      <button type="button" class="topic-section-header">
+        <span class="topic-section-title">
+          <span class="section-letter">B</span>
+          <span class="topic-section-title-text">Fundamentals (Simple Mental Models)</span>
+        </span>
+        <span class="topic-chevron" aria-hidden="true">&#9662;</span>
+      </button>
+      <div class="topic-section-body">
+        <h4>1. Programming Fundamentals: Expressions, Statements &amp; Control Flow</h4>
+        <p>
+          A program is a sequence of instructions executed step by step unless redirected by control flow. Two terms cause frequent confusion:
+        </p>
+        <ul>
+          <li><dfn data-definition="A unit of code that evaluates to a single value (for example: 2 + 3, user.name, or calculateTax(100)).">Expression</dfn>: Anything that produces a value (e.g., <code>price * 1.1</code>).</li>
+          <li><dfn data-definition="A complete instruction that performs an action (for example: let x = 5;, if (...) {}, or return x;).">Statement</dfn>: An instruction that performs an action (e.g., declaring a variable, branching with <code>if</code>, looping with <code>for</code>).</li>
+        </ul>
+
+        <h4>2. Variables: Labels, Not Boxes</h4>
+        <p>
+          Beginners often picture a variable as a physical box holding a value. A more accurate mental model is a <strong>sticky-note label</strong> attached to a slot in memory (for primitives) or pointing to an object in heap memory:
+        </p>
+        <ul>
+          <li><strong>Declaration</strong> creates the label in the current scope (e.g., <code>let total;</code>).</li>
+          <li><strong>Initialization</strong> gives it its initial value (e.g., <code>let total = 0;</code>).</li>
+          <li><strong>Reassignment</strong> moves the label to point to a different value (<code>total = 50;</code>).</li>
+          <li><code>const</code> prevents <em>reassignment</em> of the label, <strong>not</strong> mutation of an object's internal properties.</li>
+        </ul>
+
+        <h4>3. Data Types: The 8 ECMAScript Types</h4>
+        <p>
+          JavaScript is <dfn data-definition="A type discipline where values have types at runtime rather than variables having fixed compile-time types.">dynamically typed</dfn>: variables do not have fixed types, <strong>values</strong> do. ECMAScript defines <strong>8 data types</strong>—7 primitives and 1 reference type:
+        </p>
+        <ul>
+          <li><strong>Primitives (immutable, stored/copied by value):</strong>
+            <code>number</code> (64-bit IEEE-754 float), <code>bigint</code> (arbitrary-precision integers like <code>9007199254740993n</code>), <code>string</code> (immutable UTF-16 code units), <code>boolean</code> (<code>true</code>/<code>false</code>), <code>undefined</code> (declared but unassigned), <code>null</code> (intentional absence of an object value), <code>symbol</code> (guaranteed-unique identifier).</li>
+          <li><strong>Reference type (mutable, copied by reference value):</strong>
+            <code>object</code> (plain objects, arrays, functions, <code>Date</code>, <code>Map</code>, <code>Set</code>, <code>RegExp</code>).</li>
+        </ul>
+
+        <h4>4. Functions: Inputs, Scope, Return Values &amp; First-Class Citizenship</h4>
+        <p>
+          A function packages behavior under a name (or as an anonymous value), receives inputs via <dfn data-definition="Named placeholder variables listed in a function's definition.">parameters</dfn> (filled by <dfn data-definition="Actual values passed by the caller when invoking a function.">arguments</dfn>), runs inside a fresh local execution frame, and returns one value (defaulting to <code>undefined</code> if no <code>return</code> is executed).
+        </p>
+        <p>
+          In JavaScript, functions are <dfn data-definition="Values that can be stored in variables, passed as arguments to other functions, and returned from functions.">first-class functions</dfn>. That enables <dfn data-definition="A function that accepts another function as an argument or returns a function as its result.">higher-order functions</dfn> such as <code>Array.prototype.map</code>, Express middleware, and React hooks.
+        </p>
+      </div>
+    </section>
+
+    <!-- SECTION C -->
+    <section class="topic-section" id="m01-p1-sec-c" data-section="C">
+      <button type="button" class="topic-section-header">
+        <span class="topic-section-title">
+          <span class="section-letter">C</span>
+          <span class="topic-section-title-text">Internal Working &amp; Architecture</span>
+        </span>
+        <span class="topic-chevron" aria-hidden="true">&#9662;</span>
+      </button>
+      <div class="topic-section-body">
+        <h4>1. How a JS Engine Parses and Executes Code</h4>
+        <p>
+          Modern runtimes like Google V8 (used in Chrome and Node.js) do not simply read text line by line from disk:
+        </p>
+        <ol>
+          <li><strong>Lexing &amp; Parsing:</strong> Source text is split into tokens and parsed into an <dfn data-definition="Abstract Syntax Tree: a tree representation of the syntactic structure of source code.">AST</dfn>. Syntax errors are caught here before a single line runs.</li>
+          <li><strong>Creation / Compilation Phase:</strong> Before executing a scope, the engine creates a <em>Lexical Environment</em>, registers bindings (<code>var</code> initialized to <code>undefined</code>; <code>let</code>/<code>const</code> placed in the <dfn data-definition="Temporal Dead Zone: the period between entering a scope and a let/const declaration executing, during which reading the binding throws a ReferenceError.">TDZ</dfn>; function declarations bound to their function object).</li>
+          <li><strong>Bytecode &amp; JIT Optimization:</strong> V8's <em>Ignition</em> interpreter compiles the AST into compact bytecode and executes it. Hot functions (executed frequently with consistent types) are compiled to optimized machine code by <em>TurboFan</em> (JIT). If a type assumption breaks later (e.g., passing a string where an integer always arrived), V8 performs a <em>deoptimization</em> back to bytecode.</li>
+        </ol>
+
+        <h4>2. Stack vs. Heap Memory &amp; Call Stack Frames</h4>
+        <p>
+          When a function runs, the engine pushes a new <strong>Stack Frame</strong> onto the <dfn data-definition="A LIFO (Last-In, First-Out) memory region tracking active function invocations, local bindings, and return addresses.">Call Stack</dfn>. Fixed-size primitive values (and references/pointers to objects) live in the fast, contiguous stack frame (or CPU registers). Dynamic, variable-sized structures like objects, arrays, and closures are allocated on the <dfn data-definition="A large, flexibly managed memory region for dynamic objects whose lifetime may outlive a single function call.">Heap</dfn>, and the stack variable holds a reference (pointer) to that heap address.
+        </p>
+
+        <figure class="diagram-card">
+          <svg viewBox="0 0 820 310" role="img" aria-label="Call Stack frames, variable bindings, and Heap memory references">
+            <rect x="10" y="10" width="800" height="290" rx="10" fill="var(--bg-subtle)" stroke="var(--border)" />
+            <!-- Call Stack -->
+            <rect x="30" y="32" width="330" height="246" rx="8" fill="var(--bg-surface)" stroke="var(--border-strong)" />
+            <text x="50" y="58" fill="var(--accent-strong)" font-size="14" font-weight="700" font-family="sans-serif">CALL STACK (LIFO Frames)</text>
+
+            <rect x="48" y="76" width="294" height="86" rx="6" fill="var(--accent-soft)" stroke="var(--accent)" />
+            <text x="62" y="98" fill="var(--text-primary)" font-size="13" font-weight="700" font-family="monospace">Frame: applyDiscount(cart, 0.1)</text>
+            <text x="62" y="120" fill="var(--text-secondary)" font-size="12" font-family="monospace">rate  = 0.1      (primitive value)</text>
+            <text x="62" y="140" fill="var(--text-secondary)" font-size="12" font-family="monospace">cart  = 0x7F10   (reference ptr)</text>
+
+            <rect x="48" y="176" width="294" height="84" rx="6" fill="var(--bg-elevated)" stroke="var(--border-strong)" />
+            <text x="62" y="198" fill="var(--text-primary)" font-size="13" font-weight="700" font-family="monospace">Global / Module Frame</text>
+            <text x="62" y="220" fill="var(--text-secondary)" font-size="12" font-family="monospace">taxCents = 150   (primitive value)</text>
+            <text x="62" y="240" fill="var(--text-secondary)" font-size="12" font-family="monospace">order    = 0x7F10 (reference ptr)</text>
+
+            <!-- Arrows -->
+            <line x1="342" y1="136" x2="465" y2="118" stroke="var(--accent)" stroke-width="2" />
+            <polygon points="465,118 455,113 457,124" fill="var(--accent)" />
+            <line x1="342" y1="236" x2="465" y2="132" stroke="var(--warning)" stroke-width="2" stroke-dasharray="5,4" />
+            <polygon points="465,132 454,132 460,141" fill="var(--warning)" />
+
+            <!-- Heap -->
+            <rect x="440" y="32" width="350" height="246" rx="8" fill="var(--bg-surface)" stroke="var(--border-strong)" />
+            <text x="460" y="58" fill="var(--success)" font-size="14" font-weight="700" font-family="sans-serif">HEAP (Dynamic Objects &amp; Closures)</text>
+
+            <rect x="465" y="80" width="300" height="106" rx="6" fill="var(--success-soft)" stroke="var(--success)" />
+            <text x="480" y="102" fill="var(--text-primary)" font-size="13" font-weight="700" font-family="monospace">Object @ 0x7F10</text>
+            <text x="480" y="124" fill="var(--text-secondary)" font-size="12" font-family="monospace">{ id: "ord_42", totalCents: 2000,</text>
+            <text x="480" y="144" fill="var(--text-secondary)" font-size="12" font-family="monospace">  items: 0x8A04 (Array ref) }</text>
+            <text x="480" y="168" fill="var(--warning)" font-size="11.5" font-family="sans-serif">Shared reference: mutating cart mutates order!</text>
+
+            <rect x="465" y="200" width="300" height="58" rx="6" fill="var(--bg-elevated)" stroke="var(--border)" />
+            <text x="480" y="222" fill="var(--text-primary)" font-size="12.5" font-weight="700" font-family="monospace">Array @ 0x8A04</text>
+            <text x="480" y="242" fill="var(--text-secondary)" font-size="12" font-family="monospace">["sku_1", "sku_2"]</text>
+          </svg>
+          <figcaption>Figure 1.1 — Stack frames store primitives and reference pointers; heap objects are shared when references are copied.</figcaption>
+        </figure>
+
+        <h4>3. IEEE-754 Double-Precision Floating Point &amp; Tagged Values</h4>
+        <p>
+          Every JavaScript <code>number</code> uses the <strong>IEEE-754 64-bit binary floating-point</strong> format:
+        </p>
+        <ul>
+          <li><strong>1 bit</strong> for Sign (0 = positive, 1 = negative)</li>
+          <li><strong>11 bits</strong> for Exponent</li>
+          <li><strong>52 bits</strong> for Significand/Mantissa (plus 1 implicit leading bit = 53 bits of precision)</li>
+        </ul>
+        <p>
+          Because 53 bits of precision can represent integers exactly only up to <code>2^53 - 1</code> (<code>9,007,199,254,740,991</code> = <code>Number.MAX_SAFE_INTEGER</code>), integers larger than this lose their least significant digits! Furthermore, base-10 fractions like <code>0.1</code> and <code>0.2</code> are repeating fractions in base-2 binary (just as <code>1/3 = 0.333...</code> repeats in base-10), producing tiny rounding residues such as <code>0.1 + 0.2 === 0.30000000000000004</code>.
+        </p>
+        <p>
+          <em>Engine detail (V8):</em> Internally, V8 optimizes common 31-bit/32-bit signed integers as <strong>Smi (Small Integers)</strong> stored directly inside tagged pointers without heap allocation, while fractional or large numbers become heap-allocated <code>HeapNumber</code> objects.
+        </p>
+
+        <figure class="diagram-card">
+          <svg viewBox="0 0 820 175" role="img" aria-label="IEEE 754 64-bit floating point layout and JavaScript compilation pipeline">
+            <rect x="10" y="10" width="800" height="155" rx="10" fill="var(--bg-subtle)" stroke="var(--border)" />
+            <text x="28" y="38" fill="var(--text-primary)" font-size="13.5" font-weight="700" font-family="sans-serif">IEEE-754 64-bit Double Layout (JavaScript Number)</text>
+
+            <rect x="28" y="52" width="54" height="44" rx="4" fill="var(--danger-soft)" stroke="var(--danger)" />
+            <text x="55" y="71" text-anchor="middle" fill="var(--danger)" font-size="12" font-weight="700" font-family="monospace">Sign</text>
+            <text x="55" y="87" text-anchor="middle" fill="var(--text-secondary)" font-size="11" font-family="monospace">1 bit</text>
+
+            <rect x="88" y="52" width="180" height="44" rx="4" fill="var(--warning-soft)" stroke="var(--warning)" />
+            <text x="178" y="71" text-anchor="middle" fill="var(--warning)" font-size="12" font-weight="700" font-family="monospace">Exponent</text>
+            <text x="178" y="87" text-anchor="middle" fill="var(--text-secondary)" font-size="11" font-family="monospace">11 bits (range)</text>
+
+            <rect x="274" y="52" width="518" height="44" rx="4" fill="var(--accent-soft)" stroke="var(--accent)" />
+            <text x="533" y="71" text-anchor="middle" fill="var(--accent-strong)" font-size="12" font-weight="700" font-family="monospace">Mantissa / Significand</text>
+            <text x="533" y="87" text-anchor="middle" fill="var(--text-secondary)" font-size="11" font-family="monospace">52 stored bits (+1 implicit = 53 bits precision; MAX_SAFE_INTEGER = 2^53 - 1)</text>
+
+            <text x="28" y="132" fill="var(--text-secondary)" font-size="12.5" font-family="monospace">Safe Integer Check: Number.isSafeInteger(9007199254740991) === true  |  9007199254740992 === 9007199254740993 -&gt; TRUE (precision lost!)</text>
+          </svg>
+          <figcaption>Figure 1.2 — IEEE-754 64-bit structure explains both decimal rounding artifacts and the 53-bit safe integer ceiling.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- SECTION D -->
+    <section class="topic-section" id="m01-p1-sec-d" data-section="D">
+      <button type="button" class="topic-section-header">
+        <span class="topic-section-title">
+          <span class="section-letter">D</span>
+          <span class="topic-section-title-text">Practical Examples (Interactive)</span>
+        </span>
+        <span class="topic-chevron" aria-hidden="true">&#9662;</span>
+      </button>
+      <div class="topic-section-body">
+        <h4>Example 1: Variable Bindings, TDZ, and Reference vs. Reassignment</h4>
+        <pre data-lang="javascript" data-runnable="true"><code class="language-javascript">// 1. const prevents reassigning the binding, NOT mutating the referenced object
+const config = { retries: 3, timeoutMs: 2000 };
+config.retries = 5; // Allowed: object on heap is mutated
+console.log("Mutated config:", config);
+
+// 2. Block scope vs var function scope
+{
+  let blockScoped = "only inside block";
+  var functionScoped = "leaks out of block";
+  console.log("Inside block:", blockScoped);
+}
+console.log("Outside block (var):", functionScoped);
+console.log("typeof blockScoped outside:", typeof blockScoped); // "undefined" (not declared here)
+
+// 3. Temporal Dead Zone (TDZ) demonstration inside a safe try/catch
+function testTdz() {
+  try {
+    // Accessing `rate` before `let rate` executes throws ReferenceError
+    return rate * 100;
+  } catch (err) {
+    console.log("TDZ caught:", err.name, "-", err.message);
+  }
+  let rate = 0.15;
+  return rate * 100;
+}
+console.log("After declaration:", testTdz());</code></pre>
+
+        <h4>Example 2: Data Types, IEEE-754 Precision, BigInt, and Coercion</h4>
+        <pre data-lang="javascript" data-runnable="true"><code class="language-javascript">// 1. Floating-point inaccuracy vs integer minor-units (cents)
+const floatSum = 0.1 + 0.2;
+console.log("0.1 + 0.2 =", floatSum, "| === 0.3?", floatSum === 0.3);
+
+const centsSum = 10 + 20; // Represent $0.10 + $0.20 in integer cents
+console.log("Cents sum:", centsSum, "=> $" + (centsSum / 100).toFixed(2));
+
+// 2. 64-bit integer precision loss vs BigInt
+const maxSafe = Number.MAX_SAFE_INTEGER; // 9007199254740991
+console.log("Unsafe Number equality:", maxSafe + 1 === maxSafe + 2); // true!
+console.log("BigInt exact equality:", 9007199254740992n === 9007199254740993n); // false!
+
+// 3. Type quirks: typeof null, NaN, and strict vs loose equality
+console.log("typeof null:", typeof null);
+console.log("NaN === NaN:", NaN === NaN, "| Number.isNaN(NaN):", Number.isNaN(NaN));
+console.log("isNaN('abc'):", isNaN("abc"), "| Number.isNaN('abc'):", Number.isNaN("abc"));
+console.log("Loose '0' == false:", "0" == false, "| Strict '0' === false:", "0" === false);</code></pre>
+
+        <h4>Example 3: Pass-by-Sharing, Pure Functions &amp; Higher-Order Composition</h4>
+        <pre data-lang="javascript" data-runnable="true"><code class="language-javascript">// Pure function: depends only on inputs, does not mutate arguments
+function calculateLineTotalCents(unitPriceCents, quantity, discountRate = 0) {
+  if (!Number.isInteger(unitPriceCents) || unitPriceCents &lt; 0) {
+    throw new TypeError("unitPriceCents must be a non-negative integer");
+  }
+  if (!Number.isInteger(quantity) || quantity &lt; 0) {
+    throw new TypeError("quantity must be a non-negative integer");
+  }
+  const gross = unitPriceCents * quantity;
+  return Math.round(gross * (1 - discountRate));
+}
+
+// Higher-order function returning a configured validator/calculator
+function createTaxCalculator(taxRate) {
+  return function applyTax(subtotalCents) {
+    return subtotalCents + Math.round(subtotalCents * taxRate);
+  };
+}
+
+// Pass-by-sharing: reassigning parameter does NOT affect caller; mutating property DOES
+function testPassBySharing(obj, num) {
+  num = 999;          // Reassigns local primitive copy only
+  obj.touched = true; // Mutates shared heap object
+  obj = { fresh: 1 }; // Reassigns local reference only; caller still points to old object
+}
+
+const payload = { id: 1 };
+let count = 5;
+testPassBySharing(payload, count);
+console.log("Caller payload:", payload, "| Caller count:", count);
+
+const applyVat = createTaxCalculator(0.2);
+const subtotal = calculateLineTotalCents(1999, 2, 0.1);
+console.log("Subtotal cents:", subtotal, "| With 20% VAT:", applyVat(subtotal));</code></pre>
+      </div>
+    </section>
+
+    <!-- SECTION E -->
+    <section class="topic-section" id="m01-p1-sec-e" data-section="E">
+      <button type="button" class="topic-section-header">
+        <span class="topic-section-title">
+          <span class="section-letter">E</span>
+          <span class="topic-section-title-text">Step-by-Step Walkthrough</span>
+        </span>
+        <span class="topic-chevron" aria-hidden="true">&#9662;</span>
+      </button>
+      <div class="topic-section-body">
+        <p>Trace every runtime step of <strong>Example 3</strong> (<code>testPassBySharing</code> and <code>applyVat</code>):</p>
+        <ol>
+          <li><strong>Module Creation Phase:</strong> The engine parses all declarations, hoisting <code>calculateLineTotalCents</code>, <code>createTaxCalculator</code>, and <code>testPassBySharing</code> into the module lexical environment. <code>payload</code> and <code>applyVat</code> are registered in the TDZ.</li>
+          <li><strong>Execution — Heap Allocation:</strong> <code>const payload = { id: 1 }</code> allocates an object on the heap (say at <code>0x40A0</code>) and stores the pointer <code>0x40A0</code> in the <code>payload</code> binding. <code>let count = 5</code> stores primitive <code>5</code> directly in the <code>count</code> binding.</li>
+          <li><strong>Function Invocation — Stack Frame Push:</strong> <code>testPassBySharing(payload, count)</code> pushes a new frame onto the call stack. Parameter <code>obj</code> receives a <em>copy of the pointer</em> <code>0x40A0</code>; parameter <code>num</code> receives a <em>copy of the primitive</em> <code>5</code>.</li>
+          <li><strong>Inside Frame:</strong>
+            <ul>
+              <li><code>num = 999</code> overwrites the local <code>num</code> slot only; caller's <code>count</code> stays <code>5</code>.</li>
+              <li><code>obj.touched = true</code> dereferences <code>0x40A0</code> on the heap and adds property <code>touched: true</code>. Because caller's <code>payload</code> points to <code>0x40A0</code>, caller observes the mutation.</li>
+              <li><code>obj = { fresh: 1 }</code> allocates a brand-new heap object (say <code>0x99B0</code>) and updates the local <code>obj</code> binding. Caller's <code>payload</code> still points to <code>0x40A0</code>.</li>
+            </ul>
+          </li>
+          <li><strong>Frame Pop:</strong> When <code>testPassBySharing</code> returns <code>undefined</code>, its stack frame is popped. The unreferenced <code>0x99B0</code> object becomes eligible for garbage collection.</li>
+          <li><strong>Higher-Order Return:</strong> <code>createTaxCalculator(0.2)</code> returns <code>applyTax</code>, which retains access to <code>taxRate = 0.2</code> via its closure lexical environment even after <code>createTaxCalculator</code>'s stack frame pops.</li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- SECTION F -->
+    <section class="topic-section" id="m01-p1-sec-f" data-section="F">
+      <button type="button" class="topic-section-header">
+        <span class="topic-section-title">
+          <span class="section-letter">F</span>
+          <span class="topic-section-title-text">Real-World Use Cases</span>
+        </span>
+        <span class="topic-chevron" aria-hidden="true">&#9662;</span>
+      </button>
+      <div class="topic-section-body">
+        <h4>Scenario 1: Fintech &amp; E-Commerce Ledger Calculations (Preventing Float Drift)</h4>
+        <p>
+          <strong>Problem:</strong> A SaaS invoicing backend built in Node.js sums line items stored as floating-point dollars (<code>19.99 + 0.01</code> or <code>0.1 + 0.2</code>). Over thousands of ledger rows, binary rounding residue causes trial balances to fail reconciliation by 1 cent (<code>$100.00000000000001 !== $100.00</code>).
+        </p>
+        <p>
+          <strong>Production Solution:</strong> Store and compute all monetary values in integer minor units (<code>amountCents</code>, e.g., <code>1999</code> for <code>$19.99</code>, or <code>BigInt</code> / arbitrary-precision decimal libraries for sub-cent FX rates) and format to decimals only at the UI presentation boundary.
+        </p>
+
+        <h4>Scenario 2: Node.js / Express Request Boundary Normalization</h4>
+        <p>
+          <strong>Problem:</strong> HTTP query parameters always arrive as <code>string</code> values (e.g., <code>?page=2&amp;active=false</code>). Treating <code>"false"</code> as a boolean directly fails because any non-empty string in JavaScript—including <code>"false"</code> and <code>"0"</code>—is <strong>truthy</strong>!
+        </p>
+        <p>
+          <strong>Production Solution:</strong> Write pure parser functions at the API boundary that explicitly check <code>typeof</code>, parse numbers with <code>Number.isSafeInteger</code>, and map <code>"true"</code> / <code>"false"</code> strings strictly before passing clean typed objects into business logic.
+        </p>
+        <pre data-lang="javascript" data-runnable="true"><code class="language-javascript">function parseQueryFlags(query) {
+  const page = Number(query.page ?? 1);
+  if (!Number.isInteger(page) || page &lt; 1 || page &gt; 10000) {
+    throw new RangeError("Invalid page parameter");
+  }
+
+  let active = null;
+  if (query.active === "true") active = true;
+  else if (query.active === "false") active = false;
+  else if (query.active !== undefined) {
+    throw new TypeError("active must be 'true' or 'false'");
+  }
+
+  return { page, active };
+}
+
+console.log(parseQueryFlags({ page: "3", active: "false" }));</code></pre>
+      </div>
+    </section>
+
+    <!-- SECTION G -->
+    <section class="topic-section" id="m01-p1-sec-g" data-section="G">
+      <button type="button" class="topic-section-header">
+        <span class="topic-section-title">
+          <span class="section-letter">G</span>
+          <span class="topic-section-title-text">Common Mistakes</span>
+        </span>
+        <span class="topic-chevron" aria-hidden="true">&#9662;</span>
+      </button>
+      <div class="topic-section-body">
+        <ul>
+          <li><strong>Comparing floats with <code>===</code>:</strong> Expecting <code>0.1 + 0.2 === 0.3</code> or <code>1.005 * 100 === 100.5</code> without tolerance (<code>Number.EPSILON</code>) or integer minor units.</li>
+          <li><strong>Using loose equality (<code>==</code>):</strong> <code>"" == 0</code>, <code>" \t\n " == 0</code>, and <code>null == undefined</code> evaluate to <code>true</code> due to abstract equality coercion rules.</li>
+          <li><strong>Checking for objects with <code>typeof x === "object"</code> alone:</strong> Forgetting that <code>typeof null === "object"</code> and <code>typeof [] === "object"</code>. Always guard with <code>x !== null &amp;&amp; typeof x === "object"</code> (and <code>Array.isArray(x)</code> for arrays).</li>
+          <li><strong>Assuming <code>Boolean("false")</code> is <code>false</code>:</strong> Non-empty strings are always truthy. Aside from the legacy browser <code>document.all</code> quirk, only 8 values are falsy in JS: <code>false</code>, <code>0</code>, <code>-0</code>, <code>0n</code>, <code>""</code>, <code>null</code>, <code>undefined</code>, and <code>NaN</code>.</li>
+          <li><strong>Mutating input objects inside helper functions:</strong> Modifying passed objects/arrays in place creates hidden side effects that break React change detection and cause spooky bugs across services.</li>
+          <li><strong>Using <code>var</code> in loops with async callbacks:</strong> A single function-scoped <code>var i</code> is shared across every callback iteration, whereas <code>let i</code> creates a fresh lexical binding per iteration.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- SECTION H -->
+    <section class="topic-section" id="m01-p1-sec-h" data-section="H">
+      <button type="button" class="topic-section-header">
+        <span class="topic-section-title">
+          <span class="section-letter">H</span>
+          <span class="topic-section-title-text">Best Practices</span>
+        </span>
+        <span class="topic-chevron" aria-hidden="true">&#9662;</span>
+      </button>
+      <div class="topic-section-body">
+        <ul>
+          <li><strong>Default to <code>const</code>, use <code>let</code> only when reassignment is required, never use <code>var</code></strong> in modern codebases.</li>
+          <li><strong>Use strict equality (<code>===</code> and <code>!==</code>) everywhere</strong> (except the rare intentional <code>x == null</code> check for both <code>null</code> and <code>undefined</code>, if team style allows it).</li>
+          <li><strong>Prefer <code>Number.isNaN</code>, <code>Number.isFinite</code>, and <code>Number.isSafeInteger</code></strong> over global <code>isNaN</code> / <code>isFinite</code>, because the <code>Number.*</code> methods do not coerce non-numbers first.</li>
+          <li><strong>Keep core domain functions pure:</strong> accept explicit inputs, return new objects/values, push I/O (DB, HTTP, logging, clock) to the edges.</li>
+          <li><strong>Validate at system boundaries</strong> (API handlers, message consumers, env vars) and keep internal helper signatures concise (prefer an options object if a function takes more than 3 parameters).</li>
+          <li><strong>Enable <code>"use strict"</code> (automatic in ES modules and classes)</strong> so accidental global variables and silent assignment failures throw immediately.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- SECTION I -->
+    <section class="topic-section" id="m01-p1-sec-i" data-section="I">
+      <button type="button" class="topic-section-header">
+        <span class="topic-section-title">
+          <span class="section-letter">I</span>
+          <span class="topic-section-title-text">Performance &amp; Scalability</span>
+        </span>
+        <span class="topic-chevron" aria-hidden="true">&#9662;</span>
+      </button>
+      <div class="topic-section-body">
+        <ul>
+          <li><strong>Consistent Argument Shapes (Monomorphism):</strong> JIT engines optimize functions best when they consistently receive the same types and object property shapes. Passing mixed types (sometimes string, sometimes number, sometimes differently shaped objects) forces polymorphic/megamorphic lookups and deoptimizations in hot loops.</li>
+          <li><strong>Call Stack Depth Limits:</strong> Typical JS engines allow roughly ~10,000 stack frames (varies by runtime and frame size). In Node.js/V8, Proper Tail Calls (PTC) are <em>not</em> enabled, so recursive algorithms on large trees or lists (100k+ nodes) will crash with <code>RangeError: Maximum call stack size exceeded</code> unless converted to an explicit stack/queue loop.</li>
+          <li><strong>Allocation Pressure in Hot Loops:</strong> Creating temporary objects or cloning large arrays inside high-frequency loops increases Garbage Collection pause frequency. Keep pure immutability for application state, but consider pre-allocated buffers/arrays or controlled local mutation inside tight inner hot paths proven by a profiler.</li>
+          <li><strong><code>BigInt</code> Trade-off:</strong> <code>BigInt</code> arithmetic is slower than hardware-accelerated Smi/IEEE-754 <code>Number</code> operations and cannot be serialized directly by <code>JSON.stringify()</code> (throws <code>TypeError</code>). Use <code>BigInt</code> only where precision beyond 53 bits is genuinely required.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- SECTION J -->
+    <section class="topic-section" id="m01-p1-sec-j" data-section="J">
+      <button type="button" class="topic-section-header">
+        <span class="topic-section-title">
+          <span class="section-letter">J</span>
+          <span class="topic-section-title-text">Security Considerations</span>
+        </span>
+        <span class="topic-chevron" aria-hidden="true">&#9662;</span>
+      </button>
+      <div class="topic-section-body">
+        <ul>
+          <li><strong>Type Confusion &amp; Coercion Bypasses:</strong> If an API expects a string token or integer role ID and receives an array/object from unvalidated JSON (e.g., <code>{ "pin": [] }</code> or <code>req.query.id</code> as an array <code>?id=1&amp;id=2</code>), loose checks or unguarded string methods can bypass authorization or crash the server. Always assert runtime types with a schema validator (e.g., Zod, Joi, Ajv).</li>
+          <li><strong>64-bit Database ID Truncation (Silent Data Corruption):</strong> PostgreSQL <code>BIGINT</code> or Snowflake IDs up to <code>2^63 - 1</code> exceed <code>Number.MAX_SAFE_INTEGER</code> (<code>2^53 - 1</code>). Parsing them as JS <code>Number</code> silently rounds adjacent user IDs to the <em>same</em> number, risking cross-user data exposure! Serialize 64-bit IDs as <code>string</code> in JSON APIs.</li>
+          <li><strong>Unbounded Recursion DoS:</strong> Recursive JSON/AST walkers without a maximum depth guard allow attackers to send deeply nested payloads (e.g., 20,000 nested brackets) that crash the Node.js process via stack overflow.</li>
+          <li><strong>Dynamic Code Execution:</strong> Never pass user-controlled strings to <code>eval()</code>, <code>new Function()</code>, or string-form <code>setTimeout()</code>; this leads directly to Remote Code Execution (RCE) on Node.js or XSS in browsers.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- SECTION K -->
+    <section class="topic-section" id="m01-p1-sec-k" data-section="K">
+      <button type="button" class="topic-section-header">
+        <span class="topic-section-title">
+          <span class="section-letter">K</span>
+          <span class="topic-section-title-text">Comparisons &amp; Decision Tables</span>
+        </span>
+        <span class="topic-chevron" aria-hidden="true">&#9662;</span>
+      </button>
+      <div class="topic-section-body">
+        <h4>1. Variable Declarations: <code>var</code> vs. <code>let</code> vs. <code>const</code></h4>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Feature</th>
+                <th><code>var</code></th>
+                <th><code>let</code></th>
+                <th><code>const</code></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Scope</td>
+                <td>Function (or global)</td>
+                <td>Block (<code>{ ... }</code>)</td>
+                <td>Block (<code>{ ... }</code>)</td>
+              </tr>
+              <tr>
+                <td>Hoisting &amp; Initial State</td>
+                <td>Hoisted &amp; initialized to <code>undefined</code></td>
+                <td>Hoisted into TDZ (<code>ReferenceError</code> before init)</td>
+                <td>Hoisted into TDZ (<code>ReferenceError</code> before init)</td>
+              </tr>
+              <tr>
+                <td>Reassignment</td>
+                <td>Allowed</td>
+                <td>Allowed</td>
+                <td>Forbidden (<code>TypeError</code>)</td>
+              </tr>
+              <tr>
+                <td>Redeclaration in same scope</td>
+                <td>Allowed (error-prone)</td>
+                <td>SyntaxError</td>
+                <td>SyntaxError</td>
+              </tr>
+              <tr>
+                <td>When to use</td>
+                <td>Legacy code only</td>
+                <td>Loop counters, accumulators, conditional bindings</td>
+                <td>Default choice for 90%+ of bindings</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h4>2. Primitive Types vs. Reference Types (Objects)</h4>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Dimension</th>
+                <th>Primitives (7 types)</th>
+                <th>Reference Type (<code>object</code>)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Mutability</td>
+                <td>Immutable (operations create new values)</td>
+                <td>Mutable by default (properties can change unless frozen)</td>
+              </tr>
+              <tr>
+                <td>Assignment / Argument Passing</td>
+                <td>Copies the value itself</td>
+                <td>Copies the reference pointer (pass-by-sharing)</td>
+              </tr>
+              <tr>
+                <td>Equality (<code>===</code>)</td>
+                <td>Compared by value (except <code>NaN !== NaN</code>)</td>
+                <td>Compared by identity (same memory reference)</td>
+              </tr>
+              <tr>
+                <td>Typical Memory</td>
+                <td>Stack / register (or pooled string/heap for big strings)</td>
+                <td>Heap-allocated, reclaimed by Garbage Collector</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h4>3. Function Declaration vs. Expression vs. Arrow Function (Fundamentals)</h4>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Aspect</th>
+                <th>Function Declaration</th>
+                <th>Function Expression</th>
+                <th>Arrow Function</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Hoisting</td>
+                <td>Fully hoisted (callable before declaration line)</td>
+                <td>Variable hoisted only (<code>TDZ</code> for <code>const/let</code>)</td>
+                <td>Variable hoisted only (<code>TDZ</code> for <code>const/let</code>)</td>
+              </tr>
+              <tr>
+                <td><code>this</code> binding</td>
+                <td>Dynamic (depends on call site)</td>
+                <td>Dynamic (depends on call site)</td>
+                <td>Lexical (inherits enclosing scope's <code>this</code>)</td>
+              </tr>
+              <tr>
+                <td>Constructor (<code>new</code>)</td>
+                <td>Yes</td>
+                <td>Yes</td>
+                <td>No (throws <code>TypeError</code>)</td>
+              </tr>
+              <tr>
+                <td>Best fit</td>
+                <td>Top-level named functions &amp; module exports</td>
+                <td>Conditional/named callbacks</td>
+                <td>Callbacks, array transforms, preserving outer <code>this</code></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION L -->
+    <section class="topic-section" id="m01-p1-sec-l" data-section="L">
+      <button type="button" class="topic-section-header">
+        <span class="topic-section-title">
+          <span class="section-letter">L</span>
+          <span class="topic-section-title-text">Tips to Remember (Mnemonics &amp; Mental Models)</span>
+        </span>
+        <span class="topic-chevron" aria-hidden="true">&#9662;</span>
+      </button>
+      <div class="topic-section-body">
+        <ul>
+          <li><strong>Mnemonic for the 7 Primitives: <code>"BB NN SSU"</code></strong> — <code>B</code>igInt, <code>B</code>oolean, <code>N</code>umber, <code>N</code>ull, <code>S</code>tring, <code>S</code>ymbol, <code>U</code>ndefined (+ 1 <code>O</code>bject = 8 total types).</li>
+          <li><strong><code>const</code> Analogy:</strong> <code>const</code> welds the <em>leash</em> to one doghouse—you cannot point the leash at a different doghouse, but you can still repaint the doghouse inside (mutate properties).</li>
+          <li><strong>Pass-by-Sharing Rule:</strong> "You can change the furniture inside the house (<code>obj.x = 2</code>), but replacing your copy of the address card (<code>obj = {}</code>) leaves the caller's address card untouched."</li>
+          <li><strong>Falsy Eight:</strong> <code>false</code>, <code>0</code>, <code>-0</code>, <code>0n</code>, <code>""</code>, <code>null</code>, <code>undefined</code>, <code>NaN</code> (plus legacy browser <code>document.all</code>). Everything else—including <code>[]</code>, <code>{}</code>, and <code>"false"</code>—is truthy.</li>
+          <li><strong>Money &amp; Big IDs Rule:</strong> "Cents for money, Strings for 64-bit IDs."</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- SECTION M & N -->
+    <section class="topic-section" id="m01-p1-sec-mn" data-section="M/N">
+      <button type="button" class="topic-section-header">
+        <span class="topic-section-title">
+          <span class="section-letter">M/N</span>
+          <span class="topic-section-title-text">Interview Questions &amp; Detailed Answers</span>
+        </span>
+        <span class="topic-chevron" aria-hidden="true">&#9662;</span>
+      </button>
+      <div class="topic-section-body">
+        <div class="iq-toolbar">
+          <div class="iq-filter-pills" role="group" aria-label="Filter questions in this lesson">
+            <button type="button" class="btn-small iq-filter-btn" data-iq-filter="all" aria-pressed="true">All (14)</button>
+            <button type="button" class="btn-small iq-filter-btn" data-iq-filter="basic" aria-pressed="false">Basic (4)</button>
+            <button type="button" class="btn-small iq-filter-btn" data-iq-filter="intermediate" aria-pressed="false">Intermediate (4)</button>
+            <button type="button" class="btn-small iq-filter-btn" data-iq-filter="advanced" aria-pressed="false">Advanced (4)</button>
+            <button type="button" class="btn-small iq-filter-btn" data-iq-filter="senior-architect" aria-pressed="false">Senior/Architect (2)</button>
+          </div>
+          <div>
+            <button type="button" class="btn-small" data-action="reveal-all-iq">Reveal All</button>
+            <button type="button" class="btn-small" data-action="hide-all-iq">Hide All</button>
+          </div>
+        </div>
+
+        <div class="iq-list">
+          <!-- BASIC 1 -->
+          <div class="iq-card" id="m01-p1-iq-1" data-difficulty="basic">
+            <div class="iq-header">
+              <div class="iq-q-wrap">
+                <span class="badge badge-basic">Basic</span>
+                <span class="iq-question">1. What is the difference between <code>null</code> and <code>undefined</code> in JavaScript?</span>
+              </div>
+              <button type="button" class="btn-small iq-toggle-btn" aria-expanded="false">Reveal Answer</button>
+            </div>
+            <div class="iq-answer" hidden>
+              <p><strong>Explanation:</strong> <code>undefined</code> means a variable has been declared, a property is missing, or a function has no explicit <code>return</code>—the runtime supplies it automatically as "not yet assigned." <code>null</code> is an explicit assignment value representing the intentional absence of an object or value.</p>
+              <p><strong>Trap:</strong> <code>typeof undefined === "undefined"</code>, while <code>typeof null === "object"</code> (a legacy 1995 bit-tag quirk). Also <code>null == undefined</code> is <code>true</code>, whereas <code>null === undefined</code> is <code>false</code>.</p>
+              <div class="iq-meta-grid">
+                <div class="iq-subbox">
+                  <h5>Example</h5>
+                  <code>let a; // undefined<br/>let b = null; // explicitly empty</code>
+                </div>
+                <div class="iq-subbox">
+                  <h5>Follow-up &amp; Tip</h5>
+                  <p><em>Follow-up:</em> How does JSON handle both? <code>JSON.stringify</code> keeps <code>null</code> properties and drops <code>undefined</code> object properties.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- BASIC 2 -->
+          <div class="iq-card" id="m01-p1-iq-2" data-difficulty="basic">
+            <div class="iq-header">
+              <div class="iq-q-wrap">
+                <span class="badge badge-basic">Basic</span>
+                <span class="iq-question">2. What is the difference between <code>var</code>, <code>let</code>, and <code>const</code>?</span>
+              </div>
+              <button type="button" class="btn-small iq-toggle-btn" aria-expanded="false">Reveal Answer</button>
+            </div>
+            <div class="iq-answer" hidden>
+              <p><strong>Explanation:</strong> <code>var</code> is function-scoped, allows redeclaration, and is hoisted with an initial value of <code>undefined</code>. <code>let</code> and <code>const</code> are block-scoped, forbid redeclaration in the same scope, and remain uninitialized in the Temporal Dead Zone (TDZ) until their declaration line executes. <code>const</code> additionally forbids reassigning the variable binding, though objects referenced by a <code>const</code> binding can still be mutated.</p>
+              <div class="iq-meta-grid">
+                <div class="iq-subbox">
+                  <h5>Follow-up Question</h5>
+                  <p>Does <code>const arr = [1, 2]; arr.push(3);</code> throw an error? No—<code>arr</code> still points to the same array reference.</p>
+                </div>
+                <div class="iq-subbox">
+                  <h5>Interview Tip</h5>
+                  <p>Emphasize that <code>const</code> guarantees binding immutability, not deep data immutability (<code>Object.freeze</code> handles shallow property freezing).</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- BASIC 3 -->
+          <div class="iq-card" id="m01-p1-iq-3" data-difficulty="basic">
+            <div class="iq-header">
+              <div class="iq-q-wrap">
+                <span class="badge badge-basic">Basic</span>
+                <span class="iq-question">3. What are the data types in JavaScript, and how do primitives differ from objects?</span>
+              </div>
+              <button type="button" class="btn-small iq-toggle-btn" aria-expanded="false">Reveal Answer</button>
+            </div>
+            <div class="iq-answer" hidden>
+              <p><strong>Explanation:</strong> JavaScript has 8 data types: 7 primitives (<code>string</code>, <code>number</code>, <code>bigint</code>, <code>boolean</code>, <code>undefined</code>, <code>null</code>, <code>symbol</code>) and 1 reference type (<code>object</code>, which includes arrays and functions). Primitives are immutable and compared/copied by value; objects are mutable and compared/copied by reference.</p>
+              <div class="iq-meta-grid">
+                <div class="iq-subbox">
+                  <h5>Example</h5>
+                  <code>"abc".toUpperCase()</code> returns a new string; the original string cannot be altered in place.
+                </div>
+                <div class="iq-subbox">
+                  <h5>Interview Tip</h5>
+                  <p>Remember <code>BigInt</code> (ES2020) and <code>Symbol</code> (ES2015)—many candidates forget them and say "6 types."</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- BASIC 4 -->
+          <div class="iq-card" id="m01-p1-iq-4" data-difficulty="basic">
+            <div class="iq-header">
+              <div class="iq-q-wrap">
+                <span class="badge badge-basic">Basic</span>
+                <span class="iq-question">4. What is the difference between <code>==</code> and <code>===</code>?</span>
+              </div>
+              <button type="button" class="btn-small iq-toggle-btn" aria-expanded="false">Reveal Answer</button>
+            </div>
+            <div class="iq-answer" hidden>
+              <p><strong>Explanation:</strong> <code>===</code> (strict equality) checks both type and value without type coercion (returning <code>false</code> immediately if types differ). <code>==</code> (abstract equality) performs multi-step implicit type coercion when operands have different types (e.g., converting strings/booleans to numbers), producing counterintuitive results like <code>"" == 0</code> or <code>[] == false</code>.</p>
+              <div class="iq-meta-grid">
+                <div class="iq-subbox">
+                  <h5>Follow-up Question</h5>
+                  <p>How does <code>Object.is(a, b)</code> differ from <code>===</code>? <code>Object.is(NaN, NaN)</code> is <code>true</code> and <code>Object.is(+0, -0)</code> is <code>false</code>.</p>
+                </div>
+                <div class="iq-subbox">
+                  <h5>Interview Tip</h5>
+                  <p>Always recommend <code>===</code> by default in production codebases enforced via ESLint (<code>eqeqeq</code>).</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- INTERMEDIATE 5 -->
+          <div class="iq-card" id="m01-p1-iq-5" data-difficulty="intermediate">
+            <div class="iq-header">
+              <div class="iq-q-wrap">
+                <span class="badge badge-intermediate">Intermediate</span>
+                <span class="iq-question">5. Why does <code>0.1 + 0.2 !== 0.3</code> in JavaScript, and how do you handle money safely?</span>
+              </div>
+              <button type="button" class="btn-small iq-toggle-btn" aria-expanded="false">Reveal Answer</button>
+            </div>
+            <div class="iq-answer" hidden>
+              <p><strong>Explanation:</strong> JavaScript numbers are 64-bit IEEE-754 binary floats. Just as <code>1/3</code> cannot be represented finitely in base-10, <code>0.1</code> (<code>1/10</code>) and <code>0.2</code> (<code>1/5</code>) are infinite repeating fractions in base-2. Rounding to 53 mantissa bits produces <code>0.30000000000000004</code> when added.</p>
+              <p><strong>Practical Solutions:</strong> (1) Store money in integer minor units (cents) and compute using integers; (2) for arbitrary-precision decimals (tax rates, crypto, FX), use a decimal library such as <code>decimal.js</code> or <code>big.js</code>; (3) for scientific float comparisons, compare <code>Math.abs(a - b) &lt; Number.EPSILON</code> (scaled by magnitude).</p>
+              <div class="iq-meta-grid">
+                <div class="iq-subbox">
+                  <h5>Follow-up</h5>
+                  <p>How do you round currency at tax time? Use integer arithmetic with deterministic rounding (e.g., half-even / banker's rounding when required by accounting rules).</p>
+                </div>
+                <div class="iq-subbox">
+                  <h5>Interview Tip</h5>
+                  <p>Mention that this is not a "JS bug"—Python, Java <code>double</code>, and Go <code>float64</code> behave identically under IEEE-754.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- INTERMEDIATE 6 -->
+          <div class="iq-card" id="m01-p1-iq-6" data-difficulty="intermediate">
+            <div class="iq-header">
+              <div class="iq-q-wrap">
+                <span class="badge badge-intermediate">Intermediate</span>
+                <span class="iq-question">6. Is JavaScript pass-by-value or pass-by-reference? Explain with an example.</span>
+              </div>
+              <button type="button" class="btn-small iq-toggle-btn" aria-expanded="false">Reveal Answer</button>
+            </div>
+            <div class="iq-answer" hidden>
+              <p><strong>Explanation:</strong> Strictly speaking, JavaScript is always <strong>pass-by-value</strong>, often termed <strong>pass-by-sharing</strong> for objects. For primitives, the value itself is copied into the parameter. For objects, the <em>reference value (pointer)</em> is copied into the parameter. Therefore, mutating a property (<code>param.x = 2</code>) affects the caller's object because both pointers target the same heap object, whereas reassigning the parameter (<code>param = { x: 2 }</code>) only rebinds the local parameter and leaves the caller unchanged.</p>
+              <div class="iq-meta-grid">
+                <div class="iq-subbox">
+                  <h5>Follow-up</h5>
+                  <p>How do you prevent a function from mutating caller data? Clone at the boundary (<code>structuredClone</code> or shallow spread <code>{ ...obj }</code> for flat updates).</p>
+                </div>
+                <div class="iq-subbox">
+                  <h5>Interview Tip</h5>
+                  <p>Contrasting true pass-by-reference (like C++ <code>int&amp; x</code> where reassigning <code>x</code> changes the caller variable) proves deep clarity.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- INTERMEDIATE 7 -->
+          <div class="iq-card" id="m01-p1-iq-7" data-difficulty="intermediate">
+            <div class="iq-header">
+              <div class="iq-q-wrap">
+                <span class="badge badge-intermediate">Intermediate</span>
+                <span class="iq-question">7. Explain the Temporal Dead Zone (TDZ) and why <code>let</code>/<code>const</code> still hoist.</span>
+              </div>
+              <button type="button" class="btn-small iq-toggle-btn" aria-expanded="false">Reveal Answer</button>
+            </div>
+            <div class="iq-answer" hidden>
+              <p><strong>Explanation:</strong> Both <code>let</code> and <code>const</code> are hoisted to the top of their enclosing block during scope creation—meaning the engine knows the identifier exists in that block and shadows any outer variable of the same name. However, unlike <code>var</code> (initialized to <code>undefined</code>), <code>let</code>/<code>const</code> remain <em>uninitialized</em> in the TDZ until execution reaches their declaration statement. Reading them in the TDZ throws a <code>ReferenceError</code>—even <code>typeof x</code> throws inside the TDZ!</p>
+              <div class="iq-meta-grid">
+                <div class="iq-subbox">
+                  <h5>Code Proof</h5>
+                  <code>let x = 1; { console.log(x); let x = 2; } // ReferenceError, NOT 1!</code>
+                </div>
+                <div class="iq-subbox">
+                  <h5>Interview Tip</h5>
+                  <p>Point out that the inner <code>let x</code> shadows the outer <code>x</code> from the start of the block—proving <code>let</code> is hoisted.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- INTERMEDIATE 8 -->
+          <div class="iq-card" id="m01-p1-iq-8" data-difficulty="intermediate">
+            <div class="iq-header">
+              <div class="iq-q-wrap">
+                <span class="badge badge-intermediate">Intermediate</span>
+                <span class="iq-question">8. What is a pure function, and why do React and backend pipelines care about purity?</span>
+              </div>
+              <button type="button" class="btn-small iq-toggle-btn" aria-expanded="false">Reveal Answer</button>
+            </div>
+            <div class="iq-answer" hidden>
+              <p><strong>Explanation:</strong> A pure function (1) always returns the same output for the same inputs (deterministic) and (2) causes no observable side effects (no mutating inputs/globals, no network/disk I/O, no <code>Date.now()</code>/<code>Math.random()</code>). Purity enables trivial unit testing without mocks, safe concurrency, memoization (caching by input), and predictable React rendering where shallow reference checks detect state updates.</p>
+              <div class="iq-meta-grid">
+                <div class="iq-subbox">
+                  <h5>Follow-up</h5>
+                  <p>Can an entire app be pure? No—real apps need DB writes and HTTP calls. Push side effects to thin I/O shells around a pure core ("Functional Core, Imperative Shell").</p>
+                </div>
+                <div class="iq-subbox">
+                  <h5>Interview Tip</h5>
+                  <p>Give a concrete example: <code>Array.prototype.sort()</code> mutates in place (impure), whereas <code>toSorted()</code> returns a new array (pure).</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ADVANCED 9 -->
+          <div class="iq-card" id="m01-p1-iq-9" data-difficulty="advanced">
+            <div class="iq-header">
+              <div class="iq-q-wrap">
+                <span class="badge badge-advanced">Advanced</span>
+                <span class="iq-question">9. How does V8 internally represent numbers vs. objects, and why can mixing types slow down a hot function?</span>
+              </div>
+              <button type="button" class="btn-small iq-toggle-btn" aria-expanded="false">Reveal Answer</button>
+            </div>
+            <div class="iq-answer" hidden>
+              <p><strong>Explanation:</strong> V8 uses pointer tagging to avoid heap-allocating every small integer. Small signed integers (Smi) are encoded directly in the pointer word with a tag bit, while floats and integers outside the Smi range are heap-allocated as <code>HeapNumber</code> objects. Similarly, objects share internal Hidden Classes (Maps) describing property offsets. When TurboFan JIT compiles a hot function, it specializes machine code for the observed Smi/object shapes (monomorphic). If later calls pass a string or differently shaped object, the type guard fails, causing deoptimization back to Ignition bytecode and megamorphic slow-path lookups.</p>
+              <div class="iq-meta-grid">
+                <div class="iq-subbox">
+                  <h5>Follow-up</h5>
+                  <p>How do you keep shapes consistent? Initialize all object properties in the same order in constructors/factories instead of adding properties dynamically later.</p>
+                </div>
+                <div class="iq-subbox">
+                  <h5>Interview Tip</h5>
+                  <p>Note clearly that Smi/Hidden Class details are V8 engine optimizations—not guarantees of the ECMAScript specification.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ADVANCED 10 -->
+          <div class="iq-card" id="m01-p1-iq-10" data-difficulty="advanced">
+            <div class="iq-header">
+              <div class="iq-q-wrap">
+                <span class="badge badge-advanced">Advanced</span>
+                <span class="iq-question">10. Why does <code>Number.MAX_SAFE_INTEGER + 1 === Number.MAX_SAFE_INTEGER + 2</code> evaluate to <code>true</code>, and how does this break distributed systems?</span>
+              </div>
+              <button type="button" class="btn-small iq-toggle-btn" aria-expanded="false">Reveal Answer</button>
+            </div>
+            <div class="iq-answer" hidden>
+              <p><strong>Explanation:</strong> IEEE-754 double precision has 53 bits of significand precision (<code>2^53 - 1 = 9,007,199,254,740,991</code>). At <code>2^53</code>, the spacing between representable floats jumps from <code>1</code> to <code>2</code>, so odd numbers like <code>2^53 + 1</code> cannot be represented and round to <code>2^53</code>. In distributed systems using 64-bit Snowflake IDs (Twitter/Discord style) or PostgreSQL <code>BIGINT</code> sequences, <code>JSON.parse</code> converts numeric literals into JS <code>Number</code>, silently corrupting IDs—two distinct records collide to the same ID.</p>
+              <div class="iq-meta-grid">
+                <div class="iq-subbox">
+                  <h5>Mitigation</h5>
+                  <p>Serialize 64-bit IDs as JSON strings (<code>"id": "9007199254740993"</code>) or use <code>BigInt</code> internally with custom JSON revivers/serializers.</p>
+                </div>
+                <div class="iq-subbox">
+                  <h5>Interview Tip</h5>
+                  <p>Mention <code>Number.isSafeInteger(val)</code> as an essential validation guard on numeric IDs.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ADVANCED 11 -->
+          <div class="iq-card" id="m01-p1-iq-11" data-difficulty="advanced">
+            <div class="iq-header">
+              <div class="iq-q-wrap">
+                <span class="badge badge-advanced">Advanced</span>
+                <span class="iq-question">11. Does JavaScript support Proper Tail Calls (TCO) in production, and how do you avoid call-stack overflow on deep data?</span>
+              </div>
+              <button type="button" class="btn-small iq-toggle-btn" aria-expanded="false">Reveal Answer</button>
+            </div>
+            <div class="iq-answer" hidden>
+              <p><strong>Explanation:</strong> Although ES2015 specified Proper Tail Calls in strict mode, major engines diverged: JavaScriptCore (Safari) implemented it, whereas V8 (Chrome/Node.js) and SpiderMonkey (Firefox) did not enable it due to stack-trace debugging concerns and low real-world ROI. Therefore, you <strong>cannot</strong> rely on tail recursion for unbounded inputs in Node.js or cross-browser apps—at ~10k+ depth, the call stack throws <code>RangeError</code>.</p>
+              <p><strong>Production Alternatives:</strong> Rewrite recursion into an iterative loop with an explicit heap-allocated array stack/queue (<code>while (stack.length)</code>), or use a trampoline pattern (returning thunks) when recursive style is needed.</p>
+              <div class="iq-meta-grid">
+                <div class="iq-subbox">
+                  <h5>Follow-up</h5>
+                  <p>Why is an explicit heap stack safer than the call stack? Heap capacity scales to hundreds of MBs/GBs, whereas the call stack is typically a few MBs.</p>
+                </div>
+                <div class="iq-subbox">
+                  <h5>Interview Tip</h5>
+                  <p>Calling out the spec vs. V8 reality is a classic senior differentiator.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ADVANCED 12 -->
+          <div class="iq-card" id="m01-p1-iq-12" data-difficulty="advanced">
+            <div class="iq-header">
+              <div class="iq-q-wrap">
+                <span class="badge badge-advanced">Advanced</span>
+                <span class="iq-question">12. Explain how JavaScript's abstract type coercion (<code>ToPrimitive</code>, <code>ToNumber</code>, <code>ToBoolean</code>) leads to subtle bugs and security flaws.</span>
+              </div>
+              <button type="button" class="btn-small iq-toggle-btn" aria-expanded="false">Reveal Answer</button>
+            </div>
+            <div class="iq-answer" hidden>
+              <p><strong>Explanation:</strong> When operators like <code>+</code>, <code>==</code>, or relational <code>&lt;</code> encounter mismatched types, the spec invokes internal abstract operations: <code>ToPrimitive</code> calls <code>[Symbol.toPrimitive]</code>, <code>valueOf()</code>, then <code>toString()</code>. Meanwhile <code>+</code> prefers string concatenation if either operand becomes a string, whereas <code>-</code>/<code>*</code>/<code>&lt;</code> convert to numbers (e.g., <code>[] + {} === "[object Object]"</code>, <code>Number([]) === 0</code>, <code>Number(null) === 0</code>, <code>Number(undefined) === NaN</code>). If an auth or rate-limit check relies on <code>if (limit &gt; 0)</code> or loose equality against unvalidated JSON/query parameters, unexpected arrays or empty strings silently coerce to <code>0</code> or <code>true</code>.</p>
+              <div class="iq-meta-grid">
+                <div class="iq-subbox">
+                  <h5>Defense</h5>
+                  <p>Validate exact runtime types at ingress using strict schemas (e.g., Zod) and disable implicit coercion via <code>===</code> + TypeScript strict mode.</p>
+                </div>
+                <div class="iq-subbox">
+                  <h5>Follow-up</h5>
+                  <p>What does <code>null &gt;= 0</code> vs <code>null == 0</code> evaluate to? <code>null &gt;= 0</code> is <code>true</code> (<code>ToNumber(null) === 0</code>), while <code>null == 0</code> is <code>false</code> (special spec rule for <code>null</code>/<code>undefined</code>).</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SENIOR/ARCHITECT 13 -->
+          <div class="iq-card" id="m01-p1-iq-13" data-difficulty="senior-architect">
+            <div class="iq-header">
+              <div class="iq-q-wrap">
+                <span class="badge badge-senior-architect">Senior / Architect</span>
+                <span class="iq-question">13. Your multi-service Node.js + PostgreSQL + React platform is experiencing 1-cent billing discrepancies and occasional cross-account mix-ups on newly migrated 64-bit Snowflake IDs. Diagnose and design the fix end-to-end.</span>
+              </div>
+              <button type="button" class="btn-small iq-toggle-btn" aria-expanded="false">Reveal Answer</button>
+            </div>
+            <div class="iq-answer" hidden>
+              <ol>
+                <li><strong>How to analyze the problem:</strong> Trace data types across every boundary: DB column type &rarr; Node DB driver &rarr; JSON serializer &rarr; HTTP response &rarr; Browser <code>JSON.parse</code> &rarr; React state. Identify where 64-bit integers exceed <code>2^53 - 1</code> and where decimal amounts hit IEEE-754 floats.</li>
+                <li><strong>Requirements:</strong> Zero precision loss for money (multi-currency) and 64-bit IDs; zero downtime during migration; backward compatibility for existing API clients.</li>
+                <li><strong>Architecture:</strong> Enforce a canonical Domain Boundary Layer in Node.js (converting DB <code>BIGINT</code> to string IDs and storing money as integer minor units + ISO-4217 currency code).</li>
+                <li><strong>Database design:</strong> Store monetary amounts in PostgreSQL as <code>BIGINT</code> minor units (or <code>NUMERIC(19, 4)</code> for fractional FX rates) alongside <code>currency CHAR(3)</code>; keep primary/foreign keys as <code>BIGINT</code>.</li>
+                <li><strong>API design:</strong> Return IDs as JSON strings (<code>"orderId": "728194827193847291"</code>) and money as structured objects (<code>{ "amountMinor": 1999, "currency": "USD" }</code>). Add a short deprecation window if legacy numeric fields exist.</li>
+                <li><strong>Technology choices:</strong> Configure <code>pg</code> driver type parsers (OID 20 for <code>int8</code> returns strings by default in <code>node-postgres</code>—ensure no unsafe <code>Number(row.id)</code> casts exist); use Zod boundary schemas; use integer math or <code>decimal.js</code> for FX/tax.</li>
+                <li><strong>Scaling:</strong> Integer minor-unit math is CPU-cheap and avoids object allocation overhead of decimal libraries on high-throughput invoice aggregation.</li>
+                <li><strong>Security:</strong> Prevent IDOR/cross-account leakage caused by rounded 64-bit IDs colliding; reject non-string IDs and negative/non-integer minor units at API ingress.</li>
+                <li><strong>Failure handling:</strong> Add reconciliation checks verifying <code>sum(line_items) === invoice_total</code> inside DB transactions; fail closed on currency mismatches.</li>
+                <li><strong>Trade-offs:</strong> String IDs slightly increase JSON payload bytes (~2 bytes/ID) vs. numbers, and integer minor units require currency-exponent metadata (e.g., JPY has 0 decimals, USD 2, KWD 3).</li>
+                <li><strong>Sample senior answer:</strong> "Two foundational JS limits explain both bugs: IEEE-754 binary floats cannot represent base-10 fractions like <code>0.1</code> accurately, and <code>Number</code> loses integer precision above <code>2^53 - 1</code>. I would keep <code>BIGINT</code> in Postgres, forbid casting 64-bit IDs to JS <code>Number</code> anywhere in the Node/React pipeline by treating IDs as opaque strings in JSON, and migrate billing math to integer minor units paired with currency metadata and DB-level reconciliation assertions."</li>
+                <li><strong>Follow-up questions:</strong> How do you handle currencies with 3 decimal places (BHD/KWD) or sub-cent ad impressions? Use <code>NUMERIC(19,4)</code> in DB and scaled integer micro-units (e.g., 1e-6) or <code>BigInt</code> + decimal library for calculation before rounding at settlement.</li>
+              </ol>
+            </div>
+          </div>
+
+          <!-- SENIOR/ARCHITECT 14 -->
+          <div class="iq-card" id="m01-p1-iq-14" data-difficulty="senior-architect">
+            <div class="iq-header">
+              <div class="iq-q-wrap">
+                <span class="badge badge-senior-architect">Senior / Architect</span>
+                <span class="iq-question">14. Design a defensive API validation and transformation pipeline for a high-throughput Node.js gateway handling untrusted nested JSON payloads.</span>
+              </div>
+              <button type="button" class="btn-small iq-toggle-btn" aria-expanded="false">Reveal Answer</button>
+            </div>
+            <div class="iq-answer" hidden>
+              <ol>
+                <li><strong>How to analyze the problem:</strong> Identify the attack and bug surface of dynamic JS types: oversized payloads, deeply nested JSON causing recursive parser/validator stack overflow, prototype-polluting keys (<code>__proto__</code>), and type coercion flaws.</li>
+                <li><strong>Requirements:</strong> Sub-2ms p99 validation overhead at 10k RPS; strict runtime type guarantees; clear 400 validation errors; crash immunity against malformed inputs.</li>
+                <li><strong>Architecture:</strong> Edge Gateway / Reverse Proxy (size &amp; timeout limits) &rarr; Express/Fastify body parser &rarr; Compiled Schema Validator (Ajv/Zod) &rarr; Pure Domain Normalizer &rarr; Service Core.</li>
+                <li><strong>Database design:</strong> Downstream DB queries receive strictly typed primitives/DTOs only—never raw <code>req.body</code> objects (prevents NoSQL operator injection like <code>{ "$gt": "" }</code>).</li>
+                <li><strong>API design:</strong> Strict JSON schemas with <code>additionalProperties: false</code>, explicit string max-lengths, integer bounds, and depth limits.</li>
+                <li><strong>Technology choices:</strong> Fastify + Ajv (pre-compiled JSON Schema validators run much faster than dynamic uncompiled checks and keep V8 object shapes predictable/monomorphic).</li>
+                <li><strong>Scaling:</strong> Pre-compile schemas once at startup rather than per request; keep validation functions stateless and pure for horizontal scaling across worker processes.</li>
+                <li><strong>Security:</strong> Enforce body byte limit (e.g., 100 KB), iterative depth guard before recursive traversal, strip/reject <code>__proto__</code>/<code>constructor</code> keys, never use <code>eval</code> or loose <code>==</code>.</li>
+                <li><strong>Failure handling:</strong> Return structured RFC-9457 / problem-details <code>400 Bad Request</code> without leaking internal stack traces; circuit-break or rate-limit repeat offenders.</li>
+                <li><strong>Trade-offs:</strong> Strict schemas (<code>additionalProperties: false</code>) catch typos and injection early, at the cost of requiring coordinated API versioning when adding new fields.</li>
+                <li><strong>Sample senior answer:</strong> "Because JavaScript is dynamically typed, internal services shouldn't defensively re-check <code>typeof</code> everywhere. Instead, I establish a hard trust boundary at the gateway using pre-compiled schemas, bounded payload sizes, and iterative depth checks, producing normalized pure DTOs so downstream business functions operate on guaranteed, monomorphic shapes."</li>
+                <li><strong>Follow-up questions:</strong> How do you share those runtime type contracts with a React frontend? Generate TypeScript types and client validators from a single OpenAPI or Zod contract package.</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION O -->
+    <section class="topic-section" id="m01-p1-sec-o" data-section="O">
+      <button type="button" class="topic-section-header">
+        <span class="topic-section-title">
+          <span class="section-letter">O</span>
+          <span class="topic-section-title-text">Practical Exercises</span>
+        </span>
+        <span class="topic-chevron" aria-hidden="true">&#9662;</span>
+      </button>
+      <div class="topic-section-body">
+        <div class="exercise-card">
+          <h4>Exercise 1: Precision-Safe Invoice Splitter</h4>
+          <p>Write a pure function <code>splitAmountCents(totalCents, parts)</code> that splits an integer cent amount evenly across <code>parts</code> participants without losing or creating a single cent (distribute any remainder cents one each to the first participants). Validate inputs strictly.</p>
+          <button type="button" class="btn-small exercise-toggle-btn" aria-expanded="false">Reveal Solution</button>
+          <div class="exercise-solution" hidden>
+            <pre data-lang="javascript" data-runnable="true"><code class="language-javascript">function splitAmountCents(totalCents, parts) {
+  if (!Number.isSafeInteger(totalCents) || totalCents &lt; 0) {
+    throw new TypeError("totalCents must be a non-negative safe integer");
+  }
+  if (!Number.isSafeInteger(parts) || parts &lt; 1) {
+    throw new TypeError("parts must be a positive safe integer");
+  }
+
+  const base = Math.floor(totalCents / parts);
+  const remainder = totalCents % parts;
+  const result = [];
+
+  for (let i = 0; i &lt; parts; i++) {
+    result.push(i &lt; remainder ? base + 1 : base);
+  }
+  return result;
+}
+
+console.log("$10.00 / 3:", splitAmountCents(1000, 3)); // [334, 333, 333] -> sum is 1000</code></pre>
+          </div>
+        </div>
+
+        <div class="exercise-card">
+          <h4>Exercise 2: Stack-Safe Iterative Array Flattener</h4>
+          <p>Write a function <code>flattenIterative(nested, maxDepth = 1000)</code> that flattens arbitrarily nested arrays without recursion (so 20,000 nested arrays will not throw a stack overflow), while guarding against cyclic or excessively deep input.</p>
+          <button type="button" class="btn-small exercise-toggle-btn" aria-expanded="false">Reveal Solution</button>
+          <div class="exercise-solution" hidden>
+            <pre data-lang="javascript" data-runnable="true"><code class="language-javascript">function flattenIterative(nested, maxDepth = 1000) {
+  if (!Array.isArray(nested)) {
+    throw new TypeError("Input must be an array");
+  }
+
+  const output = [];
+  const stack = [{ value: nested, depth: 0 }];
+
+  while (stack.length &gt; 0) {
+    const { value, depth } = stack.pop();
+    if (Array.isArray(value)) {
+      if (depth &gt;= maxDepth) {
+        throw new RangeError(`Exceeded max nesting depth of ${maxDepth}`);
+      }
+      for (let i = value.length - 1; i &gt;= 0; i--) {
+        stack.push({ value: value[i], depth: depth + 1 });
+      }
+    } else {
+      output.push(value);
+    }
+  }
+  return output;
+}
+
+console.log(flattenIterative([1, [2, [3, 4]], 5]));</code></pre>
+          </div>
+        </div>
+
+        <div class="exercise-card">
+          <h4>Exercise 3: Pure Request Normalizer &amp; Higher-Order Pipeline</h4>
+          <p>Create a higher-order function <code>composeValidators(...validators)</code> that runs an array of pure validation/transformation functions sequentially over an input object without mutating the caller's object.</p>
+          <button type="button" class="btn-small exercise-toggle-btn" aria-expanded="false">Reveal Solution</button>
+          <div class="exercise-solution" hidden>
+            <pre data-lang="javascript" data-runnable="true"><code class="language-javascript">function composeValidators(...fns) {
+  return function runPipeline(initialInput) {
+    let current = { ...initialInput };
+    for (const fn of fns) {
+      current = fn(current);
+    }
+    return current;
+  };
+}
+
+const trimEmail = (u) =&gt; ({ ...u, email: String(u.email ?? "").trim().toLowerCase() });
+const requireAge = (u) =&gt; {
+  const age = Number(u.age);
+  if (!Number.isInteger(age) || age &lt; 18) throw new RangeError("Must be 18+");
+  return { ...u, age };
+};
+
+const normalizeSignup = composeValidators(trimEmail, requireAge);
+const raw = { email: "  Alice@Example.COM ", age: "25" };
+console.log("Normalized:", normalizeSignup(raw), "| Original:", raw);</code></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION P -->
+    <section class="topic-section" id="m01-p1-sec-p" data-section="P">
+      <button type="button" class="topic-section-header">
+        <span class="topic-section-title">
+          <span class="section-letter">P</span>
+          <span class="topic-section-title-text">Advanced Challenge</span>
+        </span>
+        <span class="topic-chevron" aria-hidden="true">&#9662;</span>
+      </button>
+      <div class="topic-section-body">
+        <div class="callout callout-warn">
+          <div class="callout-title">Senior Challenge: Precision-Safe Boundary Layer</div>
+          <p>
+            You inherit a Node.js Express service receiving webhook JSON payloads containing: (a) 64-bit transaction IDs like <code>900719925474099512</code>, (b) decimal amounts like <code>"19.99"</code> or <code>19.99</code>, and (c) nested metadata objects of unknown depth.
+          </p>
+          <p>
+            <strong>Your Task:</strong> Notice that standard <code>express.json()</code> calls <code>JSON.parse()</code>, which <em>already</em> corrupts unquoted 64-bit numeric IDs before your route handler ever runs! Explain how you would inspect raw request buffers (or use a safe JSON parser/reviver) to preserve 64-bit IDs, convert decimal strings to integer minor units without floating-point intermediaries, enforce a depth cap, and maintain full backward compatibility.
+          </p>
+        </div>
+        <div class="exercise-card">
+          <h4>Reference Architecture Notes</h4>
+          <button type="button" class="btn-small exercise-toggle-btn" aria-expanded="false">Reveal Approach</button>
+          <div class="exercise-solution" hidden>
+            <ol>
+              <li>Capture the raw UTF-8 body buffer using Express <code>verify</code> hook or custom middleware before <code>JSON.parse</code> runs.</li>
+              <li>Use a library or modern runtime support for <code>JSON.parse</code> source text revivers (<code>context.source</code>, available in newer V8/Node.js runtimes) or a streaming/bigint-aware parser (such as <code>json-bigint</code>) to convert integers outside <code>[-MAX_SAFE_INTEGER, MAX_SAFE_INTEGER]</code> directly into strings or <code>BigInt</code>.</li>
+              <li>Parse decimal string amounts like <code>"19.99"</code> via regex splitting on <code>"."</code> (<code>dollars * 100 + cents</code>) rather than <code>Math.round(Number("19.99") * 100)</code> so floats never touch financial digits.</li>
+              <li>Run an iterative BFS/stack depth check (e.g., max depth 16, max keys 200) and reject prototype-polluting keys (<code>__proto__</code>, <code>constructor</code>, <code>prototype</code>) before forwarding to the domain service.</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION Q -->
+    <section class="topic-section" id="m01-p1-sec-q" data-section="Q">
+      <button type="button" class="topic-section-header">
+        <span class="topic-section-title">
+          <span class="section-letter">Q</span>
+          <span class="topic-section-title-text">Summary &amp; Key Takeaways</span>
+        </span>
+        <span class="topic-chevron" aria-hidden="true">&#9662;</span>
+      </button>
+      <div class="topic-section-body">
+        <ul>
+          <li>Source code moves from <strong>Lexing/Parsing (AST) &rarr; Scope Creation (TDZ/Hoisting) &rarr; Bytecode &amp; JIT</strong>, using the <strong>Call Stack</strong> for frames/primitives and the <strong>Heap</strong> for dynamic objects.</li>
+          <li>Default to <code>const</code>, use <code>let</code> when rebinding is needed, and avoid <code>var</code>. Remember <code>const</code> freezes the binding, not heap properties.</li>
+          <li>JavaScript has <strong>8 types</strong> (7 immutable primitives + mutable <code>object</code>). Numbers are 64-bit IEEE-754 floats: never use floats for money and never use <code>Number</code> for 64-bit IDs beyond <code>2^53 - 1</code>.</li>
+          <li>Arguments are passed <strong>by value</strong> (copying primitive values, or copying object pointers—pass-by-sharing).</li>
+          <li>Prefer pure functions for business logic, strict equality (<code>===</code>), explicit boundary validation, and iterative loops over unbounded recursion in Node.js.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- MASTERY ASSESSMENT (Module 28 Integration) -->
+    <section class="mastery-box" id="m01-p1-mastery">
+      <div class="mastery-header">
+        <h3>Mastery Assessment &amp; Practical Task (Lesson M01-P1)</h3>
+        <span class="badge badge-accent mastery-score">0 / 6 mastered</span>
+      </div>
+      <p>Check each item only after you can explain it aloud and code it without looking at notes:</p>
+      <ul class="mastery-list">
+        <li class="mastery-item">
+          <label><input type="checkbox" data-mastery-id="m01-p1-m1" /> I can trace Stack vs. Heap state step by step for a function receiving both primitives and objects.</label>
+        </li>
+        <li class="mastery-item">
+          <label><input type="checkbox" data-mastery-id="m01-p1-m2" /> I can explain <code>var</code> vs. <code>let</code> vs. <code>const</code>, including why <code>let</code>/<code>const</code> hoist into the TDZ.</label>
+        </li>
+        <li class="mastery-item">
+          <label><input type="checkbox" data-mastery-id="m01-p1-m3" /> I can name all 8 JS types and explain why <code>typeof null === "object"</code> and <code>NaN !== NaN</code>.</label>
+        </li>
+        <li class="mastery-item">
+          <label><input type="checkbox" data-mastery-id="m01-p1-m4" /> I can explain IEEE-754 float precision limits and safely model currency and 64-bit IDs in JS/Node.js.</label>
+        </li>
+        <li class="mastery-item">
+          <label><input type="checkbox" data-mastery-id="m01-p1-m5" /> I completed all 3 practical coding exercises and verified outputs using the interactive runner.</label>
+        </li>
+        <li class="mastery-item">
+          <label><input type="checkbox" data-mastery-id="m01-p1-m6" /> I can answer the Basic, Intermediate, Advanced, and Senior/Architect interview questions without notes.</label>
+        </li>
+      </ul>
+    </section>
+  </article>
+</section>
+      </div>
+
+      <!-- Empty State when filters match nothing -->
+      <div id="empty-filter-state" class="empty-state" hidden>
+        <h2>No matching lessons found</h2>
+        <p>Try clearing the category, bookmark, or search filter to see available modules.</p>
+        <button type="button" id="empty-reset-btn" class="btn-primary">Show All Content</button>
+      </div>
+    </main>
+
+    <!-- Right Sticky Table of Contents -->
+    <aside id="toc-aside" class="toc-aside" aria-label="On this page">
+      <div class="toc-sticky">
+        <div class="toc-header">On This Page</div>
+        <nav id="toc-nav" class="toc-nav"></nav>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Glossary Modal / Drawer -->
+  <div id="glossary-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="glossary-modal-title" hidden>
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="glossary-modal-title">Engineering Glossary</h2>
+        <button type="button" class="icon-btn modal-close" data-close-modal="glossary-modal" aria-label="Close glossary">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="search" id="glossary-search" class="modal-search" placeholder="Filter glossary terms..." aria-label="Filter glossary terms" />
+        <div id="glossary-list" class="glossary-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Progress & Backup Modal -->
+  <div id="progress-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="progress-modal-title" hidden>
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="progress-modal-title">Study Progress &amp; Data Backup</h2>
+        <button type="button" class="icon-btn modal-close" data-close-modal="progress-modal" aria-label="Close progress dialog">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="progress-summary-details" class="progress-summary-details"></div>
+        <div class="backup-actions">
+          <button type="button" id="export-progress-btn" class="btn-primary">Export Progress (JSON)</button>
+          <label class="btn-secondary file-import-label">
+            Import Progress (JSON)
+            <input type="file" id="import-progress-input" accept="application/json,.json" hidden />
+          </label>
+          <button type="button" id="reset-progress-btn" class="btn-danger">Reset All Progress</button>
+        </div>
+        <p class="muted-note">Progress, bookmarks, theme preference, and mastery checks are saved locally in your browser via <code>localStorage</code>.</p>
+      </div>
+    </div>
+  </div>
+
+  <script id="handbook-script">
+/* ==========================================================================
+   Software Engineering Mastery Handbook — Client Application
+   Pure offline Vanilla JS, zero external dependencies, localStorage persistence.
+   ========================================================================== */
+(function () {
+  "use strict";
+
+  const STORAGE_KEY = "sem_handbook_v1";
+
+  const defaultState = {
+    theme: null,
+    completedLessons: {},
+    bookmarks: {},
+    masteryChecks: {},
+    collapsedSections: {},
+    filters: {
+      category: "all",
+      difficulty: "all",
+      bookmarksOnly: false
+    }
+  };
+
+  let state = loadState();
+  let searchIndex = [];
+  let glossaryEntries = [];
+  let activeLessonId = null;
+
+  function loadState() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return structuredCloneSafe(defaultState);
+      const parsed = JSON.parse(raw);
+      return {
+        theme: parsed.theme || null,
+        completedLessons: parsed.completedLessons || {},
+        bookmarks: parsed.bookmarks || {},
+        masteryChecks: parsed.masteryChecks || {},
+        collapsedSections: parsed.collapsedSections || {},
+        filters: {
+          category: (parsed.filters && parsed.filters.category) || "all",
+          difficulty: (parsed.filters && parsed.filters.difficulty) || "all",
+          bookmarksOnly: Boolean(parsed.filters && parsed.filters.bookmarksOnly)
+        }
+      };
+    } catch (_) {
+      return structuredCloneSafe(defaultState);
+    }
+  }
+
+  function saveState() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (_) {
+      /* Ignore storage quota errors in restricted private modes */
+    }
+  }
+
+  function structuredCloneSafe(obj) {
+    return JSON.parse(JSON.stringify(obj));
+  }
+
+  /* ------------------------------------------------------------------------
+     Theme Management
+     ------------------------------------------------------------------------ */
+  function initTheme() {
+    const prefersLight = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches;
+    const theme = state.theme || (prefersLight ? "light" : "dark");
+    applyTheme(theme, false);
+
+    const toggleBtn = document.getElementById("theme-toggle");
+    if (toggleBtn) {
+      toggleBtn.addEventListener("click", () => {
+        const next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+        applyTheme(next, true);
+      });
+    }
+  }
+
+  function applyTheme(theme, persist) {
+    document.documentElement.setAttribute("data-theme", theme);
+    const icon = document.getElementById("theme-icon");
+    if (icon) icon.innerHTML = theme === "dark" ? "&#9788;" : "&#9790;";
+    if (persist) {
+      state.theme = theme;
+      saveState();
+    }
+  }
+
+  /* ------------------------------------------------------------------------
+     Lightweight Offline Syntax Highlighter
+     ------------------------------------------------------------------------ */
+  function escapeHtml(str) {
+    return str
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function highlightCode(rawCode, lang) {
+    const l = (lang || "").toLowerCase();
+    if (!["js", "javascript", "ts", "typescript", "sql", "json", "bash", "sh"].includes(l)) {
+      return escapeHtml(rawCode);
+    }
+
+    const tokenRegex =
+      l === "sql"
+        ? /(--[^\n]*|\/\*[\s\S]*?\*\/|'(?:\\.|[^'\\])*'|"(?:\\.|[^"\\])*"|\b\d+(?:\.\d+)?\b|\b(?:SELECT|FROM|WHERE|JOIN|INNER|LEFT|RIGHT|FULL|CROSS|ON|GROUP|BY|ORDER|HAVING|LIMIT|OFFSET|INSERT|INTO|VALUES|UPDATE|SET|DELETE|CREATE|TABLE|INDEX|UNIQUE|PRIMARY|KEY|FOREIGN|REFERENCES|AS|AND|OR|NOT|IN|IS|NULL|WITH|RECURSIVE|OVER|PARTITION|EXPLAIN|ANALYZE|BEGIN|COMMIT|ROLLBACK|TRANSACTION)\b)/gi
+        : /(\/\/[^\n]*|\/\*[\s\S]*?\*\/|`(?:\\.|[^`\\])*`|'(?:\\.|[^'\\])*'|"(?:\\.|[^"\\])*"|\b\d+(?:\.\d+)?n?\b|\b(?:const|let|var|function|return|if|else|for|while|do|switch|case|break|continue|try|catch|finally|throw|new|class|extends|super|import|export|from|default|async|await|typeof|instanceof|in|of|true|false|null|undefined|void|interface|type|implements|readonly|enum|public|private|protected)\b|\b(?:console|Math|Number|String|Boolean|BigInt|Symbol|Array|Object|Map|Set|Promise|JSON|Date|Error|TypeError|RangeError|parseInt|parseFloat|isNaN)\b)/g;
+
+    let result = "";
+    let lastIndex = 0;
+    let match;
+
+    while ((match = tokenRegex.exec(rawCode)) !== null) {
+      if (match.index > lastIndex) {
+        result += escapeHtml(rawCode.slice(lastIndex, match.index));
+      }
+      const token = match[0];
+      const escaped = escapeHtml(token);
+      let cls = "";
+
+      if (token.startsWith("//") || token.startsWith("/*") || token.startsWith("--")) {
+        cls = "tok-com";
+      } else if (token.startsWith("'") || token.startsWith('"') || token.startsWith("`")) {
+        cls = "tok-str";
+      } else if (/^\d/.test(token)) {
+        cls = "tok-num";
+      } else if (
+        /^(console|Math|Number|String|Boolean|BigInt|Symbol|Array|Object|Map|Set|Promise|JSON|Date|Error|TypeError|RangeError|parseInt|parseFloat|isNaN)$/.test(
+          token
+        )
+      ) {
+        cls = "tok-bi";
+      } else {
+        cls = "tok-kw";
+      }
+
+      result += cls ? `<span class="${cls}">${escaped}</span>` : escaped;
+      lastIndex = tokenRegex.lastIndex;
+    }
+
+    if (lastIndex < rawCode.length) {
+      result += escapeHtml(rawCode.slice(lastIndex));
+    }
+    return result;
+  }
+
+  /* ------------------------------------------------------------------------
+     Enhance Code Blocks & Interactive JS Demos
+     ------------------------------------------------------------------------ */
+  function enhanceCodeBlocks() {
+    const blocks = document.querySelectorAll("#handbook-content pre > code");
+    blocks.forEach((codeEl) => {
+      const pre = codeEl.parentElement;
+      if (!pre || pre.closest(".code-block-enhanced")) return;
+
+      const classMatch = (codeEl.className || "").match(/language-([a-z0-9_-]+)/i);
+      const lang = (pre.dataset.lang || (classMatch && classMatch[1]) || "text").toLowerCase();
+      const rawCode = codeEl.textContent.replace(/^\n+|\n+$/g, "");
+      const isRunnable = pre.dataset.runnable === "true" && (lang === "js" || lang === "javascript");
+
+      const wrapper = document.createElement("div");
+      wrapper.className = "code-block code-block-enhanced";
+      wrapper.dataset.lang = lang;
+
+      const toolbar = document.createElement("div");
+      toolbar.className = "code-toolbar";
+
+      const langBadge = document.createElement("span");
+      langBadge.className = "code-lang";
+      langBadge.textContent = lang;
+
+      const actions = document.createElement("div");
+      actions.className = "code-toolbar-actions";
+
+      const copyBtn = document.createElement("button");
+      copyBtn.type = "button";
+      copyBtn.className = "btn-small";
+      copyBtn.textContent = "Copy";
+      copyBtn.addEventListener("click", () => copyText(getActiveCode(), copyBtn));
+      actions.appendChild(copyBtn);
+
+      let editorEl = null;
+      let outputEl = null;
+
+      if (isRunnable) {
+        const runBtn = document.createElement("button");
+        runBtn.type = "button";
+        runBtn.className = "btn-small";
+        runBtn.textContent = "Run Demo";
+
+        const editBtn = document.createElement("button");
+        editBtn.type = "button";
+        editBtn.className = "btn-small";
+        editBtn.textContent = "Edit";
+
+        const resetBtn = document.createElement("button");
+        resetBtn.type = "button";
+        resetBtn.className = "btn-small";
+        resetBtn.textContent = "Reset";
+        resetBtn.hidden = true;
+
+        actions.prepend(resetBtn);
+        actions.prepend(editBtn);
+        actions.prepend(runBtn);
+
+        editBtn.addEventListener("click", () => {
+          if (!editorEl) return;
+          const editing = editorEl.hidden;
+          editorEl.hidden = !editing;
+          pre.hidden = editing;
+          resetBtn.hidden = !editing;
+          editBtn.textContent = editing ? "View Highlighted" : "Edit";
+        });
+
+        resetBtn.addEventListener("click", () => {
+          if (!editorEl) return;
+          editorEl.value = rawCode;
+          codeEl.innerHTML = highlightCode(rawCode, lang);
+          if (outputEl) {
+            outputEl.hidden = true;
+            outputEl.textContent = "";
+          }
+        });
+
+        runBtn.addEventListener("click", () => {
+          if (!outputEl) return;
+          runJsSandbox(getActiveCode(), outputEl);
+        });
+      }
+
+      function getActiveCode() {
+        return editorEl && !editorEl.hidden ? editorEl.value : rawCode;
+      }
+
+      toolbar.appendChild(langBadge);
+      toolbar.appendChild(actions);
+
+      codeEl.innerHTML = highlightCode(rawCode, lang);
+
+      pre.parentNode.insertBefore(wrapper, pre);
+      wrapper.appendChild(toolbar);
+      wrapper.appendChild(pre);
+
+      if (isRunnable) {
+        editorEl = document.createElement("textarea");
+        editorEl.className = "demo-editor";
+        editorEl.value = rawCode;
+        editorEl.hidden = true;
+        editorEl.setAttribute("aria-label", "Editable JavaScript code snippet");
+
+        outputEl = document.createElement("div");
+        outputEl.className = "demo-output";
+        outputEl.hidden = true;
+
+        wrapper.appendChild(editorEl);
+        wrapper.appendChild(outputEl);
+      }
+    });
+  }
+
+  function copyText(text, btn) {
+    const finish = () => {
+      const orig = btn.textContent;
+      btn.textContent = "Copied!";
+      setTimeout(() => {
+        btn.textContent = orig;
+      }, 1400);
+    };
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(finish).catch(() => fallbackCopy(text, finish));
+    } else {
+      fallbackCopy(text, finish);
+    }
+  }
+
+  function fallbackCopy(text, cb) {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand("copy");
+      cb();
+    } catch (_) {
+      /* Ignore copy failure */
+    }
+    document.body.removeChild(ta);
+  }
+
+  function runJsSandbox(code, outputEl) {
+    const logs = [];
+    const fakeConsole = {
+      log: (...args) => logs.push(args.map(formatValue).join(" ")),
+      warn: (...args) => logs.push("[WARN] " + args.map(formatValue).join(" ")),
+      error: (...args) => logs.push("[ERROR] " + args.map(formatValue).join(" ")),
+      info: (...args) => logs.push(args.map(formatValue).join(" "))
+    };
+
+    outputEl.hidden = false;
+    outputEl.classList.remove("is-error");
+
+    try {
+      const fn = new Function("console", `"use strict";\n${code}`);
+      const ret = fn(fakeConsole);
+      if (ret !== undefined) logs.push("=> " + formatValue(ret));
+      outputEl.textContent = logs.length ? logs.join("\n") : "(Executed with no console output)";
+    } catch (err) {
+      outputEl.classList.add("is-error");
+      outputEl.textContent = `${err.name}: ${err.message}`;
+    }
+  }
+
+  function formatValue(val) {
+    if (typeof val === "string") return val;
+    if (typeof val === "bigint") return val.toString() + "n";
+    if (typeof val === "symbol") return val.toString();
+    if (typeof val === "function") return `[Function: ${val.name || "anonymous"}]`;
+    if (val === undefined) return "undefined";
+    try {
+      return JSON.stringify(val);
+    } catch (_) {
+      return String(val);
+    }
+  }
+
+  /* ------------------------------------------------------------------------
+     Collapsible Sections, Interview Reveal, Exercises & Mastery Assessments
+     ------------------------------------------------------------------------ */
+  function enhanceSectionsAndControls() {
+    // Module expand/collapse all
+    document.querySelectorAll(".module").forEach((modEl) => {
+      const expandAllBtn = modEl.querySelector("[data-action='expand-all']");
+      const collapseAllBtn = modEl.querySelector("[data-action='collapse-all']");
+      if (expandAllBtn) {
+        expandAllBtn.addEventListener("click", () => toggleModuleSections(modEl, false));
+      }
+      if (collapseAllBtn) {
+        collapseAllBtn.addEventListener("click", () => toggleModuleSections(modEl, true));
+      }
+    });
+
+    // Collapsible topic sections
+    document.querySelectorAll(".topic-section").forEach((secEl) => {
+      const btn = secEl.querySelector(".topic-section-header");
+      const secId = secEl.id;
+      if (secId && state.collapsedSections[secId]) {
+        secEl.setAttribute("data-collapsed", "true");
+        if (btn) btn.setAttribute("aria-expanded", "false");
+      } else if (btn) {
+        btn.setAttribute("aria-expanded", "true");
+      }
+
+      if (btn) {
+        btn.addEventListener("click", () => {
+          const isCollapsed = secEl.getAttribute("data-collapsed") === "true";
+          const next = !isCollapsed;
+          secEl.setAttribute("data-collapsed", String(next));
+          btn.setAttribute("aria-expanded", String(!next));
+          if (secId) {
+            if (next) state.collapsedSections[secId] = true;
+            else delete state.collapsedSections[secId];
+            saveState();
+          }
+        });
+      }
+    });
+
+    // Interview Q&A Reveal toggles & per-lesson filter pills
+    document.querySelectorAll(".lesson").forEach((lessonEl) => {
+      const iqCards = lessonEl.querySelectorAll(".iq-card");
+      const revealAllBtn = lessonEl.querySelector("[data-action='reveal-all-iq']");
+      const hideAllBtn = lessonEl.querySelector("[data-action='hide-all-iq']");
+      const localFilterBtns = lessonEl.querySelectorAll(".iq-filter-btn[data-iq-filter]");
+
+      localFilterBtns.forEach((fBtn) => {
+        fBtn.addEventListener("click", () => {
+          const val = fBtn.dataset.iqFilter || "all";
+          localFilterBtns.forEach((b) => b.setAttribute("aria-pressed", String(b === fBtn)));
+          iqCards.forEach((card) => {
+            const qDiff = card.dataset.difficulty || "all";
+            card.hidden = val !== "all" && qDiff !== val;
+          });
+        });
+      });
+
+      iqCards.forEach((card) => {
+        const toggleBtn = card.querySelector(".iq-toggle-btn");
+        const answerEl = card.querySelector(".iq-answer");
+        if (toggleBtn && answerEl) {
+          toggleBtn.addEventListener("click", () => {
+            const isHidden = answerEl.hidden;
+            answerEl.hidden = !isHidden;
+            toggleBtn.textContent = isHidden ? "Hide Answer" : "Reveal Answer";
+            toggleBtn.setAttribute("aria-expanded", String(isHidden));
+          });
+        }
+      });
+
+      if (revealAllBtn) {
+        revealAllBtn.addEventListener("click", () => {
+          iqCards.forEach((card) => {
+            if (card.hidden) return;
+            const ans = card.querySelector(".iq-answer");
+            const btn = card.querySelector(".iq-toggle-btn");
+            if (ans) ans.hidden = false;
+            if (btn) {
+              btn.textContent = "Hide Answer";
+              btn.setAttribute("aria-expanded", "true");
+            }
+          });
+        });
+      }
+
+      if (hideAllBtn) {
+        hideAllBtn.addEventListener("click", () => {
+          iqCards.forEach((card) => {
+            const ans = card.querySelector(".iq-answer");
+            const btn = card.querySelector(".iq-toggle-btn");
+            if (ans) ans.hidden = true;
+            if (btn) {
+              btn.textContent = "Reveal Answer";
+              btn.setAttribute("aria-expanded", "false");
+            }
+          });
+        });
+      }
+
+      // Exercise solution toggles
+      lessonEl.querySelectorAll(".exercise-card").forEach((exCard) => {
+        const btn = exCard.querySelector(".exercise-toggle-btn");
+        const sol = exCard.querySelector(".exercise-solution");
+        if (btn && sol) {
+          btn.addEventListener("click", () => {
+            const isHidden = sol.hidden;
+            sol.hidden = !isHidden;
+            btn.textContent = isHidden ? "Hide Solution" : "Reveal Solution";
+            btn.setAttribute("aria-expanded", String(isHidden));
+          });
+        }
+      });
+
+      // Lesson Completion Checkbox & Bookmark Button
+      const lessonId = lessonEl.dataset.lessonId;
+      const completeCb = lessonEl.querySelector(".lesson-complete-cb");
+      const completeLabel = lessonEl.querySelector(".complete-toggle");
+      const bookmarkBtn = lessonEl.querySelector(".lesson-bookmark-btn");
+
+      if (lessonId && completeCb) {
+        const isDone = Boolean(state.completedLessons[lessonId]);
+        completeCb.checked = isDone;
+        if (completeLabel) completeLabel.classList.toggle("is-done", isDone);
+
+        completeCb.addEventListener("change", () => {
+          if (completeCb.checked) {
+            state.completedLessons[lessonId] = Date.now();
+          } else {
+            delete state.completedLessons[lessonId];
+          }
+          if (completeLabel) completeLabel.classList.toggle("is-done", completeCb.checked);
+          saveState();
+          refreshProgressAndNav();
+        });
+      }
+
+      if (lessonId && bookmarkBtn) {
+        const updateBookmarkUI = () => {
+          const isSaved = Boolean(state.bookmarks[lessonId]);
+          bookmarkBtn.setAttribute("aria-pressed", String(isSaved));
+          bookmarkBtn.innerHTML = isSaved ? "&#9733; Bookmarked" : "&#9734; Bookmark";
+        };
+        updateBookmarkUI();
+
+        bookmarkBtn.addEventListener("click", () => {
+          if (state.bookmarks[lessonId]) delete state.bookmarks[lessonId];
+          else state.bookmarks[lessonId] = Date.now();
+          updateBookmarkUI();
+          saveState();
+          refreshProgressAndNav();
+          if (state.filters.bookmarksOnly) applyFilters();
+        });
+      }
+
+      // Mastery Assessment Checkboxes
+      const masteryBox = lessonEl.querySelector(".mastery-box");
+      if (masteryBox) {
+        const cbs = masteryBox.querySelectorAll("input[type='checkbox'][data-mastery-id]");
+        const scoreEl = masteryBox.querySelector(".mastery-score");
+        const updateScore = () => {
+          let checkedCount = 0;
+          cbs.forEach((cb) => {
+            if (cb.checked) checkedCount++;
+          });
+          if (scoreEl) scoreEl.textContent = `${checkedCount} / ${cbs.length} mastered`;
+        };
+        cbs.forEach((cb) => {
+          const mid = cb.dataset.masteryId;
+          cb.checked = Boolean(state.masteryChecks[mid]);
+          cb.addEventListener("change", () => {
+            if (cb.checked) state.masteryChecks[mid] = true;
+            else delete state.masteryChecks[mid];
+            saveState();
+            updateScore();
+          });
+        });
+        updateScore();
+      }
+    });
+  }
+
+  function toggleModuleSections(modEl, collapse) {
+    modEl.querySelectorAll(".topic-section").forEach((secEl) => {
+      secEl.setAttribute("data-collapsed", String(collapse));
+      const btn = secEl.querySelector(".topic-section-header");
+      if (btn) btn.setAttribute("aria-expanded", String(!collapse));
+      if (secEl.id) {
+        if (collapse) state.collapsedSections[secEl.id] = true;
+        else delete state.collapsedSections[secEl.id];
+      }
+    });
+    saveState();
+  }
+
+  /* ------------------------------------------------------------------------
+     Sidebar Navigation & Progress Calculation
+     ------------------------------------------------------------------------ */
+  function buildSidebar() {
+    const nav = document.getElementById("sidebar-nav");
+    if (!nav) return;
+    nav.innerHTML = "";
+
+    const modules = document.querySelectorAll("#handbook-content .module");
+    modules.forEach((modEl) => {
+      const modId = modEl.id;
+      const modNum = modEl.dataset.moduleNumber || "";
+      const modTitle = modEl.dataset.moduleTitle || modEl.querySelector("h1")?.textContent || modId;
+      const lessons = modEl.querySelectorAll(".lesson");
+
+      const modWrap = document.createElement("div");
+      modWrap.className = "nav-module";
+      modWrap.dataset.moduleId = modId;
+
+      const headerBtn = document.createElement("button");
+      headerBtn.type = "button";
+      headerBtn.className = "nav-module-header";
+      headerBtn.setAttribute("aria-expanded", "true");
+
+      const titleSpan = document.createElement("span");
+      titleSpan.textContent = modNum ? `${modNum}. ${modTitle}` : modTitle;
+
+      const metaSpan = document.createElement("span");
+      metaSpan.className = "nav-module-meta";
+      metaSpan.dataset.moduleMeta = modId;
+
+      headerBtn.appendChild(titleSpan);
+      headerBtn.appendChild(metaSpan);
+
+      const listEl = document.createElement("div");
+      listEl.className = "nav-lesson-list";
+
+      lessons.forEach((lessonEl) => {
+        const lid = lessonEl.dataset.lessonId || lessonEl.id;
+        const lTitle = lessonEl.dataset.lessonTitle || lessonEl.querySelector("h2")?.textContent || lid;
+
+        const link = document.createElement("a");
+        link.href = `#${lessonEl.id}`;
+        link.className = "nav-lesson-link";
+        link.dataset.lessonLink = lid;
+
+        const label = document.createElement("span");
+        label.textContent = lTitle;
+
+        const status = document.createElement("span");
+        status.className = "nav-lesson-status";
+        status.dataset.lessonStatus = lid;
+
+        link.appendChild(label);
+        link.appendChild(status);
+
+        link.addEventListener("click", () => {
+          setActiveLesson(lessonEl);
+          closeMobileSidebar();
+        });
+
+        listEl.appendChild(link);
+      });
+
+      headerBtn.addEventListener("click", () => {
+        const isOpen = headerBtn.getAttribute("aria-expanded") === "true";
+        headerBtn.setAttribute("aria-expanded", String(!isOpen));
+        listEl.hidden = isOpen;
+      });
+
+      modWrap.appendChild(headerBtn);
+      modWrap.appendChild(listEl);
+      nav.appendChild(modWrap);
+    });
+
+    const sidebarFilter = document.getElementById("sidebar-filter");
+    if (sidebarFilter) {
+      sidebarFilter.addEventListener("input", () => {
+        const q = sidebarFilter.value.trim().toLowerCase();
+        nav.querySelectorAll(".nav-module").forEach((modWrap) => {
+          let anyVisible = false;
+          modWrap.querySelectorAll(".nav-lesson-link").forEach((link) => {
+            const match = !q || link.textContent.toLowerCase().includes(q);
+            link.style.display = match ? "" : "none";
+            if (match) anyVisible = true;
+          });
+          const modMatch = modWrap.querySelector(".nav-module-header").textContent.toLowerCase().includes(q);
+          modWrap.style.display = anyVisible || modMatch ? "" : "none";
+          if (modMatch && q) {
+            modWrap.querySelectorAll(".nav-lesson-link").forEach((l) => (l.style.display = ""));
+          }
+        });
+      });
+    }
+  }
+
+  function refreshProgressAndNav() {
+    const lessons = Array.from(document.querySelectorAll("#handbook-content .lesson"));
+    const total = lessons.length;
+    let completed = 0;
+    let bookmarked = 0;
+
+    lessons.forEach((lessonEl) => {
+      const lid = lessonEl.dataset.lessonId;
+      const isDone = Boolean(lid && state.completedLessons[lid]);
+      const isBookmarked = Boolean(lid && state.bookmarks[lid]);
+      if (isDone) completed++;
+      if (isBookmarked) bookmarked++;
+
+      const statusEl = document.querySelector(`[data-lesson-status="${lid}"]`);
+      if (statusEl) {
+        statusEl.innerHTML =
+          (isBookmarked ? '<span class="status-bookmark" title="Bookmarked">&#9733;</span>' : "") +
+          (isDone ? '<span class="status-done" title="Completed">&#10003;</span>' : "");
+      }
+    });
+
+    document.querySelectorAll("#handbook-content .module").forEach((modEl) => {
+      const modLessons = modEl.querySelectorAll(".lesson");
+      let modDone = 0;
+      modLessons.forEach((l) => {
+        if (state.completedLessons[l.dataset.lessonId]) modDone++;
+      });
+      const metaEl = document.querySelector(`[data-module-meta="${modEl.id}"]`);
+      if (metaEl) metaEl.textContent = `${modDone}/${modLessons.length}`;
+    });
+
+    const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+    const barFill = document.getElementById("sidebar-progress-fill");
+    const barWrap = document.getElementById("sidebar-progress-bar-wrap");
+    const txt = document.getElementById("sidebar-progress-text");
+    const pctLabel = document.getElementById("sidebar-pct-label");
+    const bmLabel = document.getElementById("sidebar-bookmarks-label");
+    const topPct = document.getElementById("topbar-progress-pct");
+    const bmCount = document.getElementById("bookmark-count");
+    const buildMeta = document.getElementById("build-meta");
+
+    if (barFill) barFill.style.width = `${pct}%`;
+    if (barWrap) barWrap.setAttribute("aria-valuenow", String(pct));
+    if (txt) txt.textContent = `${completed} / ${total} lessons`;
+    if (pctLabel) pctLabel.textContent = `${pct}% complete`;
+    if (bmLabel) bmLabel.textContent = `${bookmarked} bookmarked`;
+    if (topPct) topPct.textContent = `${pct}%`;
+    if (bmCount) bmCount.textContent = String(bookmarked);
+
+    const modCount = document.querySelectorAll("#handbook-content .module").length;
+    if (buildMeta) {
+      buildMeta.textContent = `${modCount} module${modCount === 1 ? "" : "s"} · ${total} lesson${total === 1 ? "" : "s"}`;
+    }
+  }
+
+  /* ------------------------------------------------------------------------
+     Table of Contents (Right Aside)
+     ------------------------------------------------------------------------ */
+  function setActiveLesson(lessonEl) {
+    if (!lessonEl) return;
+    activeLessonId = lessonEl.id;
+
+    document.querySelectorAll(".nav-lesson-link").forEach((a) => {
+      a.classList.toggle("active", a.dataset.lessonLink === lessonEl.dataset.lessonId);
+    });
+
+    const tocNav = document.getElementById("toc-nav");
+    if (!tocNav) return;
+    tocNav.innerHTML = "";
+
+    const obj = lessonEl.querySelector(".lesson-objectives");
+    if (obj && obj.id) {
+      addTocLink(tocNav, obj.id, "Learning Objectives");
+    }
+
+    lessonEl.querySelectorAll(".topic-section").forEach((sec) => {
+      if (!sec.id) return;
+      const letter = sec.dataset.section || "";
+      const titleText = sec.querySelector(".topic-section-title-text")?.textContent || sec.id;
+      addTocLink(tocNav, sec.id, letter ? `${letter}. ${titleText}` : titleText);
+    });
+
+    const mastery = lessonEl.querySelector(".mastery-box");
+    if (mastery && mastery.id) {
+      addTocLink(tocNav, mastery.id, "Mastery Assessment");
+    }
+  }
+
+  function addTocLink(container, targetId, label) {
+    const a = document.createElement("a");
+    a.className = "toc-link";
+    a.href = `#${targetId}`;
+    a.textContent = label;
+    container.appendChild(a);
+  }
+
+  function initScrollSpy() {
+    const firstLesson = document.querySelector("#handbook-content .lesson");
+    if (firstLesson) setActiveLesson(firstLesson);
+
+    if (!("IntersectionObserver" in window)) return;
+
+    const sectionObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          const parentLesson = entry.target.closest(".lesson");
+          if (parentLesson && parentLesson.id !== activeLessonId) {
+            setActiveLesson(parentLesson);
+          }
+          const tocNav = document.getElementById("toc-nav");
+          if (tocNav) {
+            tocNav.querySelectorAll(".toc-link").forEach((l) => {
+              l.classList.toggle("active", l.getAttribute("href") === `#${entry.target.id}`);
+            });
+          }
+        });
+      },
+      { rootMargin: "-15% 0px -70% 0px", threshold: 0 }
+    );
+
+    document.querySelectorAll("#handbook-content .topic-section[id]").forEach((sec) => {
+      sectionObserver.observe(sec);
+    });
+  }
+
+  /* ------------------------------------------------------------------------
+     Global Search (Topics, Definitions, Code, Interview Q&A, Glossary)
+     ------------------------------------------------------------------------ */
+  function buildSearchAndGlossaryIndex() {
+    searchIndex = [];
+    glossaryEntries = [];
+
+    document.querySelectorAll("#handbook-content .lesson").forEach((lessonEl) => {
+      const lessonTitle = lessonEl.dataset.lessonTitle || lessonEl.querySelector("h2")?.textContent || "";
+
+      // Lesson header
+      searchIndex.push({
+        type: "Lesson",
+        title: lessonTitle,
+        text: lessonEl.querySelector(".lesson-objectives")?.textContent || lessonTitle,
+        targetId: lessonEl.id
+      });
+
+      // Topic sections
+      lessonEl.querySelectorAll(".topic-section").forEach((sec) => {
+        const title = sec.querySelector(".topic-section-title")?.textContent.trim() || "";
+        const bodyText = sec.querySelector(".topic-section-body")?.textContent || "";
+        searchIndex.push({
+          type: "Topic",
+          title: `${lessonTitle} — ${title}`,
+          text: bodyText,
+          targetId: sec.id || lessonEl.id
+        });
+      });
+
+      // Code blocks
+      lessonEl.querySelectorAll("pre code").forEach((codeEl) => {
+        const sec = codeEl.closest(".topic-section");
+        searchIndex.push({
+          type: "Code",
+          title: `${lessonTitle} (${codeEl.closest(".code-block")?.dataset.lang || "code"})`,
+          text: codeEl.textContent,
+          targetId: (sec && sec.id) || lessonEl.id
+        });
+      });
+
+      // Interview questions & answers
+      lessonEl.querySelectorAll(".iq-card").forEach((iq) => {
+        const q = iq.querySelector(".iq-question")?.textContent || "";
+        const a = iq.querySelector(".iq-answer")?.textContent || "";
+        const diff = iq.dataset.difficulty || "";
+        searchIndex.push({
+          type: `Interview (${diff})`,
+          title: q,
+          text: `${q} ${a}`,
+          targetId: iq.id || lessonEl.id
+        });
+      });
+    });
+
+    // Glossary definitions
+    const seenTerms = new Set();
+    document.querySelectorAll("#handbook-content dfn[data-definition]").forEach((dfnEl) => {
+      const term = dfnEl.textContent.trim();
+      const def = dfnEl.dataset.definition || "";
+      if (def && !dfnEl.getAttribute("title")) {
+        dfnEl.setAttribute("title", def);
+      }
+      const sec = dfnEl.closest(".topic-section") || dfnEl.closest(".lesson");
+      const targetId = (sec && sec.id) || "";
+
+      if (!seenTerms.has(term.toLowerCase())) {
+        seenTerms.add(term.toLowerCase());
+        glossaryEntries.push({ term, definition: def, targetId });
+      }
+      searchIndex.push({
+        type: "Glossary",
+        title: term,
+        text: `${term}: ${def}`,
+        targetId
+      });
+    });
+
+    glossaryEntries.sort((a, b) => a.term.localeCompare(b.term));
+  }
+
+  function initSearch() {
+    const input = document.getElementById("global-search");
+    const clearBtn = document.getElementById("search-clear");
+    const panel = document.getElementById("search-results");
+    if (!input || !panel) return;
+
+    function runSearch() {
+      const q = input.value.trim();
+      if (clearBtn) clearBtn.hidden = q.length === 0;
+      if (q.length < 2) {
+        panel.hidden = true;
+        panel.innerHTML = "";
+        return;
+      }
+
+      const lower = q.toLowerCase();
+      const matches = [];
+      for (let i = 0; i < searchIndex.length; i++) {
+        const entry = searchIndex[i];
+        const titleHit = entry.title.toLowerCase().indexOf(lower);
+        const textHit = entry.text.toLowerCase().indexOf(lower);
+        if (titleHit !== -1 || textHit !== -1) {
+          matches.push({ entry, score: titleHit !== -1 ? 2 : 1, idx: textHit });
+        }
+      }
+
+      matches.sort((a, b) => b.score - a.score);
+      renderSearchResults(matches.slice(0, 25), q, panel);
+    }
+
+    input.addEventListener("input", runSearch);
+    input.addEventListener("focus", () => {
+      if (input.value.trim().length >= 2) runSearch();
+    });
+
+    if (clearBtn) {
+      clearBtn.addEventListener("click", () => {
+        input.value = "";
+        clearBtn.hidden = true;
+        panel.hidden = true;
+        input.focus();
+      });
+    }
+
+    document.addEventListener("click", (e) => {
+      if (!e.target.closest(".topbar-search")) {
+        panel.hidden = true;
+      }
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        input.focus();
+        input.select();
+      } else if (e.key === "Escape") {
+        panel.hidden = true;
+        closeAllModals();
+      }
+    });
+  }
+
+  function renderSearchResults(matches, query, panel) {
+    panel.hidden = false;
+    panel.innerHTML = "";
+    if (!matches.length) {
+      panel.innerHTML = `<div class="search-empty">No matches for "${escapeHtml(query)}"</div>`;
+      return;
+    }
+
+    matches.forEach(({ entry, idx }) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "search-result-item";
+
+      const start = Math.max(0, (idx > 0 ? idx : 0) - 40);
+      const rawSnippet = entry.text.replace(/\s+/g, " ").slice(start, start + 130);
+      const safeSnippet = highlightQueryMatch(rawSnippet, query);
+
+      btn.innerHTML = `
+        <div class="search-result-meta">
+          <span class="badge badge-neutral">${escapeHtml(entry.type)}</span>
+        </div>
+        <div class="search-result-title">${escapeHtml(entry.title)}</div>
+        <div class="search-result-snippet">${safeSnippet}...</div>
+      `;
+
+      btn.addEventListener("click", () => {
+        panel.hidden = true;
+        jumpToTarget(entry.targetId);
+      });
+
+      panel.appendChild(btn);
+    });
+  }
+
+  function highlightQueryMatch(text, query) {
+    const escaped = escapeHtml(text);
+    const qEsc = escapeHtml(query).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return escaped.replace(new RegExp(`(${qEsc})`, "ig"), "<mark>$1</mark>");
+  }
+
+  function jumpToTarget(targetId) {
+    if (!targetId) return;
+    const el = document.getElementById(targetId);
+    if (!el) return;
+
+    const sec = el.closest(".topic-section") || (el.classList.contains("topic-section") ? el : null);
+    if (sec && sec.getAttribute("data-collapsed") === "true") {
+      sec.setAttribute("data-collapsed", "false");
+      const btn = sec.querySelector(".topic-section-header");
+      if (btn) btn.setAttribute("aria-expanded", "true");
+    }
+
+    if (el.classList.contains("iq-card")) {
+      const ans = el.querySelector(".iq-answer");
+      const btn = el.querySelector(".iq-toggle-btn");
+      if (ans) ans.hidden = false;
+      if (btn) btn.textContent = "Hide Answer";
+    }
+
+    const parentLesson = el.closest(".lesson");
+    if (parentLesson) {
+      if (parentLesson.hidden) {
+        resetAllFilters();
+      }
+      setActiveLesson(parentLesson);
+    }
+
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  /* ------------------------------------------------------------------------
+     Category, Difficulty & Bookmark Filters
+     ------------------------------------------------------------------------ */
+  function initFilters() {
+    const catSelect = document.getElementById("category-filter");
+    const diffSelect = document.getElementById("difficulty-filter");
+    const bmBtn = document.getElementById("bookmarks-filter-btn");
+    const clearBtn = document.getElementById("clear-filters-btn");
+    const emptyResetBtn = document.getElementById("empty-reset-btn");
+
+    if (catSelect) {
+      catSelect.value = state.filters.category;
+      catSelect.addEventListener("change", () => {
+        state.filters.category = catSelect.value;
+        saveState();
+        applyFilters();
+      });
+    }
+
+    if (diffSelect) {
+      diffSelect.value = state.filters.difficulty;
+      diffSelect.addEventListener("change", () => {
+        state.filters.difficulty = diffSelect.value;
+        saveState();
+        applyFilters();
+      });
+    }
+
+    if (bmBtn) {
+      bmBtn.setAttribute("aria-pressed", String(state.filters.bookmarksOnly));
+      bmBtn.addEventListener("click", () => {
+        state.filters.bookmarksOnly = !state.filters.bookmarksOnly;
+        bmBtn.setAttribute("aria-pressed", String(state.filters.bookmarksOnly));
+        saveState();
+        applyFilters();
+      });
+    }
+
+    if (clearBtn) clearBtn.addEventListener("click", resetAllFilters);
+    if (emptyResetBtn) emptyResetBtn.addEventListener("click", resetAllFilters);
+
+    applyFilters();
+  }
+
+  function resetAllFilters() {
+    state.filters = { category: "all", difficulty: "all", bookmarksOnly: false };
+    saveState();
+    const catSelect = document.getElementById("category-filter");
+    const diffSelect = document.getElementById("difficulty-filter");
+    const bmBtn = document.getElementById("bookmarks-filter-btn");
+    if (catSelect) catSelect.value = "all";
+    if (diffSelect) diffSelect.value = "all";
+    if (bmBtn) bmBtn.setAttribute("aria-pressed", "false");
+    applyFilters();
+  }
+
+  function applyFilters() {
+    const { category, difficulty, bookmarksOnly } = state.filters;
+    let visibleLessons = 0;
+
+    document.querySelectorAll("#handbook-content .module").forEach((modEl) => {
+      let modHasVisible = false;
+      modEl.querySelectorAll(".lesson").forEach((lessonEl) => {
+        const lid = lessonEl.dataset.lessonId;
+        const lCat = lessonEl.dataset.category || modEl.dataset.category || "all";
+        const catOk = category === "all" || lCat === category;
+        const bmOk = !bookmarksOnly || Boolean(state.bookmarks[lid]);
+
+        const showLesson = catOk && bmOk;
+        lessonEl.hidden = !showLesson;
+        if (showLesson) {
+          visibleLessons++;
+          modHasVisible = true;
+        }
+
+        // Difficulty filtering on interview questions
+        lessonEl.querySelectorAll(".iq-card").forEach((iq) => {
+          const qDiff = iq.dataset.difficulty || "all";
+          iq.hidden = difficulty !== "all" && qDiff !== difficulty;
+        });
+      });
+
+      modEl.hidden = !modHasVisible;
+    });
+
+    const emptyState = document.getElementById("empty-filter-state");
+    if (emptyState) emptyState.hidden = visibleLessons > 0;
+
+    const bar = document.getElementById("active-filter-bar");
+    const summary = document.getElementById("active-filter-summary");
+    const activeParts = [];
+    if (category !== "all") activeParts.push(`Category: ${category}`);
+    if (difficulty !== "all") activeParts.push(`Interview difficulty: ${difficulty}`);
+    if (bookmarksOnly) activeParts.push("Bookmarks only");
+
+    if (bar && summary) {
+      if (activeParts.length) {
+        bar.hidden = false;
+        summary.textContent = `Active filters — ${activeParts.join(" · ")}`;
+      } else {
+        bar.hidden = true;
+      }
+    }
+  }
+
+  /* ------------------------------------------------------------------------
+     Modals: Glossary & Progress Backup
+     ------------------------------------------------------------------------ */
+  function initModals() {
+    const glossaryBtn = document.getElementById("glossary-btn");
+    const progressBtn = document.getElementById("progress-modal-btn");
+
+    if (glossaryBtn) {
+      glossaryBtn.addEventListener("click", () => {
+        renderGlossary("");
+        openModal("glossary-modal");
+      });
+    }
+
+    const glossarySearch = document.getElementById("glossary-search");
+    if (glossarySearch) {
+      glossarySearch.addEventListener("input", () => renderGlossary(glossarySearch.value.trim()));
+    }
+
+    if (progressBtn) {
+      progressBtn.addEventListener("click", () => {
+        renderProgressModal();
+        openModal("progress-modal");
+      });
+    }
+
+    document.querySelectorAll("[data-close-modal]").forEach((btn) => {
+      btn.addEventListener("click", () => closeModal(btn.dataset.closeModal));
+    });
+
+    document.querySelectorAll(".modal").forEach((m) => {
+      m.addEventListener("click", (e) => {
+        if (e.target === m) m.hidden = true;
+      });
+    });
+
+    // Export / Import / Reset
+    const exportBtn = document.getElementById("export-progress-btn");
+    const importInput = document.getElementById("import-progress-input");
+    const resetBtn = document.getElementById("reset-progress-btn");
+
+    if (exportBtn) {
+      exportBtn.addEventListener("click", () => {
+        const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "software-engineering-mastery-progress.json";
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+    }
+
+    if (importInput) {
+      importInput.addEventListener("change", () => {
+        const file = importInput.files && importInput.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const parsed = JSON.parse(String(reader.result));
+            state = Object.assign(structuredCloneSafe(defaultState), parsed);
+            saveState();
+            window.location.reload();
+          } catch (_) {
+            alert("Invalid JSON progress file.");
+          }
+        };
+        reader.readAsText(file);
+      });
+    }
+
+    if (resetBtn) {
+      resetBtn.addEventListener("click", () => {
+        if (!confirm("Reset all lesson completions, bookmarks, and mastery checks?")) return;
+        localStorage.removeItem(STORAGE_KEY);
+        window.location.reload();
+      });
+    }
+  }
+
+  function renderGlossary(query) {
+    const list = document.getElementById("glossary-list");
+    if (!list) return;
+    const q = query.toLowerCase();
+    const filtered = glossaryEntries.filter(
+      (g) => !q || g.term.toLowerCase().includes(q) || g.definition.toLowerCase().includes(q)
+    );
+
+    if (!filtered.length) {
+      list.innerHTML = `<p class="muted-note">No glossary terms match "${escapeHtml(query)}".</p>`;
+      return;
+    }
+
+    list.innerHTML = filtered
+      .map(
+        (g) => `
+      <div class="glossary-entry">
+        <strong>${escapeHtml(g.term)}</strong>
+        <p style="margin:4px 0 6px">${escapeHtml(g.definition)}</p>
+        ${
+          g.targetId
+            ? `<button type="button" class="btn-small glossary-jump" data-jump="${escapeHtml(g.targetId)}">Jump to section</button>`
+            : ""
+        }
+      </div>`
+      )
+      .join("");
+
+    list.querySelectorAll(".glossary-jump").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        closeModal("glossary-modal");
+        jumpToTarget(btn.dataset.jump);
+      });
+    });
+  }
+
+  function renderProgressModal() {
+    const container = document.getElementById("progress-summary-details");
+    if (!container) return;
+    const lessons = document.querySelectorAll("#handbook-content .lesson").length;
+    const done = Object.keys(state.completedLessons).length;
+    const bm = Object.keys(state.bookmarks).length;
+    const checks = Object.keys(state.masteryChecks).length;
+    const pct = lessons ? Math.round((done / lessons) * 100) : 0;
+
+    container.innerHTML = `
+      <div class="table-wrap">
+        <table>
+          <tr><th>Metric</th><th>Value</th></tr>
+          <tr><td>Lessons Completed</td><td>${done} / ${lessons} (${pct}%)</td></tr>
+          <tr><td>Bookmarked Lessons</td><td>${bm}</td></tr>
+          <tr><td>Mastery Checks Completed</td><td>${checks}</td></tr>
+        </table>
+      </div>
+    `;
+  }
+
+  function openModal(id) {
+    const m = document.getElementById(id);
+    if (m) m.hidden = false;
+  }
+
+  function closeModal(id) {
+    const m = document.getElementById(id);
+    if (m) m.hidden = true;
+  }
+
+  function closeAllModals() {
+    document.querySelectorAll(".modal").forEach((m) => (m.hidden = true));
+  }
+
+  /* ------------------------------------------------------------------------
+     Responsive Sidebar Toggle
+     ------------------------------------------------------------------------ */
+  function initSidebarToggle() {
+    const btn = document.getElementById("sidebar-toggle");
+    const sidebar = document.getElementById("sidebar");
+    const layout = document.querySelector(".portal-layout");
+    const backdrop = document.getElementById("sidebar-backdrop");
+    if (!btn || !sidebar) return;
+
+    btn.addEventListener("click", () => {
+      if (window.innerWidth <= 900) {
+        const isOpen = sidebar.classList.toggle("open-mobile");
+        btn.setAttribute("aria-expanded", String(isOpen));
+        if (backdrop) {
+          backdrop.hidden = !isOpen;
+          backdrop.classList.toggle("visible", isOpen);
+        }
+      } else {
+        const collapsed = sidebar.classList.toggle("collapsed-desktop");
+        if (layout) layout.classList.toggle("sidebar-hidden", collapsed);
+        btn.setAttribute("aria-expanded", String(!collapsed));
+      }
+    });
+
+    if (backdrop) {
+      backdrop.addEventListener("click", closeMobileSidebar);
+    }
+  }
+
+  function closeMobileSidebar() {
+    const sidebar = document.getElementById("sidebar");
+    const backdrop = document.getElementById("sidebar-backdrop");
+    const btn = document.getElementById("sidebar-toggle");
+    if (sidebar) sidebar.classList.remove("open-mobile");
+    if (backdrop) {
+      backdrop.classList.remove("visible");
+      backdrop.hidden = true;
+    }
+    if (btn && window.innerWidth <= 900) btn.setAttribute("aria-expanded", "false");
+  }
+
+  /* ------------------------------------------------------------------------
+     Boot
+     ------------------------------------------------------------------------ */
+  function boot() {
+    initTheme();
+    initSidebarToggle();
+    enhanceCodeBlocks();
+    enhanceSectionsAndControls();
+    buildSidebar();
+    refreshProgressAndNav();
+    buildSearchAndGlossaryIndex();
+    initSearch();
+    initFilters();
+    initModals();
+    initScrollSpy();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot);
+  } else {
+    boot();
+  }
+})();
+
+</script>
+</body>
+</html>

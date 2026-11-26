@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Software Engineering Mastery Handbook</title>
+  <link rel="stylesheet" href="assets/style.css" id="handbook-css-link" />
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to content</a>
+
+  <!-- Mobile / Tablet Sidebar Backdrop -->
+  <div id="sidebar-backdrop" class="sidebar-backdrop" hidden></div>
+
+  <!-- Top Navigation & Global Controls -->
+  <header class="topbar" role="banner">
+    <div class="topbar-left">
+      <button type="button" id="sidebar-toggle" class="icon-btn" aria-label="Toggle navigation sidebar" aria-expanded="false" aria-controls="sidebar">
+        <span aria-hidden="true">&#9776;</span>
+      </button>
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">&lt;/&gt;</span>
+        <div class="brand-text">
+          <span class="brand-title">Software Engineering Mastery</span>
+          <span class="brand-sub" id="build-meta">Offline Engineering Handbook</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="topbar-search">
+      <div class="search-box">
+        <span class="search-icon" aria-hidden="true">&#128269;</span>
+        <input
+          type="search"
+          id="global-search"
+          placeholder="Search topics, code, interview Q&amp;A, glossary... (Ctrl+K)"
+          aria-label="Search across the entire handbook"
+          autocomplete="off"
+        />
+        <button type="button" id="search-clear" class="search-clear" aria-label="Clear search" hidden>&times;</button>
+      </div>
+      <div id="search-results" class="search-results" role="region" aria-label="Search results" hidden></div>
+    </div>
+
+    <div class="topbar-actions">
+      <select id="category-filter" class="toolbar-select" aria-label="Filter by category">
+        <option value="all">All Categories</option>
+        <option value="fundamentals">Fundamentals &amp; Languages</option>
+        <option value="frontend">Frontend &amp; React</option>
+        <option value="backend">Backend &amp; APIs</option>
+        <option value="databases">Databases &amp; Indexing</option>
+        <option value="architecture">System Design &amp; Distributed</option>
+        <option value="ai">AI, LLM &amp; RAG</option>
+        <option value="devops">DevOps, Cloud &amp; SRE</option>
+        <option value="quality">Security &amp; Testing</option>
+        <option value="career">Projects, Interviews &amp; Roadmap</option>
+      </select>
+
+      <select id="difficulty-filter" class="toolbar-select" aria-label="Filter interview questions by difficulty">
+        <option value="all">All Difficulties</option>
+        <option value="basic">Basic</option>
+        <option value="intermediate">Intermediate</option>
+        <option value="advanced">Advanced</option>
+        <option value="senior-architect">Senior / Architect</option>
+        <option value="senior">Senior (Mod 26)</option>
+        <option value="architect">Architect (Mod 26)</option>
+      </select>
+
+      <button type="button" id="bookmarks-filter-btn" class="pill-btn" aria-pressed="false" title="Show bookmarked lessons only">
+        <span aria-hidden="true">&#9733;</span> <span class="btn-label">Bookmarks</span> <span id="bookmark-count" class="count-badge">0</span>
+      </button>
+
+      <button type="button" id="glossary-btn" class="pill-btn" title="Open glossary">
+        <span aria-hidden="true">&#128214;</span> <span class="btn-label">Glossary</span>
+      </button>
+
+      <button type="button" id="progress-modal-btn" class="pill-btn" title="View progress and backup">
+        <span id="topbar-progress-pct">0%</span>
+      </button>
+
+      <button type="button" id="theme-toggle" class="icon-btn" aria-label="Toggle dark or light theme" title="Toggle theme">
+        <span id="theme-icon" aria-hidden="true">&#9788;</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="portal-layout">
+    <!-- Left Navigation Sidebar -->
+    <aside id="sidebar" class="sidebar" aria-label="Course modules navigation">
+      <div class="sidebar-progress-card">
+        <div class="progress-row">
+          <span class="progress-label">Course Progress</span>
+          <strong id="sidebar-progress-text">0 / 0 lessons</strong>
+        </div>
+        <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="sidebar-progress-bar-wrap">
+          <div class="progress-fill" id="sidebar-progress-fill" style="width: 0%"></div>
+        </div>
+        <div class="sidebar-stats">
+          <span id="sidebar-pct-label">0% complete</span>
+          <span id="sidebar-bookmarks-label">0 bookmarked</span>
+        </div>
+      </div>
+
+      <div class="sidebar-filter-wrap">
+        <input
+          type="search"
+          id="sidebar-filter"
+          placeholder="Filter modules or lessons..."
+          aria-label="Filter sidebar navigation"
+        />
+      </div>
+
+      <nav id="sidebar-nav" class="sidebar-nav" aria-label="Module list"></nav>
+    </aside>
+
+    <!-- Main Learning Area -->
+    <main id="main-content" class="main-content" tabindex="-1">
+      <!-- Active Filter Banner -->
+      <div id="active-filter-bar" class="active-filter-bar" hidden>
+        <span id="active-filter-summary"></span>
+        <button type="button" id="clear-filters-btn" class="btn-small">Reset Filters</button>
+      </div>
+
+      <!-- Course Modules Container -->
+      <div id="handbook-content">
+        <!-- BUILD:MODULES -->
+      </div>
+
+      <!-- Empty State when filters match nothing -->
+      <div id="empty-filter-state" class="empty-state" hidden>
+        <h2>No matching lessons found</h2>
+        <p>Try clearing the category, bookmark, or search filter to see available modules.</p>
+        <button type="button" id="empty-reset-btn" class="btn-primary">Show All Content</button>
+      </div>
+    </main>
+
+    <!-- Right Sticky Table of Contents -->
+    <aside id="toc-aside" class="toc-aside" aria-label="On this page">
+      <div class="toc-sticky">
+        <div class="toc-header">On This Page</div>
+        <nav id="toc-nav" class="toc-nav"></nav>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Glossary Modal / Drawer -->
+  <div id="glossary-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="glossary-modal-title" hidden>
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="glossary-modal-title">Engineering Glossary</h2>
+        <button type="button" class="icon-btn modal-close" data-close-modal="glossary-modal" aria-label="Close glossary">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="search" id="glossary-search" class="modal-search" placeholder="Filter glossary terms..." aria-label="Filter glossary terms" />
+        <div id="glossary-list" class="glossary-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Progress & Backup Modal -->
+  <div id="progress-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="progress-modal-title" hidden>
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="progress-modal-title">Study Progress &amp; Data Backup</h2>
+        <button type="button" class="icon-btn modal-close" data-close-modal="progress-modal" aria-label="Close progress dialog">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="progress-summary-details" class="progress-summary-details"></div>
+        <div class="backup-actions">
+          <button type="button" id="export-progress-btn" class="btn-primary">Export Progress (JSON)</button>
+          <label class="btn-secondary file-import-label">
+            Import Progress (JSON)
+            <input type="file" id="import-progress-input" accept="application/json,.json" hidden />
+          </label>
+          <button type="button" id="reset-progress-btn" class="btn-danger">Reset All Progress</button>
+        </div>
+        <p class="muted-note">Progress, bookmarks, theme preference, and mastery checks are saved locally in your browser via <code>localStorage</code>.</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/app.js" id="handbook-js-script"></script>
+</body>
+</html>
