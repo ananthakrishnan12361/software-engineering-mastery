@@ -271,13 +271,16 @@ async function runBrowserLayoutAndSvgAudit(lessons) {
       const svgReport = await evalJs(`(() => {
         const svgs = Array.from(document.querySelectorAll('.diagram-card svg'));
         return svgs.map((svg, idx) => {
-          const vb = (svg.getAttribute('viewBox') || '').trim().split(/\s+/).map(Number);
+          const vb = (svg.getAttribute('viewBox') || '').trim().split(/\\s+/).map(Number);
           const rect = svg.getBoundingClientRect();
           const parentRect = svg.parentElement.getBoundingClientRect();
+          const parentStyle = getComputedStyle(svg.parentElement);
+          const parentContentWidth = parentRect.width - parseFloat(parentStyle.paddingLeft || '0') - parseFloat(parentStyle.paddingRight || '0');
+          const missingViewBox = vb.length !== 4 || vb.some((n) => !Number.isFinite(n));
           const clipped = [];
           const overlaps = [];
           const textBoxes = [];
-          if (vb.length === 4) {
+          if (!missingViewBox) {
             const [minX, minY, vbW, vbH] = vb;
             for (const el of svg.querySelectorAll('text')) {
               const txt = el.textContent?.trim();
@@ -302,10 +305,11 @@ async function runBrowserLayoutAndSvgAudit(lessons) {
           }
           return {
             idx,
+            missingViewBox,
             width: Math.round(rect.width),
             height: Math.round(rect.height),
-            parentWidth: Math.round(parentRect.width),
-            overflowParent: rect.width > parentRect.width + 2,
+            parentWidth: Math.round(parentContentWidth),
+            overflowParent: rect.width > parentContentWidth + 2,
             clipped,
             overlaps
           };
@@ -315,6 +319,11 @@ async function runBrowserLayoutAndSvgAudit(lessons) {
       assert(svgReport.length > 0, `No rendered SVG diagrams inspected in lesson ${lesson.id}`);
       for (const item of svgReport) {
         totalSvgsChecked++;
+        assert.equal(
+          item.missingViewBox,
+          false,
+          `SVG #${item.idx + 1} in ${lesson.id} lacks a valid 4-number viewBox attribute`
+        );
         assert(
           item.width >= 100 && item.height >= 40,
           `SVG #${item.idx + 1} in ${lesson.id} collapsed or failed to render (${item.width}x${item.height})`

@@ -4,10 +4,10 @@
 Maintain a comfortable, offline-capable React + TypeScript + MDX learning portal built with Feature-Sliced Design v2.1 and bundled into `dist/software_engineering_mastery.html`.
 
 ## Overall status
-**M01-P2 Completed & Verified — awaiting user review before `M01-P3`**
+**`M01-P1 Remediation` Completed & Independently Audited (`PASS`) — `M01-P2 Remediation` next before `M01-P3`**
 
 ## Current phase
-Phase 3 design remains locked in [DESIGN_GUIDE.md](DESIGN_GUIDE.md). Content authoring is active for Module 1 (`M01-P1` and `M01-P2` complete; `M01-P3` next).
+Phase 3 design remains locked in [DESIGN_GUIDE.md](DESIGN_GUIDE.md). Content remediation is active for Module 1 (`M01-P1` remediated & verified with live Chrome SVG `getBBox()` checks; approved `M01-P2 Remediation` next before `M01-P3`).
 
 ## Completed
 - [x] Phase 1 & 2: Legacy v1 archived in `legacy/`, React 19 + TS + Vite 8 + MDX + `vite-plugin-singlefile` + Steiger setup
@@ -22,11 +22,12 @@ Phase 3 design remains locked in [DESIGN_GUIDE.md](DESIGN_GUIDE.md). Content aut
 Use `COURSE_OUTLINE.md` and `CONTENT_CHECKLIST.md` to track module and part status. Currently written: `M01-P1` & `M01-P2` (`13` topics available, `932` not written yet; Module 1 interview totals: `7/10` Basic, `7/10` Intermediate, `6/10` Advanced, `3/5` Senior/Architect = `23/35`).
 
 ## Current task
-STOP after `M01-P2` completion and verification; await user review before writing `M01-P3` (`Algorithms, Big O, Sorting, Searching, Recursion, Data Structures, Stacks, Queues, Linked Lists, Hash Tables`).
+Complete approved `M01-P2 Remediation` (`safeMerge` log/`isPlainObject`, SRP & ISP runnable code, Shallow vs. Deep Copying table, `WeakMap` & `WeakSet`, private field order note) before writing `M01-P3` (`Algorithms, Data structures, Time complexity, Space complexity, Big O, Recursion, Sorting, Searching, Hash maps, Stacks, Queues, Trees, Graph fundamentals`).
 
 ## Next actions
-1. User reviews `M01-P2` (`Objects, Arrays, Classes, OOP, Encapsulation, Inheritance, Polymorphism, Abstraction, SOLID fundamentals`) in `dist/software_engineering_mastery.html` and approves proceeding to `M01-P3`.
-2. User also decides when to approve removing `legacy/`.
+1. Run `M01-P2 Remediation` (`PLAN -> WRITE -> CHECK -> AUDIT -> UPDATE -> COMMIT` on `react-fsd`).
+2. Proceed to `M01-P3` once `M01-P2 Remediation` passes `npm run quality` and fresh subagent audit.
+3. User decides when to approve removing `legacy/`.
 
 ## Decisions
 1. **Approved UI & Design Lock**: The Phase 3 UI design is approved and documented in `DESIGN_GUIDE.md` (themes, tokens, typography, spacing, reusable components, responsive breakpoints, and filter rules). Do not alter the design in future lesson work without user approval.

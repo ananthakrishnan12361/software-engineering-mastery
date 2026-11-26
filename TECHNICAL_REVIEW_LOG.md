@@ -48,19 +48,29 @@ For each review, add:
 
 ### 2026-11-26 — Module 1 Part 1 (`M01-P1`) Technical & Version-Sensitive Notes
 - **Reviewer/model:** Gemini 4 Hydrogen (High)
-- **Files/sections reviewed:** `modules/01-programming.html` (Sections C, D, G, I, J, M/N, P)
-- **Review scope:** Runtime behavior, ECMAScript vs. V8 engine specifics, and version-sensitive API claims.
+- **Files/sections reviewed:** `content/modules/01-programming/m01-p1.mdx` (Sections A–Q), `content/interviews/m01-p1.questions.ts`, `content/coverage/m01-p1.coverage.ts`
+- **Review scope:** Runtime behavior, ECMAScript vs. V8 engine specifics, code edge cases, and version-sensitive API claims.
 - **Findings:**
-  1. **V8 Engine Internals (Smi / Ignition / TurboFan / Hidden Classes):** Described explicitly as V8 implementation details, not ECMAScript specification guarantees (newer V8 releases also include baseline/mid-tier compilers Sparkplug and Maglev).
+  1. **V8 Engine Internals (Smi / Ignition / TurboFan / Sparkplug / Maglev / Hidden Classes):** Described explicitly as V8 implementation details, not ECMAScript specification guarantees.
   2. **Proper Tail Calls (PTC):** Noted that while ES2015 specified PTC in strict mode, V8/Node.js and SpiderMonkey do not enable it in production, so iterative stacks are required to prevent stack overflow.
   3. **Call Stack Depth (~10k frames):** Varies by runtime, OS stack limit, and local variable count per frame; noted as approximate.
-  4. **`JSON.parse` `context.source`:** Corrected initial draft reference from `ES2022+` to "newer V8/Node.js runtimes" since JSON.parse source text access is a post-ES2022 addition (ES2025 / recent V8/Node.js).
+  4. **`JSON.parse` `context.source`:** Corrected initial draft reference from `ES2022+` to "newer V8/Node.js runtimes" since JSON.parse source text access is a post-ES2022 addition.
   5. **Falsy values count:** Fixed count mismatch in Sections G and L to state 8 core falsy values (`false`, `0`, `-0`, `0n`, `""`, `null`, `undefined`, `NaN`) plus legacy browser `document.all`.
-- **Corrections made:** Updated `modules/01-programming.html` Sections G, L, and P.
+  6. **M01-P1 Remediation Pass (2026-11-26):** Fixed Figure 1.2 SVG text overflow (`viewBox="0 0 820 190"`), expanded Section B #1 with Control Flow (`if/else`, `switch`, loops, `break`/`continue`, early returns, `try/catch/finally`), tightened input/range/overflow/`-0`/cycle validation in `calculateLineTotalCents`, `createTaxCalculator`, `parseQueryFlags`, `splitAmountCents`, `flattenIterative`, and `composeValidators`/`normalizeSignup`, and expanded `m01-p1.coverage.ts` tests and safety mutations.
+- **Corrections made:** Updated `content/modules/01-programming/m01-p1.mdx`, `content/coverage/m01-p1.coverage.ts`, and `scripts/verify-quality.mjs`.
 - **Unresolved questions:** None.
 - **Sources checked:**
   - `JSON.parse()` `reviver` `context.source`: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/parse
-  - ECMAScript / V8 runtime verification via Node.js v24 execution and V8 blog (https://v8.dev/blog/elements-kinds).
+  - `BigInt` (ES2020): https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/BigInt
+  - `Symbol` (ES2015): https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Symbol
+  - `let` & `const` / Temporal Dead Zone (ES2015): https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/let and https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/const
+  - `Number.isSafeInteger` / `MAX_SAFE_INTEGER` (ES2015): https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/isSafeInteger
+  - `Object.is` (ES2015): https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/is
+  - `Object.hasOwn` (ES2022): https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/hasOwn
+  - `Array.prototype.toSorted` (ES2023): https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/toSorted
+  - `structuredClone` (Node.js v17+): https://nodejs.org/api/globals.html#structuredclonevalue-options
+  - ECMAScript Tail Position Calls (ES2015+): https://262.ecma-international.org
+  - V8 JIT Pipeline (Ignition / Sparkplug / Maglev / TurboFan) & Elements Kinds: https://v8.dev/blog and https://v8.dev/blog/elements-kinds
 - **Status:** Corrected
 
 ### 2026-11-26 — React 19 + Vite 8 + MDX + FSD v2.1 Migration

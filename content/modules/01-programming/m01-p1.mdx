@@ -24,10 +24,17 @@ Every layer of production software depends on these primitives. A React UI compo
 
 #### 1. Programming Fundamentals: Expressions, Statements & Control Flow
 
-A program is a sequence of instructions executed step by step unless redirected by control flow. Two terms cause frequent confusion:
+A program is a sequence of instructions executed top to bottom unless redirected by **control flow**. Two terms cause frequent confusion:
 
-- <GlossaryTerm definition="A unit of code that evaluates to a single value (for example: 2 + 3, user.name, or calculateTax(100)).">Expression</GlossaryTerm>: Anything that produces a value (e.g., `price * 1.1`).
+- <GlossaryTerm definition="A unit of code that evaluates to a single value (for example: 2 + 3, user.name, or calculateTax(100)).">Expression</GlossaryTerm>: Anything that produces a value (e.g., `price * 1.1`, `isValid ? "ok" : "err"`).
 - <GlossaryTerm definition="A complete instruction that performs an action (for example: let x = 5;, if (...) {}, or return x;).">Statement</GlossaryTerm>: An instruction that performs an action (e.g., declaring a variable, branching with `if`, looping with `for`).
+
+To direct execution paths safely, programs combine four control-flow constructs:
+
+- **Conditionals (`if / else if / else`, `switch`, ternary `?:`):** Choose one branch based on a boolean condition. Use `if/else` for range or multi-variable checks, `switch` (with explicit `break` or `return` to avoid fall-through bugs) for discrete enum/status codes, and `?:` when you need a short inline expression.
+- **Loops (`for`, `while`, `do...while`, `for...of`):** Repeat work until a stop condition becomes false. Prefer `for...of` when iterating arrays/iterables, classic `for (let i = 0; ...)` when you need the index, `while` when iteration count is unknown upfront, and `break` / `continue` to exit early or skip an iteration.
+- **Early Returns (Guard Clauses):** Validate invalid inputs at the top of a function and `return` or `throw` immediately instead of nesting deeply inside `if/else` pyramids.
+- **Exception Flow (`try / catch / finally`):** Redirect execution to a `catch` handler when an operation throws an `Error`, with `finally` always running cleanup logic (such as closing locks or timers) whether the block succeeded or failed.
 
 <TopicAnchor id="m01-p1-topic-variables" />
 
@@ -122,8 +129,8 @@ Because 53 bits of precision can represent integers exactly only up to `2^53 - 1
 *Engine detail (V8):* Internally, V8 optimizes common 31-bit/32-bit signed integers as **Smi (Small Integers)** stored directly inside tagged pointers without heap allocation, while fractional or large numbers become heap-allocated `HeapNumber` objects.
 
 <DiagramCard caption="Figure 1.2 — IEEE-754 64-bit structure explains both decimal rounding artifacts and the 53-bit safe integer ceiling.">
-  <svg viewBox="0 0 820 175" role="img" aria-label="IEEE 754 64-bit floating point layout and JavaScript compilation pipeline">
-    <rect x="10" y="10" width="800" height="155" rx="10" fill="var(--bg-subtle)" stroke="var(--border)" />
+  <svg viewBox="0 0 820 190" role="img" aria-label="IEEE 754 64-bit floating point layout and safe integer ceiling">
+    <rect x="10" y="10" width="800" height="170" rx="10" fill="var(--bg-subtle)" stroke="var(--border)" />
     <text x="28" y="38" fill="var(--text-primary)" fontSize="13.5" fontWeight="700" fontFamily="sans-serif">IEEE-754 64-bit Double Layout (JavaScript Number)</text>
 
     <rect x="28" y="52" width="54" height="44" rx="4" fill="var(--danger-soft)" stroke="var(--danger)" />
@@ -136,9 +143,10 @@ Because 53 bits of precision can represent integers exactly only up to `2^53 - 1
 
     <rect x="274" y="52" width="518" height="44" rx="4" fill="var(--accent-soft)" stroke="var(--accent)" />
     <text x="533" y="71" textAnchor="middle" fill="var(--accent-strong)" fontSize="12" fontWeight="700" fontFamily="monospace">Mantissa / Significand</text>
-    <text x="533" y="87" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="monospace">52 stored bits (+1 implicit = 53 bits precision; MAX_SAFE_INTEGER = 2^53 - 1)</text>
+    <text x="533" y="87" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="monospace">52 stored + 1 implicit = 53 bits (MAX_SAFE_INTEGER = 2^53 - 1)</text>
 
-    <text x="28" y="132" fill="var(--text-secondary)" fontSize="12.5" fontFamily="monospace">{"Safe Integer Check: Number.isSafeInteger(9007199254740991) === true  |  9007199254740992 === 9007199254740993 -> TRUE (precision lost!)"}</text>
+    <text x="28" y="128" fill="var(--text-secondary)" fontSize="12" fontFamily="monospace">{"Safe:   Number.isSafeInteger(9007199254740991) === true  (2^53 - 1)"}</text>
+    <text x="28" y="150" fill="var(--warning)" fontSize="12" fontFamily="monospace">{"Unsafe: 9007199254740992 === 9007199254740993 -> true (precision lost!)"}</text>
   </svg>
 </DiagramCard>
 
@@ -210,20 +218,43 @@ console.log("Loose '0' == false:", "0" == false, "| Strict '0' === false:", "0" 
   runnable
   code={`// Pure function: depends only on inputs, does not mutate arguments
 function calculateLineTotalCents(unitPriceCents, quantity, discountRate = 0) {
-  if (!Number.isInteger(unitPriceCents) || unitPriceCents < 0) {
-    throw new TypeError("unitPriceCents must be a non-negative integer");
+  if (!Number.isSafeInteger(unitPriceCents) || unitPriceCents < 0) {
+    throw new TypeError("unitPriceCents must be a non-negative safe integer");
   }
-  if (!Number.isInteger(quantity) || quantity < 0) {
-    throw new TypeError("quantity must be a non-negative integer");
+  if (!Number.isSafeInteger(quantity) || quantity < 0) {
+    throw new TypeError("quantity must be a non-negative safe integer");
+  }
+  if (typeof discountRate !== "number" || !Number.isFinite(discountRate)) {
+    throw new TypeError("discountRate must be a finite number");
+  }
+  if (discountRate < 0 || discountRate > 1) {
+    throw new RangeError("discountRate must be between 0 and 1");
   }
   const gross = unitPriceCents * quantity;
-  return Math.round(gross * (1 - discountRate));
+  if (!Number.isSafeInteger(gross)) {
+    throw new RangeError("Line total exceeds Number.MAX_SAFE_INTEGER");
+  }
+  const rounded = Math.round(gross * (1 - discountRate));
+  return rounded === 0 ? 0 : rounded;
 }
 
 // Higher-order function returning a configured validator/calculator
 function createTaxCalculator(taxRate) {
+  if (typeof taxRate !== "number" || !Number.isFinite(taxRate)) {
+    throw new TypeError("taxRate must be a finite number");
+  }
+  if (taxRate < 0 || taxRate > 1) {
+    throw new RangeError("taxRate must be between 0 and 1");
+  }
   return function applyTax(subtotalCents) {
-    return subtotalCents + Math.round(subtotalCents * taxRate);
+    if (!Number.isSafeInteger(subtotalCents) || subtotalCents < 0) {
+      throw new TypeError("subtotalCents must be a non-negative safe integer");
+    }
+    const total = subtotalCents + Math.round(subtotalCents * taxRate);
+    if (!Number.isSafeInteger(total)) {
+      throw new RangeError("Taxed total exceeds Number.MAX_SAFE_INTEGER");
+    }
+    return total === 0 ? 0 : total;
   };
 }
 
@@ -280,15 +311,37 @@ Trace every runtime step of **Example 3** (`testPassBySharing` and `applyVat`):
   lang="javascript"
   runnable
   code={`function parseQueryFlags(query) {
-  const page = Number(query.page ?? 1);
-  if (!Number.isInteger(page) || page < 1 || page > 10000) {
+  if (query === null || typeof query !== "object" || Array.isArray(query)) {
+    throw new TypeError("query must be a plain object");
+  }
+  const proto = Object.getPrototypeOf(query);
+  if (proto !== Object.prototype && proto !== null) {
+    throw new TypeError("query must be a plain object");
+  }
+
+  const rawPage = Object.hasOwn(query, "page") ? query.page : undefined;
+  let page = 1;
+  if (rawPage !== undefined) {
+    if (typeof rawPage === "number") {
+      if (!Number.isSafeInteger(rawPage)) {
+        throw new TypeError("page must be a safe integer");
+      }
+      page = rawPage;
+    } else if (typeof rawPage === "string" && /^-?[0-9]+$/.test(rawPage.trim())) {
+      page = Number(rawPage.trim());
+    } else {
+      throw new TypeError("page must be an integer or integer string");
+    }
+  }
+  if (!Number.isSafeInteger(page) || page < 1 || page > 10000) {
     throw new RangeError("Invalid page parameter");
   }
 
+  const rawActive = Object.hasOwn(query, "active") ? query.active : undefined;
   let active = null;
-  if (query.active === "true") active = true;
-  else if (query.active === "false") active = false;
-  else if (query.active !== undefined) {
+  if (rawActive === "true") active = true;
+  else if (rawActive === "false") active = false;
+  else if (rawActive !== undefined) {
     throw new TypeError("active must be 'true' or 'false'");
   }
 
@@ -406,9 +459,13 @@ console.log(parseQueryFlags({ page: "3", active: "false" }));`}
   if (!Number.isSafeInteger(parts) || parts < 1) {
     throw new TypeError("parts must be a positive safe integer");
   }
+  if (parts > 100000) {
+    throw new RangeError("parts must not exceed 100000");
+  }
 
-  const base = Math.floor(totalCents / parts);
-  const remainder = totalCents % parts;
+  const normalizedTotal = totalCents === 0 ? 0 : totalCents;
+  const base = Math.floor(normalizedTotal / parts);
+  const remainder = normalizedTotal % parts;
   const result = [];
 
   for (let i = 0; i < parts; i++) {
@@ -436,18 +493,36 @@ console.log("$10.00 / 3:", splitAmountCents(1000, 3)); // [334, 333, 333] -> sum
   if (!Array.isArray(nested)) {
     throw new TypeError("Input must be an array");
   }
+  if (typeof maxDepth !== "number" || !Number.isSafeInteger(maxDepth)) {
+    throw new TypeError("maxDepth must be a safe integer");
+  }
+  if (maxDepth < 1) {
+    throw new RangeError("maxDepth must be at least 1");
+  }
 
   const output = [];
-  const stack = [{ value: nested, depth: 0 }];
+  const active = new Set();
+  const stack = [{ type: "enter", value: nested, depth: 0 }];
 
   while (stack.length > 0) {
-    const { value, depth } = stack.pop();
+    const frame = stack.pop();
+    if (frame.type === "exit") {
+      active.delete(frame.value);
+      continue;
+    }
+
+    const { value, depth } = frame;
     if (Array.isArray(value)) {
+      if (active.has(value)) {
+        throw new TypeError("Cyclic array reference detected");
+      }
       if (depth >= maxDepth) {
         throw new RangeError(\`Exceeded max nesting depth of \${maxDepth}\`);
       }
+      active.add(value);
+      stack.push({ type: "exit", value });
       for (let i = value.length - 1; i >= 0; i--) {
-        stack.push({ value: value[i], depth: depth + 1 });
+        stack.push({ type: "enter", value: value[i], depth: depth + 1 });
       }
     } else {
       output.push(value);
@@ -472,7 +547,19 @@ console.log(flattenIterative([1, [2, [3, 4]], 5]));`}
     lang="javascript"
     runnable
     code={`function composeValidators(...fns) {
+  for (const fn of fns) {
+    if (typeof fn !== "function") {
+      throw new TypeError("All validators must be functions");
+    }
+  }
   return function runPipeline(initialInput) {
+    if (initialInput === null || typeof initialInput !== "object" || Array.isArray(initialInput)) {
+      throw new TypeError("Input must be a plain object");
+    }
+    const proto = Object.getPrototypeOf(initialInput);
+    if (proto !== Object.prototype && proto !== null) {
+      throw new TypeError("Input must be a plain object");
+    }
     let current = { ...initialInput };
     for (const fn of fns) {
       current = fn(current);
@@ -481,10 +568,30 @@ console.log(flattenIterative([1, [2, [3, 4]], 5]));`}
   };
 }
 
-const trimEmail = (u) => ({ ...u, email: String(u.email ?? "").trim().toLowerCase() });
+const trimEmail = (u) => {
+  const rawEmail = Object.hasOwn(u, "email") ? u.email : undefined;
+  if (typeof rawEmail !== "string" || rawEmail.trim().length === 0) {
+    throw new TypeError("email must be a non-empty string");
+  }
+  return { ...u, email: rawEmail.trim().toLowerCase() };
+};
+
 const requireAge = (u) => {
-  const age = Number(u.age);
-  if (!Number.isInteger(age) || age < 18) throw new RangeError("Must be 18+");
+  const rawAge = Object.hasOwn(u, "age") ? u.age : undefined;
+  let age;
+  if (typeof rawAge === "number") {
+    if (!Number.isSafeInteger(rawAge)) {
+      throw new TypeError("age must be a safe integer");
+    }
+    age = rawAge;
+  } else if (typeof rawAge === "string" && /^-?[0-9]+$/.test(rawAge.trim())) {
+    age = Number(rawAge.trim());
+  } else {
+    throw new TypeError("age must be an integer or integer string");
+  }
+  if (!Number.isSafeInteger(age) || age < 18 || age > 130) {
+    throw new RangeError("Must be 18+");
+  }
   return { ...u, age };
 };
 
