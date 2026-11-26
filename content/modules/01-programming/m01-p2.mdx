@@ -30,60 +30,79 @@ Every production layer uses these concepts daily: React props and Redux state ar
 
 <TopicAnchor id="m01-p2-topic-objects" />
 
-#### 1. Objects: Key-Value Records & Property Descriptors
+#### 1. Objects: Key-Value Records, Prototypes & Property Descriptors
 
-An **object** in JavaScript is a mutable dictionary mapping string (or `Symbol`) keys to values. Values can be data (**properties**) or functions (**methods**).
+An **object** in JavaScript is a mutable dictionary mapping string (or `Symbol`) keys to values. Values can be data (**properties**) or functions (**methods**). Every plain `{}` delegates missing key lookups to `Object.prototype`, so checking membership with `"toString" in {}` returns `true`. Always use `Object.hasOwn(obj, key)` (ES2022) to check own properties safely—even on `Object.create(null)` dictionaries that have no prototype.
 
-- **Own vs. Inherited properties:** Every plain object `{}` delegates missing property lookups to `Object.prototype`. Always use `Object.hasOwn(obj, key)` (ES2022) to check whether a key belongs to the object itself rather than its prototype chain.
-- **Shallow vs. Deep Copy:** Spread syntax `{ ...user }` copies only the top level. Any nested object (`user.address`) is still shared by reference unless cloned deeply (e.g., via `structuredClone(user)`).
+Underneath every property sits a <GlossaryTerm definition="Metadata object describing a property's value/getter/setter and behavioral flags: writable, enumerable, and configurable.">Property Descriptor</GlossaryTerm> with four flags: `value`, `writable` (can be reassigned), `enumerable` (appears in `Object.keys` / `for..in` / `JSON.stringify`), and `configurable` (can be deleted or reconfigured). Calling `Object.freeze(obj)` sets `writable: false` and `configurable: false` on own properties—though only **shallowly**! Spread syntax `{ ...user }` is also shallow: nested objects like `user.address` remain shared by reference unless cloned deeply with `structuredClone(user)`.
 
 <TopicAnchor id="m01-p2-topic-arrays" />
 
-#### 2. Arrays: Ordered Lists & Immutable Transformations
+#### 2. Arrays: Ordered Lists, Mutation Traps & Non-Mutating Methods
 
-An **array** is a specialized object optimized for integer indices `0, 1, 2, ...` and an auto-updating `.length` property.
+An **array** is a specialized object optimized for non-negative integer indices `0, 1, 2, ...` and an auto-updating `.length` property. Appending or removing at the tail (`.push()`, `.pop()`) is amortized `O(1)`, whereas inserting or removing at index `0` (`.unshift()`, `.shift()`) shifts every remaining element (`O(n)`).
 
-- **Mutating vs. Non-mutating methods:** Methods like `.push()`, `.pop()`, `.splice()`, `.sort()`, and `.reverse()` mutate the array in place. Methods like `.map()`, `.filter()`, `.slice()`, `.concat()`, and ES2023's `.toSorted()`, `.toReversed()`, `.toSpliced()`, and `.with()` return a **new** array, leaving the original untouched.
+Pay close attention to **mutating vs. non-mutating** array methods. Classic methods like `.push()`, `.pop()`, `.splice()`, `.sort()`, and `.reverse()` mutate the array in place—which causes subtle bugs when sorting React props or shared state. Modern ES2023 non-mutating counterparts—`.toSorted()`, `.toReversed()`, `.toSpliced()`, and `.with(index, value)`—alongside `.map()`, `.filter()`, and `.slice()` always return a **new** array and leave the original untouched.
 
 <TopicAnchor id="m01-p2-topic-classes" />
 
-#### 3. Classes: Blueprints for State & Behavior
+#### 3. Classes: Blueprints, Constructors, Accessors & Static Members
 
-Introduced in ES2015, a **`class`** packages a `constructor` (runs when `new ClassName(...)` creates an instance), instance methods (stored once on the class prototype), static methods (attached to the class itself), and ES2022 `#private` fields.
+Introduced in ES2015, a **`class`** packages a `constructor` (which initializes each instance when invoked with `new`), shared instance methods (stored once on `ClassName.prototype`), `get`/`set` computed accessors, and `static` utility/factory methods attached directly to the class constructor itself (e.g., `User.fromDTO(dto)`).
+
+Unlike legacy constructor functions, ES2015+ classes enforce critical runtime safety rules: the class body always runs in **strict mode**, methods are non-enumerable by default, and calling a class without `new` throws a `TypeError` immediately. Use `instanceof` to test whether an object's prototype chain includes a class constructor.
 
 <TopicAnchor id="m01-p2-topic-oop" />
 
-#### 4. OOP (Object-Oriented Programming) & Its Four Pillars
+#### 4. OOP: Modeling Domains Around Collaborating Objects
 
-**OOP** models a domain as collaborating objects, each responsible for its own data integrity and behavior, built on four pillars:
+**Object-Oriented Programming (OOP)** structures a codebase around domain objects that combine relevant state with the operations allowed on that state, rather than scattering raw data structures and unrelated helper functions across files. Each object acts as a boundary responsible for its own consistency.
+
+OOP rests on four complementary pillars—**Encapsulation**, **Abstraction**, **Inheritance**, and **Polymorphism** (**A-P-I-E**). In modern JavaScript and TypeScript, engineers combine OOP boundaries for stateful domain entities (`LedgerAccount`, `Order`, `RateLimiter`) with functional immutability for data transformations.
 
 <TopicAnchor id="m01-p2-topic-encapsulation" />
 
-- **Encapsulation:** Wrapping state and behavior together while restricting direct external mutation. In modern JS (ES2022+), prefixing a field or method with `#` (e.g., `#balanceCents`) makes it genuinely inaccessible outside the class body—attempting `account.#balanceCents` outside throws a `SyntaxError`.
+#### 5. Encapsulation: Protecting Invariants with `#private` State
+
+<GlossaryTerm definition="Bundling state and behavior together while restricting direct external mutation so internal invariants cannot be bypassed.">Encapsulation</GlossaryTerm> ensures callers can only change an object's state through validated methods rather than corrupting fields directly (such as setting `account.balance = -500`). Naming conventions like `_balance` only ask nicely—external code can still read, mutate, and serialize `_balance`.
+
+In ES2022+, prefixing a class field or method with `#` (e.g., `#balanceCents`) creates true runtime encapsulation: referencing `account.#balanceCents` outside the declaring class fails at parse time with a `SyntaxError`, and `#private` slots never leak into `Object.keys()`, `for..in`, or `JSON.stringify()`.
 
 <TopicAnchor id="m01-p2-topic-abstraction" />
 
-- **Abstraction:** Hiding complex internal mechanics behind a clean, minimal public interface. When you call `mailer.send(email)`, you do not care whether it opens an SMTP socket, calls AWS SES, or writes to an in-memory test queue.
+#### 6. Abstraction: Minimal Public Contracts Over Complex Internals
+
+<GlossaryTerm definition="Exposing only a clean, minimal public interface while hiding complex internal workflows, protocols, or storage details.">Abstraction</GlossaryTerm> separates *what* a component does from *how* it does it. When `CheckoutService` calls `gateway.charge(amountCents)`, it only depends on a simple input/output contract (`charge(cents) -> Receipt`), hiding HTTP retries, HMAC signing, webhook verification, and vendor SDK quirks behind that boundary.
+
+Good abstraction shrinks cognitive load and localizes change: if you swap payment providers or migrate from SMTP to AWS SES, callers depending only on the narrow abstraction require zero code changes.
 
 <TopicAnchor id="m01-p2-topic-inheritance" />
 
-- **Inheritance:** Defining a child class (`class AdminUser extends User`) that inherits properties and methods from a parent class and uses `super(...)` to initialize parent state. Use inheritance sparingly for genuine *"is-a"* hierarchies; prefer **composition** (*"has-a"*) for sharing behavior.
+#### 7. Inheritance: Shallow `extends` Taxonomies vs. Composition
+
+<GlossaryTerm definition="Defining a specialized child class via extends that reuses and refines a parent class's contract while initializing parent state with super().">Inheritance</GlossaryTerm> creates a subtype relationship (`class RateLimitError extends AppError`) where the child class inherits prototype methods, initializes parent state via `super(...)`, and can override behavior while delegating back with `super.method()`. Note that a child class does **not** inherit direct access to a parent's `#private` fields—it must use the parent's public API.
+
+Reserve inheritance for shallow, genuine *"is-a"* hierarchies (such as typed `Error` subclasses). Deep `extends` chains create tight coupling (**Fragile Base Class** problem); for sharing capabilities across services, prefer **composition** (*"has-a"*).
 
 <TopicAnchor id="m01-p2-topic-polymorphism" />
 
-- **Polymorphism:** *"Many forms"*—different classes or objects implement the same method signature (e.g., `gateway.charge(amountCents)`) so calling code works uniformly across Stripe, PayPal, or a mock test double without `if (type === "stripe")` branches.
+#### 8. Polymorphism: Uniform Dispatch Across Interchangeable Types
+
+<GlossaryTerm definition="Allowing different classes or objects implementing the same method contract to be used interchangeably through a shared caller interface.">Polymorphism</GlossaryTerm> (*"many forms"*) lets a single piece of orchestration code work uniformly across multiple implementations without `if (provider === "stripe") ... else if (provider === "paypal")` branches. Both `StripeGateway` and `MockGateway` implement `.charge(cents)` and return a consistent receipt shape.
+
+Because JavaScript is dynamically typed, polymorphism works both via shared parent classes (`extends`) and via structural **duck typing** (any object exposing the expected method signature). To stay reliable, every polymorphic implementation must honor the same input, output, and error contract.
 
 <TopicAnchor id="m01-p2-topic-solid" />
 
-#### 5. SOLID Fundamentals
+#### 9. SOLID Fundamentals: Five Guidelines for Modular Change
 
-Coined and popularized by Robert C. Martin, **SOLID** is five design principles for maintainable OOP/modular code:
+Coined and popularized by Robert C. Martin, <GlossaryTerm definition="Five object-oriented design principles (SRP, OCP, LSP, ISP, DIP) that keep software modular, extensible, and testable.">SOLID</GlossaryTerm> provides five practical guardrails against rigid, tightly coupled code:
 
-1. **S — Single Responsibility Principle (SRP):** A class or module should have one clear reason to change (e.g., separate invoice tax calculation from PDF rendering and database persistence).
-2. **O — Open/Closed Principle (OCP):** Open for extension, closed for modification—add new behaviors (like a new discount type or webhook sender) by adding a new implementation rather than editing existing `switch` statements.
-3. **L — Liskov Substitution Principle (LSP):** Any subtype must honor the expectations (inputs, outputs, error contracts) of its parent/interface so callers never get surprised when swapping implementations.
-4. **I — Interface Segregation Principle (ISP):** Prefer small, focused interfaces (`Readable`, `Writable`) over one bloated interface (`RepositoryWith20Methods`) so consumers only depend on methods they use.
-5. **D — Dependency Inversion Principle (DIP):** High-level business logic should depend on abstractions (interfaces/contracts), not concrete low-level details (MySQL driver, Stripe SDK). Inject dependencies from the outside.
+1. **S — Single Responsibility Principle (SRP):** A class or module should serve one cohesive actor/reason to change (keep tax math separate from PDF rendering and SQL persistence).
+2. **O — Open/Closed Principle (OCP):** Open for extension, closed for modification—add new variants (discount rules, notification channels) by registering a new class/strategy rather than editing core `switch` statements.
+3. **L — <GlossaryTerm definition="Subtypes or interchangeable implementations must preserve the caller's expectations around inputs, return shapes, and error behavior.">Liskov Substitution Principle (LSP)</GlossaryTerm>:** Any subtype or strategy implementation must honor the base contract (never throwing unexpected error types or returning incompatible shapes).
+4. **I — Interface Segregation Principle (ISP):** Prefer small, focused contracts (`Readable`, `Chargeable`) over bloated interfaces so callers and test mocks only implement what they actually use.
+5. **D — <GlossaryTerm definition="High-level business policy should depend on minimal abstractions/interfaces injected from outside rather than concrete low-level SDKs.">Dependency Inversion Principle (DIP)</GlossaryTerm>:** High-level policy (`CheckoutService`) depends on an abstraction (`PaymentGateway`), and concrete adapters (`StripeGateway`) are injected via constructor parameters rather than imported and instantiated inside core logic.
 
 </TopicSection>
 
@@ -141,9 +160,15 @@ Standard JS arrays are objects under the hood, but V8 optimizes numeric and dens
     <text x="140" y="161" textAnchor="middle" fill="var(--danger)" fontSize="12" fontWeight="700" fontFamily="monospace">HOLEY_SMI_ELEMENTS</text>
     <text x="140" y="178" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="monospace">delete arr[1] / sparse gaps</text>
 
+    <line x1="250" y1="164" x2="296" y2="164" stroke="var(--danger)" strokeWidth="2" />
+    <polygon points="296,164 286,159 286,169" fill="var(--danger)" />
+
     <rect x="300" y="140" width="230" height="48" rx="6" fill="var(--danger-soft)" stroke="var(--danger)" />
     <text x="415" y="161" textAnchor="middle" fill="var(--danger)" fontSize="12" fontWeight="700" fontFamily="monospace">HOLEY_DOUBLE_ELEMENTS</text>
     <text x="415" y="178" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="monospace">prototype lookup on holes</text>
+
+    <line x1="530" y1="164" x2="576" y2="164" stroke="var(--danger)" strokeWidth="2" />
+    <polygon points="576,164 566,159 566,169" fill="var(--danger)" />
 
     <rect x="580" y="140" width="210" height="48" rx="6" fill="var(--danger-soft)" stroke="var(--danger)" />
     <text x="685" y="161" textAnchor="middle" fill="var(--danger)" fontSize="12" fontWeight="700" fontFamily="monospace">HOLEY_ELEMENTS</text>
@@ -198,7 +223,7 @@ Instead of high-level business logic instantiating concrete SDKs directly, Depen
 
 <TopicSection id="m01-p2-sec-d" letter="D" title="Practical Examples (Interactive)">
 
-#### Example 1: Objects, `Object.hasOwn`, Shallow Spread vs. `structuredClone`
+#### Example 1: Objects, `Object.hasOwn`, Property Descriptors & `structuredClone`
 
 <CodeBlock
   lang="javascript"
@@ -209,7 +234,11 @@ dict.role = "editor";
 console.log("Object.hasOwn on null-proto:", Object.hasOwn(dict, "role"));
 console.log("toString in plain {}:", "toString" in {}, "| Object.hasOwn:", Object.hasOwn({}, "toString"));
 
-// 2. Shallow spread shares nested objects vs structuredClone (Node 17+ / modern browsers)
+// 2. Property Descriptors & shallow Object.freeze
+const frozenCfg = Object.freeze({ env: "prod", nested: { retries: 3 } });
+console.log("Frozen descriptor:", Object.getOwnPropertyDescriptor(frozenCfg, "env"));
+
+// 3. Shallow spread shares nested objects vs structuredClone (Node 17+ / modern browsers)
 const original = { id: "u_1", prefs: { theme: "sepia" } };
 const shallow = { ...original };
 shallow.prefs.theme = "dark";
@@ -248,22 +277,28 @@ console.log("Dense filtered:", dense, "length:", dense.length);`}
 <CodeBlock
   lang="javascript"
   runnable
-  code={`// Encapsulation + Abstraction: LedgerAccount enforces non-negative invariants with #private fields
+  code={`// Encapsulation + Abstraction: LedgerAccount enforces non-negative safe-integer invariants with #private fields
 class LedgerAccount {
   #balanceCents;
   #entries = [];
 
   constructor(owner, initialCents = 0) {
+    if (typeof owner !== "string" || owner.trim().length === 0) {
+      throw new TypeError("owner must be a non-empty string");
+    }
     if (!Number.isSafeInteger(initialCents) || initialCents < 0) {
       throw new RangeError("initialCents must be a non-negative safe integer");
     }
-    this.owner = owner;
+    this.owner = owner.trim();
     this.#balanceCents = initialCents;
   }
 
   deposit(cents) {
     if (!Number.isSafeInteger(cents) || cents <= 0) {
       throw new RangeError("Deposit must be positive integer cents");
+    }
+    if (!Number.isSafeInteger(this.#balanceCents + cents)) {
+      throw new RangeError("Balance would exceed Number.MAX_SAFE_INTEGER");
     }
     this.#balanceCents += cents;
     this.#entries.push({ type: "CREDIT", cents });
@@ -294,11 +329,23 @@ class MockGateway {
 class CheckoutService {
   #gateway;
   constructor(gateway) {
+    if (!gateway || typeof gateway.charge !== "function") {
+      throw new TypeError("gateway must implement charge(cents)");
+    }
     this.#gateway = gateway; // Dependency Inversion: injected abstraction
   }
   pay(account, amountCents) {
+    if (!(account instanceof LedgerAccount)) {
+      throw new TypeError("account must be a LedgerAccount");
+    }
+    if (!Number.isSafeInteger(amountCents) || amountCents <= 0) {
+      throw new RangeError("amountCents must be a positive safe integer");
+    }
+    if (!Number.isSafeInteger(account.balanceCents + amountCents)) {
+      throw new RangeError("Deposit would exceed Number.MAX_SAFE_INTEGER");
+    }
     const receipt = this.#gateway.charge(amountCents);
-    if (receipt.ok) account.deposit(amountCents);
+    if (receipt?.ok) account.deposit(amountCents);
     return receipt;
   }
 }
@@ -309,16 +356,62 @@ console.log("Receipt:", checkout.pay(acct, 1200));
 console.log("JSON view (no #private leak):", JSON.stringify(acct));`}
 />
 
+#### Example 4: Inheritance (`extends`, `super`), `#private` Isolation & Liskov Substitution
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// Shallow "is-a" inheritance taxonomy with super() and uniform LSP contract
+class AppError extends Error {
+  #httpStatus;
+  constructor(message, httpStatus = 500) {
+    if (typeof message !== "string" || message.trim().length === 0) {
+      throw new TypeError("Error message must be a non-empty string");
+    }
+    if (!Number.isInteger(httpStatus) || httpStatus < 400 || httpStatus > 599) {
+      throw new RangeError("httpStatus must be an HTTP 4xx/5xx status code");
+    }
+    super(message);
+    this.name = new.target.name;
+    this.#httpStatus = httpStatus;
+  }
+  get httpStatus() {
+    return this.#httpStatus; // Subclasses use public getter; parent #private stays isolated
+  }
+  toClientPayload() {
+    return { error: this.name, message: this.message, status: this.#httpStatus, retryable: false };
+  }
+}
+
+class RateLimitError extends AppError {
+  constructor(retryAfterSec) {
+    if (!Number.isInteger(retryAfterSec) || retryAfterSec <= 0) {
+      throw new RangeError("retryAfterSec must be a positive integer");
+    }
+    super("Rate limit exceeded", 429);
+    this.retryAfterSec = retryAfterSec;
+  }
+  toClientPayload() {
+    // Extends parent contract via super.toClientPayload() while preserving LSP shape
+    return { ...super.toClientPayload(), retryable: true, retryAfterSec: this.retryAfterSec };
+  }
+}
+
+const err = new RateLimitError(30);
+console.log("instanceof AppError & Error:", err instanceof AppError, err instanceof Error);
+console.log("Client payload:", err.toClientPayload());`}
+/>
+
 </TopicSection>
 
 <TopicSection id="m01-p2-sec-e" letter="E" title="Step-by-Step Walkthrough">
 
 Trace every step of **Example 3** (`LedgerAccount` + `CheckoutService`):
 
-1. **Instantiation (`new LedgerAccount("Maya", 500)`):** V8 allocates a `LedgerAccount` instance on the heap, runs `constructor`, validates `initialCents`, sets public `this.owner = "Maya"`, and initializes private internal slots `#balanceCents = 500` and `#entries = []`.
-2. **Encapsulation Guarantee:** External code cannot execute `acct.#balanceCents = 999999` (syntax error) or mutate `acct.#entries.push(...)`. Only `deposit()` can change `#balanceCents`, ensuring validation never gets skipped.
-3. **Dependency Injection (`new CheckoutService(new MockGateway())`):** `CheckoutService` stores the injected gateway inside its `#gateway` private field. It does not import or `new` a concrete Stripe SDK internally (**DIP**).
-4. **Polymorphic Dispatch (`this.#gateway.charge(1200)`):** `CheckoutService.pay` calls `.charge(1200)` without checking whether `#gateway` is `StripeGateway`, `MockGateway`, or a future `AdyenGateway` (**Polymorphism** & **OCP**).
+1. **Instantiation (`new LedgerAccount("Maya", 500)`):** V8 allocates a `LedgerAccount` instance on the heap, runs `constructor`, validates non-empty `owner` and non-negative safe-integer `initialCents`, sets public `this.owner = "Maya"`, and initializes private internal slots `#balanceCents = 500` and `#entries = []`.
+2. **Encapsulation & Overflow Guarantee:** External code cannot execute `acct.#balanceCents = 999999` (parse-time `SyntaxError`) or mutate `acct.#entries.push(...)`. Only `deposit()` can change `#balanceCents`, enforcing both positive safe-integer checks and `MAX_SAFE_INTEGER` overflow protection.
+3. **Dependency Injection (`new CheckoutService(new MockGateway())`):** `CheckoutService` validates that the injected dependency implements `.charge(cents)` and stores it inside `#gateway` without importing a concrete Stripe SDK (**DIP**).
+4. **Pre-Charge Validation & Polymorphic Dispatch:** Before touching `this.#gateway.charge(amountCents)`, `pay()` validates `account instanceof LedgerAccount`, positive safe-integer `amountCents`, and overflow bounds so invalid inputs never charge a real payment gateway. Then it calls `.charge(1200)` uniformly across `StripeGateway`, `MockGateway`, or any compliant adapter (**Polymorphism** & **OCP**).
 5. **Safe Serialization (`JSON.stringify(acct)`):** Because `toJSON()` is defined explicitly and `#private` slots are hidden from enumeration, only the safe public summary `{ owner, balanceCents, count }` is serialized.
 
 </TopicSection>
@@ -372,7 +465,7 @@ Trace every step of **Example 3** (`LedgerAccount` + `CheckoutService`):
 
 <TopicSection id="m01-p2-sec-j" letter="J" title="Security Considerations">
 
-- **Prototype Pollution (`__proto__`, `constructor`, `prototype`):** Never merge untrusted objects recursively without blocking `"__proto__"`, `"constructor"`, and `"prototype"` keys and checking `Object.hasOwn(src, key)`. Polluting `Object.prototype` affects every object in a Node.js server!
+- **<GlossaryTerm definition="An injection flaw where untrusted __proto__, constructor, or prototype keys in recursive object merges mutate Object.prototype globally.">Prototype Pollution</GlossaryTerm> (`__proto__`, `constructor`, `prototype`):** Never merge untrusted objects recursively without blocking `"__proto__"`, `"constructor"`, and `"prototype"` keys and checking `Object.hasOwn(src, key)`. Polluting `Object.prototype` affects every object in a Node.js server!
 - **Dynamic Property Lookup Injection:** Avoid `handlers[userInput]()` on a plain object—if `userInput === "toString"`, it invokes `Object.prototype.toString` or throws unexpectedly. Use `handlersMap.get(userInput)` with a `Map`.
 - **Accidental Secret Leakage in Serialization:** Plain public properties like `user._passwordHash` are included by `JSON.stringify(user)`. Keep sensitive fields `#private` or return explicit DTOs / `toJSON()` outputs.
 - **Freezing Shared Configuration:** Call `Object.freeze()` (or recursive deep freeze) on startup configuration objects so buggy plugins cannot mutate shared runtime settings.
@@ -432,7 +525,7 @@ Trace every step of **Example 3** (`LedgerAccount` + `CheckoutService`):
   title="Exercise 1: Prototype-Pollution-Safe Config Merger"
   prompt={
     <p>
-      Write <code>safeMerge(base, override)</code> that creates a shallow-isolated copy merging own properties of <code>override</code> onto <code>base</code> while explicitly blocking <code>__proto__</code>, <code>constructor</code>, and <code>prototype</code> keys and ignoring inherited keys.
+      Write <code>safeMerge(base, override)</code> that validates both arguments as plain objects, creates a shallow-isolated copy merging own properties of <code>base</code> and <code>override</code>, and explicitly blocks <code>__proto__</code>, <code>constructor</code>, and <code>prototype</code> keys plus inherited prototype properties.
     </p>
   }
 >
@@ -441,12 +534,21 @@ Trace every step of **Example 3** (`LedgerAccount` + `CheckoutService`):
     runnable
     code={`const FORBIDDEN_KEYS = new Set(["__proto__", "constructor", "prototype"]);
 
+function isPlainObject(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
 function safeMerge(base, override) {
-  const result = { ...base };
-  for (const key of Object.keys(override)) {
-    if (FORBIDDEN_KEYS.has(key)) continue;
-    if (!Object.hasOwn(override, key)) continue;
-    result[key] = override[key];
+  if (!isPlainObject(base) || !isPlainObject(override)) {
+    throw new TypeError("Both base and override must be non-null plain objects");
+  }
+  const result = {};
+  for (const src of [base, override]) {
+    for (const key in src) {
+      if (!Object.hasOwn(src, key)) continue;
+      if (FORBIDDEN_KEYS.has(key)) continue;
+      result[key] = src[key];
+    }
   }
   return result;
 }
@@ -462,7 +564,7 @@ console.log("Object.prototype polluted?", ({}).isAdmin === true); // false`}
   title="Exercise 2: Non-Mutating Array Analytics Pipeline"
   prompt={
     <p>
-      Given an array of order objects <code>{`{ id, amountCents, status }`}</code>, write a pure function <code>topPaidOrders(orders, limit)</code> that filters <code>"PAID"</code> orders, sorts descending by <code>amountCents</code> without mutating the input array, and returns the top <code>limit</code> items.
+      Given an array of order objects <code>{`{ id, amountCents, status }`}</code>, write a pure function <code>topPaidOrders(orders, limit)</code> that validates inputs, filters <code>"PAID"</code> orders, sorts descending by <code>amountCents</code> without mutating the input array, and returns the top <code>limit</code> items.
     </p>
   }
 >
@@ -470,8 +572,20 @@ console.log("Object.prototype polluted?", ({}).isAdmin === true); // false`}
     lang="javascript"
     runnable
     code={`function topPaidOrders(orders, limit = 3) {
+  if (!Array.isArray(orders)) {
+    throw new TypeError("orders must be an array");
+  }
+  if (!Number.isInteger(limit) || limit < 0) {
+    throw new RangeError("limit must be a non-negative integer");
+  }
   return orders
-    .filter((o) => o.status === "PAID")
+    .filter((o) => {
+      if (!o || typeof o !== "object") throw new TypeError("Invalid order item");
+      if (o.status === "PAID" && !Number.isFinite(o.amountCents)) {
+        throw new TypeError("Paid order amountCents must be a finite number");
+      }
+      return o.status === "PAID";
+    })
     .toSorted((a, b) => b.amountCents - a.amountCents)
     .slice(0, limit);
 }
@@ -491,7 +605,7 @@ console.log("Original first item untouched:", orders[0].id);`}
   title="Exercise 3: Refactoring Switch Logic to SOLID (OCP + DIP)"
   prompt={
     <p>
-      Refactor a hardcoded <code>if/else</code> discount calculator into a <code>Map</code>-based strategy registry where new discount rules register without modifying <code>PriceCalculator</code>.
+      Refactor a hardcoded <code>if/else</code> discount calculator into a <code>Map</code>-based strategy registry where new discount rules register without modifying <code>PriceCalculator</code> and obey Liskov Substitution return invariants.
     </p>
   }
 >
@@ -502,13 +616,26 @@ console.log("Original first item untouched:", orders[0].id);`}
   #strategies = new Map();
 
   register(code, fn) {
+    if (typeof code !== "string" || code.trim().length === 0) {
+      throw new TypeError("Discount code must be a non-empty string");
+    }
+    if (typeof fn !== "function") {
+      throw new TypeError("Discount strategy must be a function");
+    }
     this.#strategies.set(code, fn);
   }
 
   apply(code, subtotalCents) {
+    if (!Number.isSafeInteger(subtotalCents) || subtotalCents < 0) {
+      throw new RangeError("subtotalCents must be a non-negative safe integer");
+    }
     const strategy = this.#strategies.get(code);
     if (!strategy) throw new Error(\`Unknown discount code: \${code}\`);
-    return strategy(subtotalCents);
+    const finalCents = strategy(subtotalCents);
+    if (!Number.isSafeInteger(finalCents) || finalCents < 0) {
+      throw new RangeError("Strategy violated LSP postcondition: invalid cents result");
+    }
+    return finalCents;
   }
 }
 

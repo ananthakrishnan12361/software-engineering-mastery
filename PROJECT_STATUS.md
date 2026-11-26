@@ -19,7 +19,7 @@ Phase 3 design remains locked in [DESIGN_GUIDE.md](DESIGN_GUIDE.md). Content aut
 - [x] Verification: `tsc`, `vite build`, `steiger ./src`, `verify:syllabus`, `verify:parity`, `verify:offline`, and headless Chrome CDP checks at `360`, `390`, `768`, `1024`, `1440` widths across all 3 themes
 
 ## Module progress
-Use `COURSE_OUTLINE.md` and `CONTENT_CHECKLIST.md` to track module and part status. Currently written: `M01-P1` & `M01-P2` (`13` topics available, `932` not written yet; Module 1 interview totals: `6/10` Basic, `6/10` Intermediate, `6/10` Advanced, `3/5` Senior/Architect = `21/35`).
+Use `COURSE_OUTLINE.md` and `CONTENT_CHECKLIST.md` to track module and part status. Currently written: `M01-P1` & `M01-P2` (`13` topics available, `932` not written yet; Module 1 interview totals: `7/10` Basic, `7/10` Intermediate, `6/10` Advanced, `3/5` Senior/Architect = `23/35`).
 
 ## Current task
 STOP after `M01-P2` completion and verification; await user review before writing `M01-P3` (`Algorithms, Big O, Sorting, Searching, Recursion, Data Structures, Stacks, Queues, Linked Lists, Hash Tables`).

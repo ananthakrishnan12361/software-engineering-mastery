@@ -12,7 +12,9 @@
     "verify:syllabus": "node scripts/verify-syllabus.mjs",
     "verify:parity": "node scripts/verify-parity.mjs",
     "verify:offline": "node scripts/verify-offline.mjs",
-    "check": "npm run typecheck && npm run build && npm run lint:fsd && npm run verify:syllabus && npm run verify:parity && npm run verify:offline"
+    "verify:quality": "node scripts/verify-quality.mjs",
+    "check": "npm run typecheck && npm run build && npm run lint:fsd && npm run verify:syllabus && npm run verify:parity && npm run verify:offline",
+    "quality": "npm run check && npm run verify:quality"
   },
   "dependencies": {
     "@mdx-js/react": "^3.1.1",

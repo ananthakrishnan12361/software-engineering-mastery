@@ -16,12 +16,13 @@ export const m01p2Questions: InterviewQuestion[] = [
     ],
     subboxes: [
       {
-        title: "Mnemonic",
-        content: "**A-P-I-E**: Abstraction, Polymorphism, Inheritance, Encapsulation."
+        title: "Example",
+        content: "`class LedgerAccount { #balance = 0; deposit(c) { ... } }` (Encapsulation) | `gateway.charge(cents)` across `StripeGateway` and `MockGateway` (Abstraction + Polymorphism)",
+        isCode: true
       },
       {
-        title: "Interview Tip",
-        content: "Always pair each pillar with a concrete JavaScript/TypeScript example (such as `#balance` for encapsulation or multiple payment gateways implementing `.charge()` for polymorphism)."
+        title: "Mnemonic & Tip",
+        content: "**A-P-I-E** (Abstraction, Polymorphism, Inheritance, Encapsulation). Always pair each pillar with a concrete JavaScript/TypeScript example rather than reciting dictionary definitions."
       }
     ]
   },
@@ -41,11 +42,11 @@ export const m01p2Questions: InterviewQuestion[] = [
     subboxes: [
       {
         title: "Trap",
-        content: "`JSON.parse(JSON.stringify(obj))` drops `undefined`, functions, `Symbol`, `Map`/`Set`, converts `Date` to strings, and throws on `BigInt` or circular references. `structuredClone` handles circular references, `Date`, `Map`, and `Set`, though it throws on functions."
+        content: "`JSON.parse(JSON.stringify(obj))` drops `undefined`, functions, `Symbol`, `Map`/`Set`, converts `Date` to strings, and throws on `BigInt` or circular references. `structuredClone` handles circular references, `Date`, `Map`, and `Set`, though it throws on functions and symbols."
       },
       {
-        title: "Follow-up",
-        content: "Why does React state often use shallow spread updates like `{ ...user, address: { ...user.address, city } }`? Because structural sharing updates only changed paths without cloning the entire state tree."
+        title: "Follow-up & Tip",
+        content: "React state updates typically use shallow structural sharing (`{ ...user, address: { ...user.address, city } }`) instead of deep-cloning huge trees on every keystroke. Mention `structuredClone` vs. structural sharing trade-offs in interviews."
       }
     ]
   },
@@ -90,11 +91,11 @@ export const m01p2Questions: InterviewQuestion[] = [
     subboxes: [
       {
         title: "Version Note",
-        content: "`Array.prototype.sort()` stability (preserving relative order of equal keys) has been guaranteed by the ECMAScript spec since **ES2019**. `toSorted()`, `toReversed()`, and `toSpliced()` arrived in **ES2023**."
+        content: "`Array.prototype.sort()` stability (preserving relative order of equal keys) has been guaranteed by the ECMAScript spec since **ES2019**. `toSorted()`, `toReversed()`, `toSpliced()`, and `with()` arrived in **ES2023**."
       },
       {
         title: "Follow-up",
-        content: "What happens if `a - b` overflows? For huge floats/Infinity use `(a < b ? -1 : a > b ? 1 : 0)`."
+        content: "When does `(a, b) => a - b` break? If the array contains `Infinity` or `-Infinity`, `Infinity - Infinity` evaluates to `NaN` (not `0`), breaking comparator ordering. Use `(a < b ? -1 : a > b ? 1 : 0)` for extreme floats."
       }
     ]
   },
@@ -136,7 +137,7 @@ export const m01p2Questions: InterviewQuestion[] = [
       },
       {
         label: "Defenses:",
-        body: "(1) Explicitly block `__proto__`, `constructor`, and `prototype` keys during recursive merges; (2) check `Object.hasOwn(source, key)` instead of `for..in`; (3) validate inputs with strict schemas (Zod/Ajv `additionalProperties: false`); (4) store arbitrary user-keyed maps in `new Map()` or `Object.create(null)`."
+        body: "(1) Explicitly block `__proto__`, `constructor`, and `prototype` keys during merges and path writes; (2) check `Object.hasOwn(source, key)` instead of trusting inherited properties; (3) validate inputs with strict schemas (Zod/Ajv `additionalProperties: false`); (4) store arbitrary user-keyed maps in `new Map()` or `Object.create(null)`."
       }
     ],
     subboxes: [
@@ -188,7 +189,7 @@ export const m01p2Questions: InterviewQuestion[] = [
       },
       {
         title: "Security:",
-        body: "Protect config hydration from Prototype Pollution (`Object.hasOwn`, `Map` lookup for channel names instead of `channels[userInput]`, which could hit `channels[\"toString\"]`); prevent leaking internal secrets by implementing explicit `toJSON()` serializers."
+        body: "Protect config hydration from Prototype Pollution by explicitly blocking `__proto__`, `constructor`, and `prototype` keys alongside `Object.hasOwn` (since `JSON.parse` creates `__proto__` as an own property), using `Map` lookup for channel names instead of `channels[userInput]`, and hiding internal secrets with `#private` fields and explicit `toJSON()` serializers."
       },
       {
         title: "Failure handling:",
@@ -205,6 +206,60 @@ export const m01p2Questions: InterviewQuestion[] = [
       {
         title: "Follow-up questions:",
         body: "When would you refactor a simple `switch` into Strategy + DIP? Only when at least 2–3 concrete variants exist or external plugins/teams own separate implementations."
+      }
+    ]
+  },
+  {
+    id: "m01-p2-iq-8",
+    lessonId: "m01-p2",
+    moduleNumber: 1,
+    number: 8,
+    difficulty: "basic",
+    question: "How do ES2015+ classes and ES2022 `#private` fields differ from plain objects and TypeScript's `private` keyword?",
+    paragraphs: [
+      {
+        label: "Explanation:",
+        body: "A `class` attaches shared methods once on `ClassName.prototype`, runs its body in strict mode automatically, and throws a `TypeError` if invoked without `new`. TypeScript's `private` keyword is erased at compile time—compiled JavaScript still stores a normal public property that external code or `JSON.stringify` can read. By contrast, ES2022 `#private` fields and methods are enforced at **runtime** by the JavaScript engine: external access (`obj.#secret`) fails at parse time with a `SyntaxError`, and private slots are excluded from `Object.keys()` and `JSON.stringify()`."
+      }
+    ],
+    subboxes: [
+      {
+        title: "Example",
+        content: "`class Vault { #token; constructor(t) { this.#token = t; } }` — `Object.keys(new Vault('x'))` is `[]`, and `v.#token` outside is a `SyntaxError`.",
+        isCode: true
+      },
+      {
+        title: "Interview Tip",
+        content: "Also note that subclasses cannot access a parent class's `#private` fields directly; expose a controlled public method or getter when subclass cooperation is intended."
+      }
+    ]
+  },
+  {
+    id: "m01-p2-iq-9",
+    lessonId: "m01-p2",
+    moduleNumber: 1,
+    number: 9,
+    difficulty: "intermediate",
+    question: "When should you use class inheritance (`extends`) versus composition, and how does the Liskov Substitution Principle (LSP) catch bad hierarchies?",
+    paragraphs: [
+      {
+        label: "Explanation:",
+        body: "Use `extends` only for shallow, genuine **\"is-a\"** taxonomies (for example, `RateLimitError extends AppError` where every `RateLimitError` truly is an `AppError`). For sharing capabilities across services—like retries, logging, or payment gateways—use **composition** (\"has-a\") by injecting small collaborators into the constructor, because JavaScript only supports single inheritance and deep `extends` chains couple subclasses tightly to parent internals (**Fragile Base Class**)."
+      },
+      {
+        label: "LSP Check:",
+        body: "The **Liskov Substitution Principle** states that any subclass or strategy must be safely usable wherever the base type is expected. Classic violation: `Square extends Rectangle` breaks callers assuming `rect.setWidth(5); rect.setHeight(4)` yields area `20`, or a subclass throws `NotImplementedError` on an inherited method."
+      }
+    ],
+    subboxes: [
+      {
+        title: "Example",
+        content: "`class RateLimitError extends AppError` preserves `toClientPayload()` shape while adding `retryAfterSec` via `super.toClientPayload()`.",
+        isCode: true
+      },
+      {
+        title: "Follow-up & Tip",
+        content: "In TypeScript/Node.js backends, prefer small interfaces (`PaymentGateway`, `Clock`) + constructor injection (DIP) over base classes like `BaseService`."
       }
     ]
   }

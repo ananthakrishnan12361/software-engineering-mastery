@@ -58,7 +58,9 @@ For each review, add:
   5. **Falsy values count:** Fixed count mismatch in Sections G and L to state 8 core falsy values (`false`, `0`, `-0`, `0n`, `""`, `null`, `undefined`, `NaN`) plus legacy browser `document.all`.
 - **Corrections made:** Updated `modules/01-programming.html` Sections G, L, and P.
 - **Unresolved questions:** None.
-- **Sources checked:** ECMAScript specification concepts and runtime behavior verified via Node.js v20 execution where applicable.
+- **Sources checked:**
+  - `JSON.parse()` `reviver` `context.source`: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/parse
+  - ECMAScript / V8 runtime verification via Node.js v24 execution and V8 blog (https://v8.dev/blog/elements-kinds).
 - **Status:** Corrected
 
 ### 2026-11-26 — React 19 + Vite 8 + MDX + FSD v2.1 Migration
@@ -97,26 +99,38 @@ For each review, add:
 ## Module 01 Part 2 (`M01-P2`) Technical Review Log — 2026-11-26
 
 1. **ES2022 `#private` Class Fields & Methods**
-   - **Verified Claim:** JavaScript native `#private` class fields/methods are strictly scoped to the declaring class body (`SyntaxError` if accessed outside or from subclasses), providing hard runtime encapsulation rather than TypeScript compile-time-only `private`.
-   - **Official Reference:** MDN Web Docs — Private properties (`developer.mozilla.org`).
+   - **Verified Claim:** JavaScript native `#private` class fields/methods are strictly scoped to the declaring class body (`SyntaxError` at parse time if accessed outside or from subclasses), providing hard runtime encapsulation rather than TypeScript compile-time-only `private`.
+   - **Official Reference:** https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes/Private_elements
    - **Status:** Verified
 
 2. **`Object.hasOwn()` (ES2022) vs. `Object.prototype.hasOwnProperty()`**
-   - **Verified Claim:** `Object.hasOwn(obj, prop)` works safely on `Object.create(null)` dictionaries (which lack `Object.prototype`) and objects with shadowed `hasOwnProperty` properties.
-   - **Official Reference:** MDN Web Docs — `Object.hasOwn()` (`developer.mozilla.org`).
+   - **Verified Claim:** `Object.hasOwn(obj, prop)` works safely on `Object.create(null)` dictionaries (which lack `Object.prototype`) and objects with shadowed `hasOwnProperty` properties; throws `TypeError` if `obj` is `null` or `undefined`.
+   - **Official Reference:** https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/hasOwn
    - **Status:** Verified
 
 3. **`Array.prototype.toSorted()` & `toReversed()` (ES2023) + Array `sort()` Stability (ES2019)**
    - **Verified Claim:** ES2023 `toSorted()` and `toReversed()` return new copies without mutating the source array; `Array.prototype.sort()` is guaranteed stable since ES2019 (ECMA-262).
-   - **Official Reference:** MDN Web Docs — `Array.prototype.toSorted()`, `Array.prototype.toReversed()`, `Array.prototype.sort()` (`developer.mozilla.org`).
+   - **Official References:** https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/toSorted and https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/sort
    - **Status:** Verified
 
 4. **`structuredClone()` Deep Cloning**
-   - **Verified Claim:** Standardized global `structuredClone()` is available in Node.js since `v17.0.0` and modern browsers; preserves cycles/Dates/Maps/Sets while throwing `DataCloneError` for functions/symbols/DOM nodes.
-   - **Official Reference:** Node.js Globals Documentation (`nodejs.org`) & MDN (`developer.mozilla.org`).
+   - **Verified Claim:** Standardized global `structuredClone()` is available in Node.js since `v17.0.0` and modern browsers; preserves cycles/Dates/Maps/Sets while throwing `DataCloneError` (`DOMException`) for functions/symbols/DOM nodes.
+   - **Official References:** https://nodejs.org/api/globals.html#structuredclonevalue-options and https://developer.mozilla.org/en-US/docs/Web/API/Window/structuredClone
    - **Status:** Verified
 
 5. **V8 Hidden Classes (Maps) & Elements Kinds**
    - **Verified Claim:** V8 optimizes objects via shared Hidden Classes (property insertion order) and transitions array elements kinds along a one-way lattice (`PACKED_SMI_ELEMENTS` -> `PACKED_DOUBLE_ELEMENTS` -> `PACKED_ELEMENTS` and `HOLEY_*` variants); holey arrays incur prototype chain checks on `undefined`/missing slots. Explicitly documented in `M01-P2` as V8 engine behavior rather than ECMAScript language semantics.
-   - **Official Reference:** V8 Blog — Elements kinds in V8 (`v8.dev`).
+   - **Official Reference:** https://v8.dev/blog/elements-kinds
    - **Status:** Verified
+
+### 2026-11-26 — Strict Audit & Edge-Case Remediation of `M01-P2`
+- **Reviewer/model:** Gemini 4 Hydrogen (High)
+- **Files/sections reviewed:** `content/modules/01-programming/m01-p2.mdx`, `content/interviews/m01-p2.questions.ts`, `content/coverage/m01-p2.coverage.ts`, `scripts/verify-quality.mjs`, `QUALITY_GATE.md`, `TECHNICAL_REVIEW_LOG.md`
+- **Review scope:** Full audit against `COURSE_modeule_in_detiles.md` and `QUALITY_GATE.md`, edge-case fuzzing of runnable snippets, interview question rigor, and verification script false-positive hunting.
+- **Findings:**
+  1. **OOP Subtopic Stubs & Missing Inheritance Code (`M1`):** Section B placed `<TopicAnchor>` over 1-bullet items under `4. OOP`, `3. Classes` was a 1-sentence stub, `1. Objects` promised "Property Descriptors" without explaining them, and `Inheritance` mapped to `Example 3` which had zero `extends`/`super`.
+  2. **Edge-Case Bugs in `M01-P2` Code:** `CheckoutService.pay(acct, -500)` charged the gateway before `account.deposit()` rejected negative cents; `LedgerAccount.deposit()` allowed silent `MAX_SAFE_INTEGER` overflow; `safeMerge` accepted strings/arrays/`null` `base` and copied forbidden keys from `base`; `topPaidOrders(orders, -1)` returned `slice(0, -1)` items; `PriceCalculator.apply("PCT10", -500)` returned `-450`.
+  3. **Weak Quality Gate Checks:** `scripts/verify-quality.mjs` checked `.demo-error` instead of `.demo-output.is-error`, only clicked Block 1 in DOM, didn't open `<ExerciseCard>` solutions in Chrome, allowed shared primary headings across topics, and didn't verify Rule M3 `https://` doc links.
+  4. **Interview Question Gaps & M3 URLs:** `m01-p2-iq-4` follow-up was vague about comparator failure (`Infinity - Infinity === NaN`), `iq-7` Step 8 omitted explicit `__proto__`/`constructor`/`prototype` blocklist alongside `Object.hasOwn`, and `Classes` / `Composition vs. Inheritance & LSP` lacked dedicated Basic/Intermediate questions.
+- **Corrections made:** Expanded all 9 topics in `m01-p2.mdx` Section B into standalone subsections, added `Example 4` (`AppError` -> `RateLimitError` with `extends`/`super`/`instanceof`), fixed all 5 code edge-case bugs, added `iq-8` & `iq-9`, tightened `m01-p2.coverage.ts` + `scripts/verify-quality.mjs`, and added full `https://` official documentation links above.
+- **Status:** Corrected
