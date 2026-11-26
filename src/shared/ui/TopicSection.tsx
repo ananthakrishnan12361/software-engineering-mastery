@@ -17,6 +17,16 @@ export function TopicSection({
   onToggle,
   children
 }: TopicSectionProps) {
+  function handleToggle() {
+    // Preserve scroll position so toggling an accordion never jumps to top
+    const scrollY = window.scrollY;
+    onToggle?.(id);
+    // Restore after the React re-render flush
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: scrollY, behavior: "instant" });
+    });
+  }
+
   return (
     <section
       className="topic-section"
@@ -28,7 +38,7 @@ export function TopicSection({
         type="button"
         className="topic-section-header"
         aria-expanded={!collapsed}
-        onClick={() => onToggle?.(id)}
+        onClick={handleToggle}
       >
         <span className="topic-section-title">
           <span className="section-letter">{letter}</span>

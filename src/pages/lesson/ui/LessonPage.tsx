@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode, type TableHTMLAttributes } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode, type TableHTMLAttributes } from "react";
 import type {
   InterviewQuestion,
   LessonRecord,
@@ -58,6 +58,12 @@ export function LessonPage({
 }: LessonPageProps) {
   const [tocDrawerOpen, setTocDrawerOpen] = useState(false);
 
+  // Stable refs so mdxComponents never re-constructs on every collapsedSections change
+  const collapsedSectionsRef = useRef(collapsedSections);
+  collapsedSectionsRef.current = collapsedSections;
+  const onToggleSectionRef = useRef(onToggleSection);
+  onToggleSectionRef.current = onToggleSection;
+
   const collapsibleIds = useMemo(
     () => lesson.sections.filter((s) => Boolean(s.letter)).map((s) => s.id),
     [lesson.sections]
@@ -107,8 +113,8 @@ export function LessonPage({
         id={props.id}
         letter={props.letter}
         title={props.title}
-        collapsed={Boolean(collapsedSections[props.id])}
-        onToggle={onToggleSection}
+        collapsed={Boolean(collapsedSectionsRef.current[props.id])}
+        onToggle={(id) => onToggleSectionRef.current(id)}
       >
         {props.children}
       </TopicSection>
@@ -136,7 +142,7 @@ export function LessonPage({
       GlossaryTerm,
       table: WrappedTable
     } as MdxComponentsProp;
-  }, [collapsedSections, onToggleSection, questions, sectionTarget]);
+  }, [questions, sectionTarget]);
 
   const LessonContent = lesson.Content;
 
