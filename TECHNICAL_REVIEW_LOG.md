@@ -60,3 +60,17 @@ For each review, add:
 - **Unresolved questions:** None.
 - **Sources checked:** ECMAScript specification concepts and runtime behavior verified via Node.js v20 execution where applicable.
 - **Status:** Corrected
+
+### 2026-11-26 — React 19 + Vite 8 + MDX + FSD v2.1 Migration
+- **Reviewer/model:** Gemini 4 Hydrogen (High)
+- **Files/sections reviewed:** `package.json`, `vite.config.ts`, `steiger.config.ts`, `src/**`, `content/**`, `scripts/**`
+- **Review scope:** Package compatibility, FSD v2.1 Steiger enforcement, `sem_handbook_v1` compatibility, and `M01-P1` content parity.
+- **Findings:**
+  1. **Package Compatibility (Node v24.14.0, npm 11.9.0):** Verified against npm registry without `--force`, `--legacy-peer-deps`, or `overrides`: `vite@^8.3.8`, `@vitejs/plugin-react@^6.3.0`, `vite-plugin-singlefile@^2.3.4`, `@mdx-js/rollup@^3.1.1`, `@mdx-js/react@^3.1.1`, `remark-gfm@^4.0.1`, `react@^19.3.1`, `react-dom@^19.3.1`, `typescript@^7.0.2`, `steiger@^0.10.0`, `@feature-sliced/steiger-plugin@^0.8.2`.
+  2. **Steiger FSD v2.1 Enforcement:** Initial slice split (`entities/lesson`, `entities/interview`, `shared/types`, `shared/styles` missing barrel) raised 4 Steiger errors (`insignificant-slice`, `public-api`, `segments-by-purpose`). Fixed structurally by consolidating single-use handbook UI/models into `pages/handbook/`, renaming `shared/types` to `shared/config`, and adding `shared/styles/index.ts`. Zero rules disabled.
+  3. **Vite 8 `lightningcss` build transient:** One initial build invocation reported missing `lightningcss.win32-x64-msvc.node` despite the binary existing in `node_modules`; subsequent direct and `npm run check` builds succeeded cleanly in ~0.3s.
+  4. **MDX / Content Parity Fix:** Converted HTML attributes (`class` -> `className`, SVG `font-size` -> `fontSize`, etc.) and escaped JSX braces inside SVG `<text>` and prose code blocks; preserved all 16 sections (`A`–`Q`), 5 objectives, 2 SVGs, 3 tables, 7 runnable demos, 14 interview Q&As, 14 glossary terms, 4 exercise cards, and 6 mastery items with zero prose truncation.
+- **Corrections made:** Refactored FSD slices to pass `steiger ./src` with 0 issues; added `scripts/verify-parity.mjs` and `scripts/verify-offline.mjs`.
+- **Unresolved questions:** Live interactive GUI clicks in a desktop browser remain for user verification before deleting `legacy/`.
+- **Sources checked:** npm registry (`npm view`), Vite 8 / `@vitejs/plugin-react` / `vite-plugin-singlefile` / MDX v3 / `remark-gfm` / Steiger documentation.
+- **Status:** Accepted with caveat

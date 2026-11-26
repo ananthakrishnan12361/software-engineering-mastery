@@ -1730,3 +1730,16 @@ Before finishing, validate:
 My goal is to use this single HTML document as my long-term software engineering learning handbook, revision resource and interview preparation portal.
 
 Create it with the depth and quality of a professional technical training course designed to take an experienced developer toward senior engineering and software architecture expertise.
+
+---
+
+# 8. APPROVED CHANGES
+
+The following architectural and tooling updates were approved while keeping all course modules, topics, sections A–Q, difficulty levels, and content quality rules unchanged:
+
+1. **Application Stack & Offline Bundling:** Implemented with **React 19, TypeScript, Vite 8, `@vitejs/plugin-react`, `@mdx-js/rollup`, `remark-gfm`, and `vite-plugin-singlefile`**, compiling into a single offline standalone file `dist/software_engineering_mastery.html` with zero backend, CDN, or external font dependencies.
+2. **Architecture (Feature-Sliced Design v2.1):** Source code in `src/` follows FSD v2.1 (`app`, `pages`, `widgets`, `features`, `entities`, `shared`) with strict "pages first" slicing, props-driven `shared/ui`, no empty folders, and automated boundary enforcement via **Steiger** (`steiger` + `@feature-sliced/steiger-plugin`) without disabling rules.
+3. **Course Content Isolation:** Lesson prose lives as MDX in `content/modules/` and interview banks live as typed data in `content/interviews/`. `content/` may use type-only imports from public APIs; only `src/app/` imports `content/registry.ts` and passes catalog data down.
+4. **Routing & State Persistence:** Uses hash routing (`#/lesson/<lessonId>?section=<sectionId>`) compatible with `file://` execution, and preserves `localStorage` persistence under `sem_handbook_v1` (including JSON export/import compatibility).
+5. **Module 28 Inclusion:** Includes Module 28 (`Personal Learning Roadmap`) alongside Modules 1–27, with per-lesson Learning Objectives, Estimated Study Duration, and Mastery Assessment integrated into every lesson.
+6. **Module 26 Difficulty Levels:** Uses 4 interview levels (`Basic`, `Intermediate`, `Advanced`, `Senior/Architect`) across Modules 1–25, 27, and 28, and splits `Senior` and `Architect` into separate levels in Module 26.

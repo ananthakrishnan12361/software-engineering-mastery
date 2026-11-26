@@ -1,0 +1,236 @@
+import type {
+  GlossaryEntry,
+  InterviewQuestion,
+  LessonRecord,
+  ModuleRecord,
+  SearchRecord
+} from "@/pages/handbook";
+
+import M01P1Mdx from "./modules/01-programming/m01-p1.mdx";
+import m01p1Raw from "./modules/01-programming/m01-p1.mdx?raw";
+import { m01p1Questions } from "./interviews/m01-p1.questions";
+
+export interface HandbookCatalog {
+  modules: ModuleRecord[];
+  lessons: LessonRecord[];
+  questionsByLesson: Record<string, InterviewQuestion[]>;
+  glossaryEntries: GlossaryEntry[];
+  searchRecords: SearchRecord[];
+}
+
+function extractGlossaryFromMdx(rawMdx: string, lessonId: string): GlossaryEntry[] {
+  const entries: GlossaryEntry[] = [];
+  const seen = new Set<string>();
+  const sectionMatches = [...rawMdx.matchAll(/<TopicSection\s+id="([^"]+)"[^>]*>/g)];
+
+  const dfnRe = /<GlossaryTerm\s+definition="([^"]+)">([\s\S]*?)<\/GlossaryTerm>/g;
+  let match: RegExpExecArray | null;
+  while ((match = dfnRe.exec(rawMdx)) !== null) {
+    const definition = match[1].trim();
+    const term = match[2].replace(/\s+/g, " ").trim();
+    const pos = match.index;
+    let sectionId = `${lessonId}-sec-a`;
+    for (const sec of sectionMatches) {
+      if ((sec.index ?? 0) <= pos) {
+        sectionId = sec[1];
+      }
+    }
+    const key = term.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      entries.push({ term, definition, lessonId, sectionId });
+    }
+  }
+  return entries;
+}
+
+function extractSearchRecordsFromMdx(
+  rawMdx: string,
+  lessonId: string,
+  lessonTitle: string
+): SearchRecord[] {
+  const records: SearchRecord[] = [];
+
+  // Index each TopicSection (A-Q)
+  const sectionRe =
+    /<TopicSection\s+id="([^"]+)"\s+letter="([^"]+)"\s+title="([^"]+)">([\s\S]*?)<\/TopicSection>/g;
+  let match: RegExpExecArray | null;
+  while ((match = sectionRe.exec(rawMdx)) !== null) {
+    const [, secId, letter, title, body] = match;
+    const cleanText = body
+      .replace(/<svg[\s\S]*?<\/svg>/gi, " ")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    records.push({
+      id: `sec:${secId}`,
+      type: "Topic",
+      title: `${lessonTitle} — ${letter}. ${title}`,
+      text: cleanText,
+      lessonId,
+      sectionId: secId
+    });
+
+    // Index code blocks within the section
+    const codeRe = /<CodeBlock\s+lang="([^"]+)"[\s\S]*?code=\{`([\s\S]*?)`\}\s*\/>/g;
+    let codeMatch: RegExpExecArray | null;
+    let codeIdx = 0;
+    while ((codeMatch = codeRe.exec(body)) !== null) {
+      codeIdx++;
+      records.push({
+        id: `code:${secId}:${codeIdx}`,
+        type: "Code",
+        title: `${lessonTitle} (${codeMatch[1]})`,
+        text: codeMatch[2],
+        lessonId,
+        sectionId: secId
+      });
+    }
+  }
+
+  return records;
+}
+
+const modules: ModuleRecord[] = [
+  {
+    id: "module-1",
+    number: 1,
+    title: "Programming Fundamentals & JavaScript",
+    category: "fundamentals",
+    partSummary: "Part 1 of 5",
+    scopeSummary: "Scope (Part 1): Programming Fundamentals, Variables, Data Types, Functions",
+    lead: "Build rock-solid engineering mental models from how source code executes in memory to production JavaScript internals, precision hazards, type coercion traps, function call stacks, and senior interview trade-offs.",
+    lessonIds: ["m01-p1"]
+  }
+];
+
+const lessons: LessonRecord[] = [
+  {
+    id: "m01-p1",
+    moduleId: "module-1",
+    moduleNumber: 1,
+    moduleTitle: "Programming Fundamentals & JavaScript",
+    partLabel: "Lesson M01-P1",
+    title: "Part 1: Programming Fundamentals, Variables, Data Types & Functions",
+    category: "fundamentals",
+    duration: "75 min (35m theory · 25m practice · 15m review)",
+    objectives: [
+      "Trace how source code is parsed, represented in memory (Stack vs. Heap), and executed by a runtime such as V8/Node.js.",
+      "Explain the exact difference between variable declaration, initialization, assignment, binding mutability, and the Temporal Dead Zone (`var`, `let`, `const`).",
+      "Distinguish all 8 ECMAScript data types, IEEE-754 floating-point precision limits, `BigInt`, and pass-by-value vs. pass-by-sharing semantics.",
+      "Design predictable, testable functions using pure transformations, higher-order composition, explicit boundary validation, and stack-safe iteration.",
+      "Recognize and prevent production bugs and security vulnerabilities caused by type coercion, 64-bit ID truncation, and unbounded recursion."
+    ],
+    sections: [
+      { id: "m01-p1-objectives", title: "Learning Objectives" },
+      { id: "m01-p1-sec-a", letter: "A", title: "Topic Introduction" },
+      { id: "m01-p1-sec-b", letter: "B", title: "Fundamentals (Simple Mental Models)" },
+      { id: "m01-p1-sec-c", letter: "C", title: "Internal Working & Architecture" },
+      { id: "m01-p1-sec-d", letter: "D", title: "Practical Examples (Interactive)" },
+      { id: "m01-p1-sec-e", letter: "E", title: "Step-by-Step Walkthrough" },
+      { id: "m01-p1-sec-f", letter: "F", title: "Real-World Use Cases" },
+      { id: "m01-p1-sec-g", letter: "G", title: "Common Mistakes" },
+      { id: "m01-p1-sec-h", letter: "H", title: "Best Practices" },
+      { id: "m01-p1-sec-i", letter: "I", title: "Performance & Scalability" },
+      { id: "m01-p1-sec-j", letter: "J", title: "Security Considerations" },
+      { id: "m01-p1-sec-k", letter: "K", title: "Comparisons & Decision Tables" },
+      { id: "m01-p1-sec-l", letter: "L", title: "Tips to Remember (Mnemonics & Mental Models)" },
+      { id: "m01-p1-sec-mn", letter: "M/N", title: "Interview Questions & Detailed Answers" },
+      { id: "m01-p1-sec-o", letter: "O", title: "Practical Exercises" },
+      { id: "m01-p1-sec-p", letter: "P", title: "Advanced Challenge" },
+      { id: "m01-p1-sec-q", letter: "Q", title: "Summary & Key Takeaways" },
+      { id: "m01-p1-mastery", title: "Mastery Assessment" }
+    ],
+    masteryItems: [
+      {
+        id: "m01-p1-m1",
+        label: "I can trace Stack vs. Heap state step by step for a function receiving both primitives and objects."
+      },
+      {
+        id: "m01-p1-m2",
+        label: "I can explain `var` vs. `let` vs. `const`, including why `let`/`const` hoist into the TDZ."
+      },
+      {
+        id: "m01-p1-m3",
+        label: "I can name all 8 JS types and explain why `typeof null === \"object\"` and `NaN !== NaN`."
+      },
+      {
+        id: "m01-p1-m4",
+        label: "I can explain IEEE-754 float precision limits and safely model currency and 64-bit IDs in JS/Node.js."
+      },
+      {
+        id: "m01-p1-m5",
+        label: "I completed all 3 practical coding exercises and verified outputs using the interactive runner."
+      },
+      {
+        id: "m01-p1-m6",
+        label: "I can answer the Basic, Intermediate, Advanced, and Senior/Architect interview questions without notes."
+      }
+    ],
+    Content: M01P1Mdx
+  }
+];
+
+const questionsByLesson: Record<string, InterviewQuestion[]> = {
+  "m01-p1": m01p1Questions
+};
+
+const glossaryEntries: GlossaryEntry[] = extractGlossaryFromMdx(m01p1Raw, "m01-p1").sort((a, b) =>
+  a.term.localeCompare(b.term)
+);
+
+function buildSearchRecords(): SearchRecord[] {
+  const records: SearchRecord[] = [];
+
+  for (const lesson of lessons) {
+    records.push({
+      id: `lesson:${lesson.id}`,
+      type: "Lesson",
+      title: lesson.title,
+      text: lesson.objectives.join(" "),
+      lessonId: lesson.id,
+      sectionId: lesson.id
+    });
+  }
+
+  records.push(...extractSearchRecordsFromMdx(m01p1Raw, "m01-p1", lessons[0].title));
+
+  for (const q of m01p1Questions) {
+    const answerText = [
+      ...(q.paragraphs?.map((p) => `${p.label ?? ""} ${p.body}`) ?? []),
+      ...(q.numberedSteps?.map((s) => `${s.title} ${s.body}`) ?? []),
+      ...(q.subboxes?.map((b) => `${b.title} ${b.content}`) ?? [])
+    ].join(" ");
+
+    records.push({
+      id: `iq:${q.id}`,
+      type: `Interview (${q.difficulty})`,
+      title: `${q.number}. ${q.question}`,
+      text: `${q.question} ${answerText}`,
+      lessonId: q.lessonId,
+      sectionId: q.id
+    });
+  }
+
+  for (const g of glossaryEntries) {
+    records.push({
+      id: `glossary:${g.term.toLowerCase()}`,
+      type: "Glossary",
+      title: g.term,
+      text: `${g.term}: ${g.definition}`,
+      lessonId: g.lessonId,
+      sectionId: g.sectionId
+    });
+  }
+
+  return records;
+}
+
+export const handbookCatalog: HandbookCatalog = {
+  modules,
+  lessons,
+  questionsByLesson,
+  glossaryEntries,
+  searchRecords: buildSearchRecords()
+};

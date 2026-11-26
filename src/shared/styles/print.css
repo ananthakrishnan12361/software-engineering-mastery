@@ -1,0 +1,18 @@
+@media print {
+  .topbar,
+  .sidebar,
+  .toc-aside,
+  .lesson-actions,
+  .code-toolbar-actions,
+  .iq-toolbar {
+    display: none !important;
+  }
+
+  .portal-layout {
+    display: block;
+  }
+
+  .topic-section-body {
+    display: block !important;
+  }
+}

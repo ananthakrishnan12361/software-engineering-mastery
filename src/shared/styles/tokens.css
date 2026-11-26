@@ -1,0 +1,76 @@
+:root {
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+  --header-h: 60px;
+  --sidebar-w: 296px;
+  --toc-w: 240px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --transition: 160ms ease;
+}
+
+html[data-theme="dark"] {
+  --bg-page: #0d1117;
+  --bg-surface: #161b22;
+  --bg-elevated: #1f2630;
+  --bg-subtle: #12171e;
+  --bg-code: #0b0f14;
+  --border: #2b3340;
+  --border-strong: #3c4657;
+  --text-primary: #e6edf3;
+  --text-secondary: #a5b1c2;
+  --text-muted: #7d8898;
+  --accent: #58a6ff;
+  --accent-soft: rgba(88, 166, 255, 0.14);
+  --accent-strong: #79c0ff;
+  --success: #3fb950;
+  --success-soft: rgba(63, 185, 80, 0.14);
+  --warning: #d29922;
+  --warning-soft: rgba(210, 153, 34, 0.14);
+  --danger: #f85149;
+  --danger-soft: rgba(248, 81, 73, 0.14);
+  --purple: #bc8cff;
+  --purple-soft: rgba(188, 140, 255, 0.14);
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+
+  --tok-kw: #ff7b72;
+  --tok-str: #a5d6ff;
+  --tok-num: #79c0ff;
+  --tok-com: #8b949e;
+  --tok-fn: #d2a8ff;
+  --tok-bi: #ffa657;
+}
+
+html[data-theme="light"] {
+  --bg-page: #f6f8fa;
+  --bg-surface: #ffffff;
+  --bg-elevated: #f0f3f7;
+  --bg-subtle: #f8fafc;
+  --bg-code: #f3f6fa;
+  --border: #d8dee4;
+  --border-strong: #b8c2cc;
+  --text-primary: #1f2328;
+  --text-secondary: #4b5563;
+  --text-muted: #6e7781;
+  --accent: #0969da;
+  --accent-soft: rgba(9, 105, 218, 0.1);
+  --accent-strong: #0550ae;
+  --success: #1a7f37;
+  --success-soft: rgba(26, 127, 55, 0.1);
+  --warning: #9a6700;
+  --warning-soft: rgba(154, 103, 0, 0.11);
+  --danger: #cf222e;
+  --danger-soft: rgba(207, 34, 46, 0.1);
+  --purple: #8250df;
+  --purple-soft: rgba(130, 80, 223, 0.1);
+  --shadow: 0 10px 30px rgba(31, 35, 40, 0.12);
+
+  --tok-kw: #cf222e;
+  --tok-str: #0a3069;
+  --tok-num: #0550ae;
+  --tok-com: #6e7781;
+  --tok-fn: #8250df;
+  --tok-bi: #953800;
+}

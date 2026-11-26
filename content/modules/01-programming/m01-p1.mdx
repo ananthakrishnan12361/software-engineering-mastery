@@ -1,0 +1,526 @@
+<TopicSection id="m01-p1-sec-a" letter="A" title="Topic Introduction">
+
+#### What is this?
+
+**Programming fundamentals** are the core building blocks every software system relies on: how instructions are structured and executed, how data is named and stored in memory (<GlossaryTerm definition="A named binding in a lexical environment that points to a value or memory reference.">variables</GlossaryTerm>), how the runtime interprets raw bits (<GlossaryTerm definition="A classification that tells the runtime how to store a value in memory and which operations are valid on it.">data types</GlossaryTerm>), and how reusable units of logic accept inputs and produce outputs (<GlossaryTerm definition="A reusable, callable block of logic that executes within its own call stack frame.">functions</GlossaryTerm>).
+
+#### Why does it exist & what problem does it solve?
+
+CPUs only understand binary instructions and raw memory addresses. Writing large applications directly in binary or assembly is slow, error-prone, and tied to one hardware architecture. High-level languages such as JavaScript, TypeScript, Python, and Java solve this by giving engineers:
+
+- **Named abstractions (variables)** instead of raw hex memory addresses.
+- **Data types** so the runtime knows whether `01000001` means the integer `65`, the character `"A"`, or part of a floating-point decimal.
+- **Functions** to decompose complex business workflows into small, named, testable, reusable units with isolated local state.
+
+#### Where is it used in real-world software?
+
+Every layer of production software depends on these primitives. A React UI component is a JavaScript function returning UI descriptions from state variables. A Node.js/Express route handler is a function validating JSON types and transforming data. Even severe production outages—such as billing rounding errors, corrupted 64-bit database IDs in JSON, or authentication bypasses via loose type coercion—usually trace back to misunderstood fundamentals rather than exotic frameworks.
+
+</TopicSection>
+
+<TopicSection id="m01-p1-sec-b" letter="B" title="Fundamentals (Simple Mental Models)">
+
+#### 1. Programming Fundamentals: Expressions, Statements & Control Flow
+
+A program is a sequence of instructions executed step by step unless redirected by control flow. Two terms cause frequent confusion:
+
+- <GlossaryTerm definition="A unit of code that evaluates to a single value (for example: 2 + 3, user.name, or calculateTax(100)).">Expression</GlossaryTerm>: Anything that produces a value (e.g., `price * 1.1`).
+- <GlossaryTerm definition="A complete instruction that performs an action (for example: let x = 5;, if (...) {}, or return x;).">Statement</GlossaryTerm>: An instruction that performs an action (e.g., declaring a variable, branching with `if`, looping with `for`).
+
+#### 2. Variables: Labels, Not Boxes
+
+Beginners often picture a variable as a physical box holding a value. A more accurate mental model is a **sticky-note label** attached to a slot in memory (for primitives) or pointing to an object in heap memory:
+
+- **Declaration** creates the label in the current scope (e.g., `let total;`).
+- **Initialization** gives it its initial value (e.g., `let total = 0;`).
+- **Reassignment** moves the label to point to a different value (`total = 50;`).
+- `const` prevents *reassignment* of the label, **not** mutation of an object's internal properties.
+
+#### 3. Data Types: The 8 ECMAScript Types
+
+JavaScript is <GlossaryTerm definition="A type discipline where values have types at runtime rather than variables having fixed compile-time types.">dynamically typed</GlossaryTerm>: variables do not have fixed types, **values** do. ECMAScript defines **8 data types**—7 primitives and 1 reference type:
+
+- **Primitives (immutable, stored/copied by value):** `number` (64-bit IEEE-754 float), `bigint` (arbitrary-precision integers like `9007199254740993n`), `string` (immutable UTF-16 code units), `boolean` (`true`/`false`), `undefined` (declared but unassigned), `null` (intentional absence of an object value), `symbol` (guaranteed-unique identifier).
+- **Reference type (mutable, copied by reference value):** `object` (plain objects, arrays, functions, `Date`, `Map`, `Set`, `RegExp`).
+
+#### 4. Functions: Inputs, Scope, Return Values & First-Class Citizenship
+
+A function packages behavior under a name (or as an anonymous value), receives inputs via <GlossaryTerm definition="Named placeholder variables listed in a function's definition.">parameters</GlossaryTerm> (filled by <GlossaryTerm definition="Actual values passed by the caller when invoking a function.">arguments</GlossaryTerm>), runs inside a fresh local execution frame, and returns one value (defaulting to `undefined` if no `return` is executed).
+
+In JavaScript, functions are <GlossaryTerm definition="Values that can be stored in variables, passed as arguments to other functions, and returned from functions.">first-class functions</GlossaryTerm>. That enables <GlossaryTerm definition="A function that accepts another function as an argument or returns a function as its result.">higher-order functions</GlossaryTerm> such as `Array.prototype.map`, Express middleware, and React hooks.
+
+</TopicSection>
+
+<TopicSection id="m01-p1-sec-c" letter="C" title="Internal Working & Architecture">
+
+#### 1. How a JS Engine Parses and Executes Code
+
+Modern runtimes like Google V8 (used in Chrome and Node.js) do not simply read text line by line from disk:
+
+1. **Lexing & Parsing:** Source text is split into tokens and parsed into an <GlossaryTerm definition="Abstract Syntax Tree: a tree representation of the syntactic structure of source code.">AST</GlossaryTerm>. Syntax errors are caught here before a single line runs.
+2. **Creation / Compilation Phase:** Before executing a scope, the engine creates a *Lexical Environment*, registers bindings (`var` initialized to `undefined`; `let`/`const` placed in the <GlossaryTerm definition="Temporal Dead Zone: the period between entering a scope and a let/const declaration executing, during which reading the binding throws a ReferenceError.">TDZ</GlossaryTerm>; function declarations bound to their function object).
+3. **Bytecode & JIT Optimization:** V8's *Ignition* interpreter compiles the AST into compact bytecode and executes it. Hot functions (executed frequently with consistent types) are compiled to optimized machine code by *TurboFan* (JIT). If a type assumption breaks later (e.g., passing a string where an integer always arrived), V8 performs a *deoptimization* back to bytecode.
+
+#### 2. Stack vs. Heap Memory & Call Stack Frames
+
+When a function runs, the engine pushes a new **Stack Frame** onto the <GlossaryTerm definition="A LIFO (Last-In, First-Out) memory region tracking active function invocations, local bindings, and return addresses.">Call Stack</GlossaryTerm>. Fixed-size primitive values (and references/pointers to objects) live in the fast, contiguous stack frame (or CPU registers). Dynamic, variable-sized structures like objects, arrays, and closures are allocated on the <GlossaryTerm definition="A large, flexibly managed memory region for dynamic objects whose lifetime may outlive a single function call.">Heap</GlossaryTerm>, and the stack variable holds a reference (pointer) to that heap address.
+
+<DiagramCard caption="Figure 1.1 — Stack frames store primitives and reference pointers; heap objects are shared when references are copied.">
+  <svg viewBox="0 0 820 310" role="img" aria-label="Call Stack frames, variable bindings, and Heap memory references">
+    <rect x="10" y="10" width="800" height="290" rx="10" fill="var(--bg-subtle)" stroke="var(--border)" />
+    <rect x="30" y="32" width="330" height="246" rx="8" fill="var(--bg-surface)" stroke="var(--border-strong)" />
+    <text x="50" y="58" fill="var(--accent-strong)" fontSize="14" fontWeight="700" fontFamily="sans-serif">CALL STACK (LIFO Frames)</text>
+
+    <rect x="48" y="76" width="294" height="86" rx="6" fill="var(--accent-soft)" stroke="var(--accent)" />
+    <text x="62" y="98" fill="var(--text-primary)" fontSize="13" fontWeight="700" fontFamily="monospace">Frame: applyDiscount(cart, 0.1)</text>
+    <text x="62" y="120" fill="var(--text-secondary)" fontSize="12" fontFamily="monospace">rate  = 0.1      (primitive value)</text>
+    <text x="62" y="140" fill="var(--text-secondary)" fontSize="12" fontFamily="monospace">cart  = 0x7F10   (reference ptr)</text>
+
+    <rect x="48" y="176" width="294" height="84" rx="6" fill="var(--bg-elevated)" stroke="var(--border-strong)" />
+    <text x="62" y="198" fill="var(--text-primary)" fontSize="13" fontWeight="700" fontFamily="monospace">Global / Module Frame</text>
+    <text x="62" y="220" fill="var(--text-secondary)" fontSize="12" fontFamily="monospace">taxCents = 150   (primitive value)</text>
+    <text x="62" y="240" fill="var(--text-secondary)" fontSize="12" fontFamily="monospace">order    = 0x7F10 (reference ptr)</text>
+
+    <line x1="342" y1="136" x2="465" y2="118" stroke="var(--accent)" strokeWidth="2" />
+    <polygon points="465,118 455,113 457,124" fill="var(--accent)" />
+    <line x1="342" y1="236" x2="465" y2="132" stroke="var(--warning)" strokeWidth="2" strokeDasharray="5,4" />
+    <polygon points="465,132 454,132 460,141" fill="var(--warning)" />
+
+    <rect x="440" y="32" width="350" height="246" rx="8" fill="var(--bg-surface)" stroke="var(--border-strong)" />
+    <text x="460" y="58" fill="var(--success)" fontSize="14" fontWeight="700" fontFamily="sans-serif">HEAP (Dynamic Objects &amp; Closures)</text>
+
+    <rect x="465" y="80" width="300" height="106" rx="6" fill="var(--success-soft)" stroke="var(--success)" />
+    <text x="480" y="102" fill="var(--text-primary)" fontSize="13" fontWeight="700" fontFamily="monospace">Object @ 0x7F10</text>
+    <text x="480" y="124" fill="var(--text-secondary)" fontSize="12" fontFamily="monospace">{'{ id: "ord_42", totalCents: 2000,'}</text>
+    <text x="480" y="144" fill="var(--text-secondary)" fontSize="12" fontFamily="monospace">{'  items: 0x8A04 (Array ref) }'}</text>
+    <text x="480" y="168" fill="var(--warning)" fontSize="11.5" fontFamily="sans-serif">Shared reference: mutating cart mutates order!</text>
+
+    <rect x="465" y="200" width="300" height="58" rx="6" fill="var(--bg-elevated)" stroke="var(--border)" />
+    <text x="480" y="222" fill="var(--text-primary)" fontSize="12.5" fontWeight="700" fontFamily="monospace">Array @ 0x8A04</text>
+    <text x="480" y="242" fill="var(--text-secondary)" fontSize="12" fontFamily="monospace">{"[\"sku_1\", \"sku_2\"]"}</text>
+  </svg>
+</DiagramCard>
+
+#### 3. IEEE-754 Double-Precision Floating Point & Tagged Values
+
+Every JavaScript `number` uses the **IEEE-754 64-bit binary floating-point** format:
+
+- **1 bit** for Sign (0 = positive, 1 = negative)
+- **11 bits** for Exponent
+- **52 bits** for Significand/Mantissa (plus 1 implicit leading bit = 53 bits of precision)
+
+Because 53 bits of precision can represent integers exactly only up to `2^53 - 1` (`9,007,199,254,740,991` = `Number.MAX_SAFE_INTEGER`), integers larger than this lose their least significant digits! Furthermore, base-10 fractions like `0.1` and `0.2` are repeating fractions in base-2 binary (just as `1/3 = 0.333...` repeats in base-10), producing tiny rounding residues such as `0.1 + 0.2 === 0.30000000000000004`.
+
+*Engine detail (V8):* Internally, V8 optimizes common 31-bit/32-bit signed integers as **Smi (Small Integers)** stored directly inside tagged pointers without heap allocation, while fractional or large numbers become heap-allocated `HeapNumber` objects.
+
+<DiagramCard caption="Figure 1.2 — IEEE-754 64-bit structure explains both decimal rounding artifacts and the 53-bit safe integer ceiling.">
+  <svg viewBox="0 0 820 175" role="img" aria-label="IEEE 754 64-bit floating point layout and JavaScript compilation pipeline">
+    <rect x="10" y="10" width="800" height="155" rx="10" fill="var(--bg-subtle)" stroke="var(--border)" />
+    <text x="28" y="38" fill="var(--text-primary)" fontSize="13.5" fontWeight="700" fontFamily="sans-serif">IEEE-754 64-bit Double Layout (JavaScript Number)</text>
+
+    <rect x="28" y="52" width="54" height="44" rx="4" fill="var(--danger-soft)" stroke="var(--danger)" />
+    <text x="55" y="71" textAnchor="middle" fill="var(--danger)" fontSize="12" fontWeight="700" fontFamily="monospace">Sign</text>
+    <text x="55" y="87" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="monospace">1 bit</text>
+
+    <rect x="88" y="52" width="180" height="44" rx="4" fill="var(--warning-soft)" stroke="var(--warning)" />
+    <text x="178" y="71" textAnchor="middle" fill="var(--warning)" fontSize="12" fontWeight="700" fontFamily="monospace">Exponent</text>
+    <text x="178" y="87" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="monospace">11 bits (range)</text>
+
+    <rect x="274" y="52" width="518" height="44" rx="4" fill="var(--accent-soft)" stroke="var(--accent)" />
+    <text x="533" y="71" textAnchor="middle" fill="var(--accent-strong)" fontSize="12" fontWeight="700" fontFamily="monospace">Mantissa / Significand</text>
+    <text x="533" y="87" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="monospace">52 stored bits (+1 implicit = 53 bits precision; MAX_SAFE_INTEGER = 2^53 - 1)</text>
+
+    <text x="28" y="132" fill="var(--text-secondary)" fontSize="12.5" fontFamily="monospace">{"Safe Integer Check: Number.isSafeInteger(9007199254740991) === true  |  9007199254740992 === 9007199254740993 -> TRUE (precision lost!)"}</text>
+  </svg>
+</DiagramCard>
+
+</TopicSection>
+
+<TopicSection id="m01-p1-sec-d" letter="D" title="Practical Examples (Interactive)">
+
+#### Example 1: Variable Bindings, TDZ, and Reference vs. Reassignment
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// 1. const prevents reassigning the binding, NOT mutating the referenced object
+const config = { retries: 3, timeoutMs: 2000 };
+config.retries = 5; // Allowed: object on heap is mutated
+console.log("Mutated config:", config);
+
+// 2. Block scope vs var function scope
+{
+  let blockScoped = "only inside block";
+  var functionScoped = "leaks out of block";
+  console.log("Inside block:", blockScoped);
+}
+console.log("Outside block (var):", functionScoped);
+console.log("typeof blockScoped outside:", typeof blockScoped); // "undefined" (not declared here)
+
+// 3. Temporal Dead Zone (TDZ) demonstration inside a safe try/catch
+function testTdz() {
+  try {
+    // Accessing \`rate\` before \`let rate\` executes throws ReferenceError
+    return rate * 100;
+  } catch (err) {
+    console.log("TDZ caught:", err.name, "-", err.message);
+  }
+  let rate = 0.15;
+  return rate * 100;
+}
+console.log("After declaration:", testTdz());`}
+/>
+
+#### Example 2: Data Types, IEEE-754 Precision, BigInt, and Coercion
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// 1. Floating-point inaccuracy vs integer minor-units (cents)
+const floatSum = 0.1 + 0.2;
+console.log("0.1 + 0.2 =", floatSum, "| === 0.3?", floatSum === 0.3);
+
+const centsSum = 10 + 20; // Represent $0.10 + $0.20 in integer cents
+console.log("Cents sum:", centsSum, "=> $" + (centsSum / 100).toFixed(2));
+
+// 2. 64-bit integer precision loss vs BigInt
+const maxSafe = Number.MAX_SAFE_INTEGER; // 9007199254740991
+console.log("Unsafe Number equality:", maxSafe + 1 === maxSafe + 2); // true!
+console.log("BigInt exact equality:", 9007199254740992n === 9007199254740993n); // false!
+
+// 3. Type quirks: typeof null, NaN, and strict vs loose equality
+console.log("typeof null:", typeof null);
+console.log("NaN === NaN:", NaN === NaN, "| Number.isNaN(NaN):", Number.isNaN(NaN));
+console.log("isNaN('abc'):", isNaN("abc"), "| Number.isNaN('abc'):", Number.isNaN("abc"));
+console.log("Loose '0' == false:", "0" == false, "| Strict '0' === false:", "0" === false);`}
+/>
+
+#### Example 3: Pass-by-Sharing, Pure Functions & Higher-Order Composition
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// Pure function: depends only on inputs, does not mutate arguments
+function calculateLineTotalCents(unitPriceCents, quantity, discountRate = 0) {
+  if (!Number.isInteger(unitPriceCents) || unitPriceCents < 0) {
+    throw new TypeError("unitPriceCents must be a non-negative integer");
+  }
+  if (!Number.isInteger(quantity) || quantity < 0) {
+    throw new TypeError("quantity must be a non-negative integer");
+  }
+  const gross = unitPriceCents * quantity;
+  return Math.round(gross * (1 - discountRate));
+}
+
+// Higher-order function returning a configured validator/calculator
+function createTaxCalculator(taxRate) {
+  return function applyTax(subtotalCents) {
+    return subtotalCents + Math.round(subtotalCents * taxRate);
+  };
+}
+
+// Pass-by-sharing: reassigning parameter does NOT affect caller; mutating property DOES
+function testPassBySharing(obj, num) {
+  num = 999;          // Reassigns local primitive copy only
+  obj.touched = true; // Mutates shared heap object
+  obj = { fresh: 1 }; // Reassigns local reference only; caller still points to old object
+}
+
+const payload = { id: 1 };
+let count = 5;
+testPassBySharing(payload, count);
+console.log("Caller payload:", payload, "| Caller count:", count);
+
+const applyVat = createTaxCalculator(0.2);
+const subtotal = calculateLineTotalCents(1999, 2, 0.1);
+console.log("Subtotal cents:", subtotal, "| With 20% VAT:", applyVat(subtotal));`}
+/>
+
+</TopicSection>
+
+<TopicSection id="m01-p1-sec-e" letter="E" title="Step-by-Step Walkthrough">
+
+Trace every runtime step of **Example 3** (`testPassBySharing` and `applyVat`):
+
+1. **Module Creation Phase:** The engine parses all declarations, hoisting `calculateLineTotalCents`, `createTaxCalculator`, and `testPassBySharing` into the module lexical environment. `payload` and `applyVat` are registered in the TDZ.
+2. **Execution — Heap Allocation:** `const payload = { id: 1 }` allocates an object on the heap (say at `0x40A0`) and stores the pointer `0x40A0` in the `payload` binding. `let count = 5` stores primitive `5` directly in the `count` binding.
+3. **Function Invocation — Stack Frame Push:** `testPassBySharing(payload, count)` pushes a new frame onto the call stack. Parameter `obj` receives a *copy of the pointer* `0x40A0`; parameter `num` receives a *copy of the primitive* `5`.
+4. **Inside Frame:**
+   - `num = 999` overwrites the local `num` slot only; caller's `count` stays `5`.
+   - `obj.touched = true` dereferences `0x40A0` on the heap and adds property `touched: true`. Because caller's `payload` points to `0x40A0`, caller observes the mutation.
+   - `obj = { fresh: 1 }` allocates a brand-new heap object (say `0x99B0`) and updates the local `obj` binding. Caller's `payload` still points to `0x40A0`.
+5. **Frame Pop:** When `testPassBySharing` returns `undefined`, its stack frame is popped. The unreferenced `0x99B0` object becomes eligible for garbage collection.
+6. **Higher-Order Return:** `createTaxCalculator(0.2)` returns `applyTax`, which retains access to `taxRate = 0.2` via its closure lexical environment even after `createTaxCalculator`'s stack frame pops.
+
+</TopicSection>
+
+<TopicSection id="m01-p1-sec-f" letter="F" title="Real-World Use Cases">
+
+#### Scenario 1: Fintech & E-Commerce Ledger Calculations (Preventing Float Drift)
+
+**Problem:** A SaaS invoicing backend built in Node.js sums line items stored as floating-point dollars (`19.99 + 0.01` or `0.1 + 0.2`). Over thousands of ledger rows, binary rounding residue causes trial balances to fail reconciliation by 1 cent (`$100.00000000000001 !== $100.00`).
+
+**Production Solution:** Store and compute all monetary values in integer minor units (`amountCents`, e.g., `1999` for `$19.99`, or `BigInt` / arbitrary-precision decimal libraries for sub-cent FX rates) and format to decimals only at the UI presentation boundary.
+
+#### Scenario 2: Node.js / Express Request Boundary Normalization
+
+**Problem:** HTTP query parameters always arrive as `string` values (e.g., `?page=2&active=false`). Treating `"false"` as a boolean directly fails because any non-empty string in JavaScript—including `"false"` and `"0"`—is **truthy**!
+
+**Production Solution:** Write pure parser functions at the API boundary that explicitly check `typeof`, parse numbers with `Number.isSafeInteger`, and map `"true"` / `"false"` strings strictly before passing clean typed objects into business logic.
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`function parseQueryFlags(query) {
+  const page = Number(query.page ?? 1);
+  if (!Number.isInteger(page) || page < 1 || page > 10000) {
+    throw new RangeError("Invalid page parameter");
+  }
+
+  let active = null;
+  if (query.active === "true") active = true;
+  else if (query.active === "false") active = false;
+  else if (query.active !== undefined) {
+    throw new TypeError("active must be 'true' or 'false'");
+  }
+
+  return { page, active };
+}
+
+console.log(parseQueryFlags({ page: "3", active: "false" }));`}
+/>
+
+</TopicSection>
+
+<TopicSection id="m01-p1-sec-g" letter="G" title="Common Mistakes">
+
+- **Comparing floats with `===`:** Expecting `0.1 + 0.2 === 0.3` or `1.005 * 100 === 100.5` without tolerance (`Number.EPSILON`) or integer minor units.
+- **Using loose equality (`==`):** `"" == 0`, `" \t\n " == 0`, and `null == undefined` evaluate to `true` due to abstract equality coercion rules.
+- **Checking for objects with `typeof x === "object"` alone:** Forgetting that `typeof null === "object"` and `typeof [] === "object"`. Always guard with `x !== null && typeof x === "object"` (and `Array.isArray(x)` for arrays).
+- **Assuming `Boolean("false")` is `false`:** Non-empty strings are always truthy. Aside from the legacy browser `document.all` quirk, only 8 values are falsy in JS: `false`, `0`, `-0`, `0n`, `""`, `null`, `undefined`, and `NaN`.
+- **Mutating input objects inside helper functions:** Modifying passed objects/arrays in place creates hidden side effects that break React change detection and cause spooky bugs across services.
+- **Using `var` in loops with async callbacks:** A single function-scoped `var i` is shared across every callback iteration, whereas `let i` creates a fresh lexical binding per iteration.
+
+</TopicSection>
+
+<TopicSection id="m01-p1-sec-h" letter="H" title="Best Practices">
+
+- **Default to `const`, use `let` only when reassignment is required, never use `var`** in modern codebases.
+- **Use strict equality (`===` and `!==`) everywhere** (except the rare intentional `x == null` check for both `null` and `undefined`, if team style allows it).
+- **Prefer `Number.isNaN`, `Number.isFinite`, and `Number.isSafeInteger`** over global `isNaN` / `isFinite`, because the `Number.*` methods do not coerce non-numbers first.
+- **Keep core domain functions pure:** accept explicit inputs, return new objects/values, push I/O (DB, HTTP, logging, clock) to the edges.
+- **Validate at system boundaries** (API handlers, message consumers, env vars) and keep internal helper signatures concise (prefer an options object if a function takes more than 3 parameters).
+- **Enable `"use strict"` (automatic in ES modules and classes)** so accidental global variables and silent assignment failures throw immediately.
+
+</TopicSection>
+
+<TopicSection id="m01-p1-sec-i" letter="I" title="Performance & Scalability">
+
+- **Consistent Argument Shapes (Monomorphism):** JIT engines optimize functions best when they consistently receive the same types and object property shapes. Passing mixed types (sometimes string, sometimes number, sometimes differently shaped objects) forces polymorphic/megamorphic lookups and deoptimizations in hot loops.
+- **Call Stack Depth Limits:** Typical JS engines allow roughly ~10,000 stack frames (varies by runtime and frame size). In Node.js/V8, Proper Tail Calls (PTC) are *not* enabled, so recursive algorithms on large trees or lists (100k+ nodes) will crash with `RangeError: Maximum call stack size exceeded` unless converted to an explicit stack/queue loop.
+- **Allocation Pressure in Hot Loops:** Creating temporary objects or cloning large arrays inside high-frequency loops increases Garbage Collection pause frequency. Keep pure immutability for application state, but consider pre-allocated buffers/arrays or controlled local mutation inside tight inner hot paths proven by a profiler.
+- **`BigInt` Trade-off:** `BigInt` arithmetic is slower than hardware-accelerated Smi/IEEE-754 `Number` operations and cannot be serialized directly by `JSON.stringify()` (throws `TypeError`). Use `BigInt` only where precision beyond 53 bits is genuinely required.
+
+</TopicSection>
+
+<TopicSection id="m01-p1-sec-j" letter="J" title="Security Considerations">
+
+- **Type Confusion & Coercion Bypasses:** If an API expects a string token or integer role ID and receives an array/object from unvalidated JSON (e.g., `{ "pin": [] }` or `req.query.id` as an array `?id=1&id=2`), loose checks or unguarded string methods can bypass authorization or crash the server. Always assert runtime types with a schema validator (e.g., Zod, Joi, Ajv).
+- **64-bit Database ID Truncation (Silent Data Corruption):** PostgreSQL `BIGINT` or Snowflake IDs up to `2^63 - 1` exceed `Number.MAX_SAFE_INTEGER` (`2^53 - 1`). Parsing them as JS `Number` silently rounds adjacent user IDs to the *same* number, risking cross-user data exposure! Serialize 64-bit IDs as `string` in JSON APIs.
+- **Unbounded Recursion DoS:** Recursive JSON/AST walkers without a maximum depth guard allow attackers to send deeply nested payloads (e.g., 20,000 nested brackets) that crash the Node.js process via stack overflow.
+- **Dynamic Code Execution:** Never pass user-controlled strings to `eval()`, `new Function()`, or string-form `setTimeout()`; this leads directly to Remote Code Execution (RCE) on Node.js or XSS in browsers.
+
+</TopicSection>
+
+<TopicSection id="m01-p1-sec-k" letter="K" title="Comparisons & Decision Tables">
+
+#### 1. Variable Declarations: `var` vs. `let` vs. `const`
+
+| Feature | `var` | `let` | `const` |
+| --- | --- | --- | --- |
+| Scope | Function (or global) | Block (`{ ... }`) | Block (`{ ... }`) |
+| Hoisting & Initial State | Hoisted & initialized to `undefined` | Hoisted into TDZ (`ReferenceError` before init) | Hoisted into TDZ (`ReferenceError` before init) |
+| Reassignment | Allowed | Allowed | Forbidden (`TypeError`) |
+| Redeclaration in same scope | Allowed (error-prone) | SyntaxError | SyntaxError |
+| When to use | Legacy code only | Loop counters, accumulators, conditional bindings | Default choice for 90%+ of bindings |
+
+#### 2. Primitive Types vs. Reference Types (Objects)
+
+| Dimension | Primitives (7 types) | Reference Type (`object`) |
+| --- | --- | --- |
+| Mutability | Immutable (operations create new values) | Mutable by default (properties can change unless frozen) |
+| Assignment / Argument Passing | Copies the value itself | Copies the reference pointer (pass-by-sharing) |
+| Equality (`===`) | Compared by value (except `NaN !== NaN`) | Compared by identity (same memory reference) |
+| Typical Memory | Stack / register (or pooled string/heap for big strings) | Heap-allocated, reclaimed by Garbage Collector |
+
+#### 3. Function Declaration vs. Expression vs. Arrow Function (Fundamentals)
+
+| Aspect | Function Declaration | Function Expression | Arrow Function |
+| --- | --- | --- | --- |
+| Hoisting | Fully hoisted (callable before declaration line) | Variable hoisted only (`TDZ` for `const/let`) | Variable hoisted only (`TDZ` for `const/let`) |
+| `this` binding | Dynamic (depends on call site) | Dynamic (depends on call site) | Lexical (inherits enclosing scope's `this`) |
+| Constructor (`new`) | Yes | Yes | No (throws `TypeError`) |
+| Best fit | Top-level named functions & module exports | Conditional/named callbacks | Callbacks, array transforms, preserving outer `this` |
+
+</TopicSection>
+
+<TopicSection id="m01-p1-sec-l" letter="L" title="Tips to Remember (Mnemonics & Mental Models)">
+
+- **Mnemonic for the 7 Primitives: `"BB NN SSU"`** — `B`igInt, `B`oolean, `N`umber, `N`ull, `S`tring, `S`ymbol, `U`ndefined (+ 1 `O`bject = 8 total types).
+- **`const` Analogy:** `const` welds the *leash* to one doghouse—you cannot point the leash at a different doghouse, but you can still repaint the doghouse inside (mutate properties).
+- **Pass-by-Sharing Rule:** "You can change the furniture inside the house (`obj.x = 2`), but replacing your copy of the address card (`obj = {}`) leaves the caller's address card untouched."
+- **Falsy Eight:** `false`, `0`, `-0`, `0n`, `""`, `null`, `undefined`, `NaN` (plus legacy browser `document.all`). Everything else—including `[]`, `{}`, and `"false"`—is truthy.
+- **Money & Big IDs Rule:** "Cents for money, Strings for 64-bit IDs."
+
+</TopicSection>
+
+<TopicSection id="m01-p1-sec-mn" letter="M/N" title="Interview Questions & Detailed Answers">
+  <InterviewSection />
+</TopicSection>
+
+<TopicSection id="m01-p1-sec-o" letter="O" title="Practical Exercises">
+
+<ExerciseCard
+  title="Exercise 1: Precision-Safe Invoice Splitter"
+  prompt={
+    <p>
+      Write a pure function <code>splitAmountCents(totalCents, parts)</code> that splits an integer cent amount evenly across <code>parts</code> participants without losing or creating a single cent (distribute any remainder cents one each to the first participants). Validate inputs strictly.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function splitAmountCents(totalCents, parts) {
+  if (!Number.isSafeInteger(totalCents) || totalCents < 0) {
+    throw new TypeError("totalCents must be a non-negative safe integer");
+  }
+  if (!Number.isSafeInteger(parts) || parts < 1) {
+    throw new TypeError("parts must be a positive safe integer");
+  }
+
+  const base = Math.floor(totalCents / parts);
+  const remainder = totalCents % parts;
+  const result = [];
+
+  for (let i = 0; i < parts; i++) {
+    result.push(i < remainder ? base + 1 : base);
+  }
+  return result;
+}
+
+console.log("$10.00 / 3:", splitAmountCents(1000, 3)); // [334, 333, 333] -> sum is 1000`}
+  />
+</ExerciseCard>
+
+<ExerciseCard
+  title="Exercise 2: Stack-Safe Iterative Array Flattener"
+  prompt={
+    <p>
+      Write a function <code>flattenIterative(nested, maxDepth = 1000)</code> that flattens arbitrarily nested arrays without recursion (so 20,000 nested arrays will not throw a stack overflow), while guarding against cyclic or excessively deep input.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function flattenIterative(nested, maxDepth = 1000) {
+  if (!Array.isArray(nested)) {
+    throw new TypeError("Input must be an array");
+  }
+
+  const output = [];
+  const stack = [{ value: nested, depth: 0 }];
+
+  while (stack.length > 0) {
+    const { value, depth } = stack.pop();
+    if (Array.isArray(value)) {
+      if (depth >= maxDepth) {
+        throw new RangeError(\`Exceeded max nesting depth of \${maxDepth}\`);
+      }
+      for (let i = value.length - 1; i >= 0; i--) {
+        stack.push({ value: value[i], depth: depth + 1 });
+      }
+    } else {
+      output.push(value);
+    }
+  }
+  return output;
+}
+
+console.log(flattenIterative([1, [2, [3, 4]], 5]));`}
+  />
+</ExerciseCard>
+
+<ExerciseCard
+  title="Exercise 3: Pure Request Normalizer & Higher-Order Pipeline"
+  prompt={
+    <p>
+      Create a higher-order function <code>composeValidators(...validators)</code> that runs an array of pure validation/transformation functions sequentially over an input object without mutating the caller's object.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function composeValidators(...fns) {
+  return function runPipeline(initialInput) {
+    let current = { ...initialInput };
+    for (const fn of fns) {
+      current = fn(current);
+    }
+    return current;
+  };
+}
+
+const trimEmail = (u) => ({ ...u, email: String(u.email ?? "").trim().toLowerCase() });
+const requireAge = (u) => {
+  const age = Number(u.age);
+  if (!Number.isInteger(age) || age < 18) throw new RangeError("Must be 18+");
+  return { ...u, age };
+};
+
+const normalizeSignup = composeValidators(trimEmail, requireAge);
+const raw = { email: "  Alice@Example.COM ", age: "25" };
+console.log("Normalized:", normalizeSignup(raw), "| Original:", raw);`}
+  />
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m01-p1-sec-p" letter="P" title="Advanced Challenge">
+
+<Callout variant="warn" title="Senior Challenge: Precision-Safe Boundary Layer">
+  <p>
+    You inherit a Node.js Express service receiving webhook JSON payloads containing: (a) 64-bit transaction IDs like <code>900719925474099512</code>, (b) decimal amounts like <code>"19.99"</code> or <code>19.99</code>, and (c) nested metadata objects of unknown depth.
+  </p>
+  <p>
+    <strong>Your Task:</strong> Notice that standard <code>express.json()</code> calls <code>JSON.parse()</code>, which <em>already</em> corrupts unquoted 64-bit numeric IDs before your route handler ever runs! Explain how you would inspect raw request buffers (or use a safe JSON parser/reviver) to preserve 64-bit IDs, convert decimal strings to integer minor units without floating-point intermediaries, enforce a depth cap, and maintain full backward compatibility.
+  </p>
+</Callout>
+
+<ExerciseCard
+  title="Reference Architecture Notes"
+  prompt={null}
+  buttonLabel="Reveal Approach"
+  hideLabel="Hide Approach"
+>
+  <ol>
+    <li>Capture the raw UTF-8 body buffer using Express <code>verify</code> hook or custom middleware before <code>JSON.parse</code> runs.</li>
+    <li>Use a library or modern runtime support for <code>JSON.parse</code> source text revivers (<code>context.source</code>, available in newer V8/Node.js runtimes) or a streaming/bigint-aware parser (such as <code>json-bigint</code>) to convert integers outside <code>[-MAX_SAFE_INTEGER, MAX_SAFE_INTEGER]</code> directly into strings or <code>BigInt</code>.</li>
+    <li>Parse decimal string amounts like <code>"19.99"</code> via regex splitting on <code>"."</code> (<code>dollars * 100 + cents</code>) rather than <code>Math.round(Number("19.99") * 100)</code> so floats never touch financial digits.</li>
+    <li>Run an iterative BFS/stack depth check (e.g., max depth 16, max keys 200) and reject prototype-polluting keys (<code>__proto__</code>, <code>constructor</code>, <code>prototype</code>) before forwarding to the domain service.</li>
+  </ol>
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m01-p1-sec-q" letter="Q" title="Summary & Key Takeaways">
+
+- Source code moves from **Lexing/Parsing (AST) → Scope Creation (TDZ/Hoisting) → Bytecode & JIT**, using the **Call Stack** for frames/primitives and the **Heap** for dynamic objects.
+- Default to `const`, use `let` when rebinding is needed, and avoid `var`. Remember `const` freezes the binding, not heap properties.
+- JavaScript has **8 types** (7 immutable primitives + mutable `object`). Numbers are 64-bit IEEE-754 floats: never use floats for money and never use `Number` for 64-bit IDs beyond `2^53 - 1`.
+- Arguments are passed **by value** (copying primitive values, or copying object pointers—pass-by-sharing).
+- Prefer pure functions for business logic, strict equality (`===`), explicit boundary validation, and iterative loops over unbounded recursion in Node.js.
+
+</TopicSection>

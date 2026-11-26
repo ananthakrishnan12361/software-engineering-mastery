@@ -11,11 +11,14 @@ This checklist is derived directly from `COURSE_modeule_in_detiles.md` (the appr
 
 ## Foundation & Portal Requirements
 
-- [x] `index.html` — Page shell with semantic layout, sidebar, search, filters, TOC, modals/drawers
-- [x] `assets/style.css` — Responsive UI (desktop, tablet, mobile), dark/light theme variables, syntax colors, print styles
-- [x] `assets/app.js` — Offline JS (zero external deps): navigation, search (topics/definitions/code/Q&A/glossary), theme toggle, localStorage progress & bookmarks, copy code, interactive JS demo runner, answer reveal, difficulty & category filters, exercise solutions, mastery assessment, glossary drawer, export/import progress
-- [x] `build.js` — Node.js build script merging `index.html`, `assets/style.css`, `assets/app.js`, and `modules/*.html` into `dist/software_engineering_mastery.html`
-- [x] `dist/software_engineering_mastery.html` — Standalone offline bundle built and verified in Node.js + headless Chrome (`file://`)
+- [x] `index.html`, `package.json`, `tsconfig.json`, `vite.config.ts`, `steiger.config.ts`, `.gitignore` — React 19 + TypeScript + Vite 8 + MDX + `vite-plugin-singlefile` + Steiger setup
+- [x] `src/shared/` — Tokens/styles (`tokens.css`, `global.css`, `print.css`), pure libs (`hashRouter`, `storage`, `highlightCode`, `runJsSandbox`), config, stateless props-driven UI (`TopicSection`, `CodeBlock`, `ExerciseCard`, `DiagramCard`, `ComparisonTable`, `Modal`, `GlossaryTerm`, etc.)
+- [x] `src/entities/progress/` — `sem_handbook_v1` `localStorage` persistence + JSON export/import/reset compatibility
+- [x] `src/pages/handbook/` — Strict "pages first" UI (`Topbar`, `Sidebar`, `LessonViewer`, `RightToc`, `InterviewBank`, `SearchPopover`, `GlossaryModal`, `ProgressModal`)
+- [x] `src/app/` — Root mount, theme/progress state, exclusive loader of `content/registry.ts`
+- [x] `content/` — `content/modules/01-programming/m01-p1.mdx`, `content/interviews/m01-p1.questions.ts`, `content/registry.ts`
+- [x] `dist/software_engineering_mastery.html` — Standalone offline singlefile bundle verified (`tsc`, `vite build`, `steiger ./src`, parity & offline checks)
+- [x] `legacy/` — v1 vanilla source archived pending user removal approval
 
 ---
 
