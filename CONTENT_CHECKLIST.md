@@ -99,13 +99,13 @@ Split into 4 parts:
 - **M02-P4**: Error boundaries, lazy loading, code splitting, performance & rendering optimization, memoization, frontend caching, accessibility, responsive design, security (XSS, CSRF), large frontend architecture, component design patterns, testing (unit, integration), frontend debugging
 
 #### Topics
-- [ ] React architecture
-- [ ] Components
-- [ ] Props
-- [ ] State
-- [ ] Rendering
-- [ ] Virtual DOM
-- [ ] JSX
+- [x] React architecture
+- [x] Components
+- [x] Props
+- [x] State
+- [x] Rendering
+- [x] Virtual DOM
+- [x] JSX
 - [ ] Hooks
 - [ ] `useState`
 - [ ] `useEffect`
@@ -115,7 +115,7 @@ Split into 4 parts:
 - [ ] `useCallback`
 - [ ] `React.memo`
 - [ ] Custom hooks
-- [ ] Component lifecycle concepts
+- [x] Component lifecycle concepts
 - [ ] State management
 - [ ] Context API
 - [ ] Redux

@@ -4,10 +4,10 @@
 Maintain a comfortable, offline-capable React + TypeScript + MDX learning portal built with Feature-Sliced Design v2.1 and bundled into `dist/software_engineering_mastery.html`.
 
 ## Overall status
-**Module 1 (`M01-P1`–`M01-P5`) Complete & Independently Audited (`PASS`) — Module 2 (`M02-P1`) next**
+**Module 1 Complete + `M02-P1` Audited (`PASS`) — `M02-P2` next**
 
 ## Current phase
-Phase 3 design remains locked in [DESIGN_GUIDE.md](DESIGN_GUIDE.md). Module 1 is complete (`47/47` topics, `35/35` interview Q&As); Module 2 (`React & Frontend Engineering`, `M02-P1`) is next.
+Phase 3 design remains locked in [DESIGN_GUIDE.md](DESIGN_GUIDE.md). Module 1 is complete (`47/47` topics, `35/35` IQs); Module 2 (`React & Frontend Engineering`) Part 1 (`M02-P1`) is complete & verified (`M02-P2` next).
 
 ## Completed
 - [x] Phase 1 & 2: Legacy v1 archived in `legacy/`, React 19 + TS + Vite 8 + MDX + `vite-plugin-singlefile` + Steiger setup
@@ -19,13 +19,13 @@ Phase 3 design remains locked in [DESIGN_GUIDE.md](DESIGN_GUIDE.md). Module 1 is
 - [x] Verification: `tsc`, `vite build`, `steiger ./src`, `verify:syllabus`, `verify:parity`, `verify:offline`, and headless Chrome CDP checks at `360`, `390`, `768`, `1024`, `1440` widths across all 3 themes
 
 ## Module progress
-Use `COURSE_OUTLINE.md` and `CONTENT_CHECKLIST.md` to track module and part status. Currently written: Module 1 complete (`M01-P1`–`M01-P5`: `47` topics available, `898` not written yet; Module 1 interview totals: `10/10` Basic, `10/10` Intermediate, `10/10` Advanced, `5/5` Senior/Architect = `35/35`).
+Use `COURSE_OUTLINE.md` and `CONTENT_CHECKLIST.md` to track module and part status. Currently written: Module 1 complete (`47/47` topics, `35/35` IQs) + `M02-P1` (`8/46` topics, `9/35` IQs: `3` Basic, `2` Intermediate, `3` Advanced, `1` Senior/Architect) = `55` topics available, `890` not written yet.
 
 ## Current task
-Module 1 (`M01-P1`–`M01-P5`) completed, audited (`PASS`), and committed locally on `react-fsd`. Next part: `M02-P1` (`React architecture, Components, Props, State, Rendering, Virtual DOM, JSX, Component lifecycle concepts`).
+`M02-P1` completed, audited (`PASS`), and committed locally on `react-fsd`. Next part: `M02-P2` (`Hooks: useState, useEffect, useRef, useContext, useMemo, useCallback, React.memo, custom hooks`).
 
 ## Next actions
-1. Proceed to `M02-P1` (`PLAN -> WRITE -> CHECK -> AUDIT -> UPDATE -> COMMIT` on `react-fsd`).
+1. Proceed to `M02-P2` (`PLAN -> WRITE -> CHECK -> AUDIT -> UPDATE -> COMMIT` on `react-fsd`).
 2. User decides when to approve removing `legacy/`.
 
 ## Decisions

@@ -309,13 +309,41 @@ export const SYLLABUS_MODULES: SyllabusModule[] = [
     "React & Frontend Engineering",
     "frontend",
     [
-      "React architecture",
-      "Components",
-      "Props",
-      "State",
-      "Rendering",
-      "Virtual DOM",
-      "JSX",
+      {
+        title: "React architecture",
+        lessonId: "m02-p1",
+        anchorId: "m02-p1-topic-react-architecture"
+      },
+      {
+        title: "Components",
+        lessonId: "m02-p1",
+        anchorId: "m02-p1-topic-components"
+      },
+      {
+        title: "Props",
+        lessonId: "m02-p1",
+        anchorId: "m02-p1-topic-props"
+      },
+      {
+        title: "State",
+        lessonId: "m02-p1",
+        anchorId: "m02-p1-topic-state"
+      },
+      {
+        title: "Rendering",
+        lessonId: "m02-p1",
+        anchorId: "m02-p1-topic-rendering"
+      },
+      {
+        title: "Virtual DOM",
+        lessonId: "m02-p1",
+        anchorId: "m02-p1-topic-virtual-dom"
+      },
+      {
+        title: "JSX",
+        lessonId: "m02-p1",
+        anchorId: "m02-p1-topic-jsx"
+      },
       "Hooks",
       "useState",
       "useEffect",
@@ -325,7 +353,11 @@ export const SYLLABUS_MODULES: SyllabusModule[] = [
       "useCallback",
       "React.memo",
       "Custom hooks",
-      "Component lifecycle concepts",
+      {
+        title: "Component lifecycle concepts",
+        lessonId: "m02-p1",
+        anchorId: "m02-p1-topic-component-lifecycle-concepts"
+      },
       "State management",
       "Context API",
       "Redux",

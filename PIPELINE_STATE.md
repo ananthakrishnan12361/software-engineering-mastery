@@ -5,11 +5,21 @@
 
 ## Current Run Status
 - **Branch:** `react-fsd`
-- **Current Part:** `M01-P5` — **DONE** (Module 1 complete; committed locally on `react-fsd`; next part: `M02-P1`)
+- **Current Part:** `M02-P1` — **DONE** (committed locally on `react-fsd`; next part: `M02-P2`)
 - **Current Step:** `COMMIT`
-- **Parts Limit:** Default 1 part per run (up to 3 if requested, or continuous part-by-part via `/handbook-next all`)
-- **Split Rationale:** `M01-P4` (`6e329ba`) and `M01-P5` completed in this run; stopping cleanly after completing Module 1 (2 parts in this run, within the 3-part cap; `M02-P1` is cleanly queued next).
-- **Completed Sections (M01-P5):** All steps (`PLAN`, `WRITE`, `CHECK`, `AUDIT`, `UPDATE`, `COMMIT`) complete for `M01-P5`.
+- **Parts Limit:** Up to 6 parts requested by user (`/handbook-next complete up to 6 parts`)
+- **Split Rationale:** `M02-P1` completed as Part 1 of this run; proceeding next to `M02-P2` (Part 2).
+- **Completed Sections (M02-P1):** All steps (`PLAN`, `WRITE`, `CHECK`, `AUDIT`, `UPDATE`, `COMMIT`) complete for `M02-P1`.
+- **Files Changed (M02-P1):**
+  - `content/modules/02-react/m02-p1.mdx` (16 Sections A–Q, 8 `<TopicAnchor>` subsections, 2 SVGs `Figure 2.1` & `2.2`, TSX reference + 4 runnable JS blocks, 3 tables, 2 exercises)
+  - `content/interviews/m02-p1.questions.ts` (9 interview Q&As `iq-1`..`iq-9` including 12-step `senior-architect`)
+  - `content/coverage/m02-p1.coverage.ts` (8 mapped topics, 4 `codeTests`, 5 `safetyMutations`)
+  - `content/coverage/index.ts`, `content/syllabus.ts`, `content/registry.ts`, `scripts/verify-offline.mjs`
+  - `TECHNICAL_REVIEW_LOG.md`, `QUALITY_GATE.md`, `CONTENT_CHECKLIST.md`, `PROJECT_STATUS.md`, `PIPELINE_STATE.md`
+- **Step 5/6 Quality & Audit Results (`M02-P1` — 2026-11-26):**
+  - `npm run quality` (after last code/content edit): **PASS** (`typecheck`, `vite build` `973.34 kB`, `steiger ./src` `0` problems, `verify:syllabus` `28/945/55/890`, `verify:parity` `13/13` metrics + `7` demos, `verify:offline` `950.5 KB` `0` CDNs, `verify:quality` `6` lessons, `55` mapped topics, `38` runnable blocks, `55` safety mutation checks, `44` interview Q&As, `38` live Run Demos, `12` SVGs checked with live `getBBox()`, `0` horizontal overflow at `360/390/768/1024/1440`).
+  - **Fresh Audit Round 1 (`ebed43a3`):** `FAIL` (1 CRITICAL: `isSafeHref` `//` & control-char smuggling; 3 MAJOR: `createVNode` props/key, `react.dev` URLs, weak `m02-p1.coverage.ts` assertions; 1 MINOR: `reconcileKeyedList` `type` check) — all fixed.
+  - **Fresh Audit Round 2 (`2247a65f`):** `PASS` (`0 CRITICAL`, `0 MAJOR`).
 - **Files Changed (M01-P5):**
   - `content/modules/01-programming/m01-p5.mdx` (16 Sections A–Q, 5 `<TopicAnchor>` subsections, 2 SVGs `Figure 1.9` & `1.10`, TS reference + 4 runnable JS blocks, 3 tables, 2 exercises)
   - `content/interviews/m01-p5.questions.ts` (3 interview Q&As `iq-1`..`iq-3`, completing Module 1 `10/10/10/5`)
@@ -107,4 +117,4 @@ Remaining approved work before `M01-P3`:
    - **`M01-P3`**: `Algorithms, Data structures, Time complexity, Space complexity, Big O, Recursion, Sorting, Searching, Hash maps, Stacks, Queues, Trees, Graph fundamentals`.
 
 ## Next Action
-On the next run, resume at **Step 1 (`PLAN`)** for **`M02-P1`** (`React architecture, Components, Props, State, Rendering, Virtual DOM, JSX, Component lifecycle concepts`).
+Proceed immediately to **Part 2 of this run: `M02-P2`** (`Hooks: useState, useEffect, useRef, useContext, useMemo, useCallback, React.memo, custom hooks`).

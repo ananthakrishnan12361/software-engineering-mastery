@@ -204,3 +204,13 @@ For each review, add:
    - **Verified Claim:** TypeScript uses structural type compatibility, erases type annotations during compilation to JS, narrows `unknown` via control-flow guards, enforces exhaustiveness via `never`, and enforces `strictNullChecks`/`noImplicitAny`/`strictFunctionTypes` under `"strict": true`.
    - **Official References:** https://www.typescriptlang.org/docs/handbook/type-compatibility.html, https://www.typescriptlang.org/docs/handbook/2/generics.html, https://www.typescriptlang.org/docs/handbook/2/narrowing.html, https://www.typescriptlang.org/docs/handbook/2/everyday-types.html, and https://www.typescriptlang.org/tsconfig/#strict
    - **Status:** Verified
+
+
+---
+
+## Module 02 Part 1 (`M02-P1`) Technical Review Log — 2026-11-26
+
+1. **React Render & Commit, State as a Snapshot, Automatic Batching, Reconciliation Keys, Concurrent Rendering & JSX**
+   - **Verified Claim:** React separates pure Render from DOM Commit, compares state updates with `Object.is`, batches state updates automatically in React 18+ (`flushSync` opts out), supports concurrent `startTransition` & `<StrictMode>` dev checks, escapes JSX text automatically (unlike `dangerouslySetInnerHTML`), and uses `key` + `type` for list reconciliation.
+   - **Official References:** https://react.dev/learn/render-and-commit, https://react.dev/learn/state-as-a-snapshot, https://react.dev/learn/queueing-a-series-of-state-updates, https://react.dev/learn/rendering-lists#keeping-list-items-in-order-with-key, https://react.dev/blog/2022/03/29/react-v18#new-feature-automatic-batching, https://react.dev/reference/react-dom/flushSync, https://react.dev/reference/react/StrictMode, https://react.dev/reference/react/startTransition, https://react.dev/learn/writing-markup-with-jsx, and https://react.dev/reference/react-dom/components/common#dangerously-setting-the-inner-html
+   - **Status:** Verified
