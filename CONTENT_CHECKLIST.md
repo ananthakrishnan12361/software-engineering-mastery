@@ -116,17 +116,17 @@ Split into 4 parts:
 - [x] `React.memo`
 - [x] Custom hooks
 - [x] Component lifecycle concepts
-- [ ] State management
-- [ ] Context API
-- [ ] Redux
-- [ ] Redux Toolkit
-- [ ] React Query / TanStack Query
-- [ ] React Router
-- [ ] Forms
-- [ ] Validation
-- [ ] API integration
-- [ ] Authentication
-- [ ] Authorization
+- [x] State management
+- [x] Context API
+- [x] Redux
+- [x] Redux Toolkit
+- [x] React Query / TanStack Query
+- [x] React Router
+- [x] Forms
+- [x] Validation
+- [x] API integration
+- [x] Authentication
+- [x] Authorization
 - [ ] Error boundaries
 - [ ] Lazy loading
 - [ ] Code splitting

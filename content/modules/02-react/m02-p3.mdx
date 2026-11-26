@@ -1,0 +1,716 @@
+<Callout variant="info" title="Topics Covered in Part 3 (M02-P3)">
+  <p>
+    This lesson covers 11 core React application architecture topics from Module 2: <strong>State management</strong>, <strong>Context API</strong>, <strong>Redux</strong>, <strong>Redux Toolkit</strong>, <strong>React Query / TanStack Query</strong>, <strong>React Router</strong>, <strong>Forms</strong>, <strong>Validation</strong>, <strong>API integration</strong>, <strong>Authentication</strong>, and <strong>Authorization</strong>.
+  </p>
+</Callout>
+
+<TopicSection id="m02-p3-sec-a" letter="A" title="Topic Introduction">
+
+#### What is this?
+
+Real-world React applications quickly outgrow local `useState` inside a single component. They require coordinated **client state management** (**Context API**, **Redux**, **Redux Toolkit**), asynchronous **server state caching** (**React Query / TanStack Query**), URL-driven navigation (**React Router**), schema-backed **forms and validation**, resilient **API integration**, and clear **authentication** vs. **authorization** boundaries.
+
+#### Why does it exist & what problem does it solve?
+
+Mixing UI state (open modals, selected filters), cached server data (orders, user profiles), form input state, and auth tokens into one ad-hoc store creates stale data races, duplicated `useEffect` fetch boilerplate, prop drilling, and security gaps. Separating each concern into the right tool keeps data flow predictable, debuggable, and fast.
+
+#### Where is it used in real-world software?
+
+Every production SaaS dashboard, e-commerce checkout, and internal admin portal combines these layers: **React Router** owns URL state and route guards, **TanStack Query** caches and deduplicates API reads/mutations, **Redux Toolkit** or **Context** manages shared client workflows, and **Forms + Validation + Auth** protect user inputs and session tokens.
+
+</TopicSection>
+
+<TopicSection id="m02-p3-sec-b" letter="B" title="Fundamentals (Simple Mental Models)">
+
+<TopicAnchor id="m02-p3-topic-state-management" />
+
+#### 1. State Management: Local, Shared Client, URL, and Server State
+
+Not all state belongs in one global store. **Local UI state** (`useState`) lives in one component; **shared client state** (theme, multi-step cart drawer) lives in Context or Redux; **URL state** (active page, filters, search query) lives in **React Router**; and **server state** (API responses owned by the backend) belongs in **TanStack Query**.
+
+Treating server data like synchronous client state forces teams to hand-write loading flags, error states, retry timers, and cache invalidation. Choosing the narrowest state owner for each piece of data eliminates entire classes of stale-UI bugs.
+
+<TopicAnchor id="m02-p3-topic-context-api" />
+
+#### 2. Context API: Dependency Injection Across the Component Tree
+
+The **Context API** (`createContext`, `useContext`) passes shared values down a subtree without threading props through intermediate components (**prop drilling**). In React 19, you can render `<ThemeContext value={value}>` directly without `.Provider`.
+
+Remember that **Context is a transport mechanism, not a high-frequency state engine**: every consumer calling `useContext(Ctx)` re-renders whenever the `value` reference changes by `Object.is`. Split fast-changing state from stable dispatch functions and memoize provider values.
+
+<TopicAnchor id="m02-p3-topic-redux" />
+
+#### 3. Redux: Predictable Single Store, Actions & Pure Reducers
+
+**Redux** centralizes global client state in a single store updated through **one-way data flow**: UI dispatches a plain **action** (`{ type: "cart/added", payload }`), a **pure reducer** `(state, action) => nextState` computes a new immutable state snapshot, and subscribed components re-render selectively via selectors.
+
+Because reducers are pure functions without side effects, Redux enables deterministic state transitions, middleware pipelines (logging, analytics), and time-travel debugging across complex multi-screen client workflows.
+
+<TopicAnchor id="m02-p3-topic-redux-toolkit" />
+
+#### 4. Redux Toolkit (RTK): Modern Standard Redux Without Boilerplate
+
+**Redux Toolkit** (`@reduxjs/toolkit`) is the official, batteries-included way to write Redux. `createSlice` auto-generates action creators and action types, while **Immer** lets you write readable "mutating" syntax (`state.items.push(item)`) that safely produces an immutable copy under the hood.
+
+`configureStore` sets up Redux DevTools, thunk middleware, and development-mode checks for accidental state mutations or non-serializable values—making legacy hand-written `switch` reducers obsolete.
+
+<TopicAnchor id="m02-p3-topic-tanstack-query" />
+
+#### 5. React Query / TanStack Query: Server State Caching & Synchronization
+
+**TanStack Query** (`useQuery`, `useMutation`) manages **asynchronous server state**—data that lives remotely, can become stale, and may be shared across multiple components simultaneously. Queries are keyed deterministically (`["orders", { page, status }]`), deduplicated in flight, cached in memory, and refreshed automatically in the background.
+
+Instead of storing fetched JSON inside Redux slices with manual `isLoading` booleans, `useQuery` gives you `staleTime` vs. `gcTime`, request deduplication, retries with exponential backoff, and `queryClient.invalidateQueries()` after mutations.
+
+<TopicAnchor id="m02-p3-topic-react-router" />
+
+#### 6. React Router: Declarative Routes, Params, Loaders & Protected Layouts
+
+**React Router** synchronizes the browser URL (`/orders/42?tab=items`) with nested UI layouts using `<Outlet />`, dynamic params (`useParams`), query strings (`useSearchParams`), and programmatic navigation (`useNavigate`). Putting filter and pagination state in the URL makes views bookmarkable, shareable, and Back-button friendly.
+
+Using nested layout routes (`<Route element={<RequireAuth />}><Route path="/billing" ... /></Route>`), you can enforce authentication and data loaders consistently before child routes render.
+
+<TopicAnchor id="m02-p3-topic-forms" />
+
+#### 7. Forms: Controlled, Uncontrolled & Schema-Driven Submissions
+
+React **controlled inputs** bind `value={state}` and `onChange`, giving instant access for dynamic formatting or conditional fields—at the cost of re-rendering on every keystroke. **Uncontrolled inputs** (or **React Hook Form** via `ref` registration) keep keystroke state in the DOM and validate on blur/submit, keeping large 50-field forms fast.
+
+Always handle **submission lifecycle states** explicitly (`idle`, `submitting`, `submitted`, `error`), disable duplicate submits while in flight, and preserve user-entered values if the API returns a `422` validation error.
+
+<TopicAnchor id="m02-p3-topic-validation" />
+
+#### 8. Validation: Client UX + Authoritative Server Contracts
+
+**Client-side validation** (e.g., **Zod** schemas parsing email format, min/max bounds, and cross-field rules like `password === confirmPassword`) gives immediate accessible feedback (`aria-invalid`, `aria-describedby`) before a network round-trip.
+
+However, **client validation is only UX—never security**. Attackers can bypass the browser with `curl`, so the backend must run authoritative schema validation on every request and return structured field errors (`{ field, message }`) that the frontend maps back to form inputs.
+
+<TopicAnchor id="m02-p3-topic-api-integration" />
+
+#### 9. API Integration: Typed Clients, Timeouts, Retries & Error Normalization
+
+Production **API integration** centralizes `fetch` (or `axios`) behind a single typed HTTP client rather than scattering raw `fetch()` calls across components. The client attaches base headers, enforces `AbortSignal.timeout(...)` cancellation, normalizes HTTP errors (`401`, `403`, `422`, `503`) into typed domain errors, and checks `res.ok` before calling `res.json()`.
+
+Combine **idempotency keys** on non-idempotent `POST` mutations with bounded retries only on safe `GET` or transient `502/503` failures—never blindly retrying a `400` or duplicate payment `POST`.
+
+<TopicAnchor id="m02-p3-topic-authentication" />
+
+#### 10. Authentication: Verifying Identity & Managing Session Tokens Safely
+
+**Authentication (AuthN)** answers *"Who are you?"* by verifying credentials (password/passkey/OAuth2 + OIDC) and establishing a session. In modern SPAs, prefer **HttpOnly, Secure, SameSite cookies** set by a Backend-for-Frontend (BFF) over storing long-lived JWTs in `localStorage`, where any XSS script can exfiltrate them.
+
+When short-lived in-memory access tokens expire (`401 Unauthorized`), a single-flight refresh coordinator ensures only **one** `/auth/refresh` request runs while concurrent API calls await the same promise instead of triggering a refresh storm.
+
+<TopicAnchor id="m02-p3-topic-authorization" />
+
+#### 11. Authorization: Enforcing Roles & Permissions Beyond Hidden Buttons
+
+**Authorization (AuthZ)** answers *"What are you allowed to do?"* using Role-Based (**RBAC**: `admin`, `editor`, `viewer`) or Attribute-Based (**ABAC**: `order.ownerId === user.id`) checks. In React, route guards (`RequirePermission`) and UI conditionals (`can("invoice:approve")`) improve UX by hiding unauthorized views and avoiding wasted fetches.
+
+Crucially, **frontend authorization is purely presentation logic**: every API endpoint and database query must independently verify permissions on the server, because client state and routes live in untrusted browser memory.
+
+</TopicSection>
+
+<TopicSection id="m02-p3-sec-c" letter="C" title="Internal Working & Architecture">
+
+#### 1. Server State Cache Architecture (TanStack Query Stale-While-Revalidate)
+
+When two components mount at the same time calling `useQuery({ queryKey: ["orders", page] })`, TanStack Query hashes the key deterministically, shares **one** in-flight network promise, serves cached data immediately while stale (`stale-while-revalidate`), and clears unused cache entries after `gcTime` expires.
+
+<DiagramCard caption="Figure 2.5 — TanStack Query deduplicates concurrent reads by queryKey, serves fresh/stale cache immediately, and garbage-collects inactive entries after gcTime.">
+  <svg viewBox="0 0 820 200" role="img" aria-label="TanStack Query stale-while-revalidate cache lifecycle">
+    <rect x="10" y="10" width="800" height="180" rx="10" fill="var(--bg-subtle)" stroke="var(--border)" />
+
+    <rect x="26" y="34" width="175" height="132" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" />
+    <text x="113" y="60" textAnchor="middle" fill="var(--accent-strong)" fontSize="13" fontWeight="700" fontFamily="sans-serif">1. Two Subscribers</text>
+    <text x="113" y="88" textAnchor="middle" fill="var(--text-primary)" fontSize="11.5" fontFamily="monospace">useQuery(["orders"])</text>
+    <text x="113" y="114" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Same deterministic key</text>
+    <text x="113" y="138" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Deduplicated in-flight</text>
+
+    <line x1="201" y1="100" x2="239" y2="100" stroke="var(--accent)" strokeWidth="2" />
+    <polygon points="239,100 229,95 229,105" fill="var(--accent)" />
+
+    <rect x="243" y="34" width="180" height="132" rx="8" fill="var(--success-soft)" stroke="var(--success)" />
+    <text x="333" y="60" textAnchor="middle" fill="var(--success)" fontSize="13" fontWeight="700" fontFamily="sans-serif">2. Fresh (&lt; staleTime)</text>
+    <text x="333" y="88" textAnchor="middle" fill="var(--text-primary)" fontSize="11.5" fontFamily="monospace">Instant cache hit</text>
+    <text x="333" y="114" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Zero network request</text>
+    <text x="333" y="138" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Shared across components</text>
+
+    <line x1="423" y1="100" x2="461" y2="100" stroke="var(--warning)" strokeWidth="2" />
+    <polygon points="461,100 451,95 451,105" fill="var(--warning)" />
+
+    <rect x="465" y="34" width="175" height="132" rx="8" fill="var(--warning-soft)" stroke="var(--warning)" />
+    <text x="552" y="60" textAnchor="middle" fill="var(--warning)" fontSize="13" fontWeight="700" fontFamily="sans-serif">3. Stale (&gt; staleTime)</text>
+    <text x="552" y="88" textAnchor="middle" fill="var(--text-primary)" fontSize="11.5" fontFamily="monospace">Render cached data</text>
+    <text x="552" y="114" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">+ Background refetch</text>
+    <text x="552" y="138" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Smooth UI update</text>
+
+    <line x1="640" y1="100" x2="674" y2="100" stroke="var(--danger)" strokeWidth="2" />
+    <polygon points="674,100 664,95 664,105" fill="var(--danger)" />
+
+    <rect x="678" y="34" width="116" height="132" rx="8" fill="var(--danger-soft)" stroke="var(--danger)" />
+    <text x="736" y="60" textAnchor="middle" fill="var(--danger)" fontSize="13" fontWeight="700" fontFamily="sans-serif">4. Inactive</text>
+    <text x="736" y="88" textAnchor="middle" fill="var(--text-primary)" fontSize="11.5" fontFamily="monospace">0 observers</text>
+    <text x="736" y="114" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Evict after</text>
+    <text x="736" y="138" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">gcTime (5m)</text>
+  </svg>
+</DiagramCard>
+
+#### 2. Frontend Route Guard, Single-Flight Refresh & Server Authorization
+
+Authentication and Authorization operate as a layered boundary: React Router checks session/permission UX before rendering protected screens, the HTTP client coordinates a single-flight token refresh on `401`, and the backend API enforces authoritative RBAC/ABAC checks on every request.
+
+<DiagramCard caption="Figure 2.6 — Route guards handle UX redirection while a single-flight refresh prevents 401 storms; the backend API enforces authoritative AuthZ.">
+  <svg viewBox="0 0 820 185" role="img" aria-label="Frontend auth guard, single-flight refresh, and server authorization flow">
+    <rect x="10" y="10" width="800" height="165" rx="10" fill="var(--bg-subtle)" stroke="var(--border)" />
+
+    <rect x="28" y="34" width="175" height="116" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" />
+    <text x="115" y="60" textAnchor="middle" fill="var(--accent-strong)" fontSize="13" fontWeight="700" fontFamily="sans-serif">1. Route Guard</text>
+    <text x="115" y="86" textAnchor="middle" fill="var(--text-primary)" fontSize="11.5" fontFamily="monospace">RequireAuth + RBAC</text>
+    <text x="115" y="112" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Redirect /login or 403 UI</text>
+
+    <line x1="203" y1="92" x2="241" y2="92" stroke="var(--accent)" strokeWidth="2" />
+    <polygon points="241,92 231,87 231,97" fill="var(--accent)" />
+
+    <rect x="245" y="34" width="180" height="116" rx="8" fill="var(--bg-surface)" stroke="var(--border-strong)" />
+    <text x="335" y="60" textAnchor="middle" fill="var(--text-primary)" fontSize="13" fontWeight="700" fontFamily="sans-serif">2. Typed API Client</text>
+    <text x="335" y="86" textAnchor="middle" fill="var(--text-primary)" fontSize="11.5" fontFamily="monospace">fetch + AbortSignal</text>
+    <text x="335" y="112" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">HttpOnly cookie / Bearer</text>
+
+    <line x1="425" y1="92" x2="463" y2="92" stroke="var(--warning)" strokeWidth="2" />
+    <polygon points="463,92 453,87 453,97" fill="var(--warning)" />
+
+    <rect x="467" y="34" width="175" height="116" rx="8" fill="var(--warning-soft)" stroke="var(--warning)" />
+    <text x="554" y="60" textAnchor="middle" fill="var(--warning)" fontSize="13" fontWeight="700" fontFamily="sans-serif">3. 401 Single-Flight</text>
+    <text x="554" y="86" textAnchor="middle" fill="var(--text-primary)" fontSize="11.5" fontFamily="monospace">1x POST /auth/refresh</text>
+    <text x="554" y="112" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Retry once or sign out</text>
+
+    <line x1="642" y1="92" x2="676" y2="92" stroke="var(--success)" strokeWidth="2" />
+    <polygon points="676,92 666,87 666,97" fill="var(--success)" />
+
+    <rect x="680" y="34" width="114" height="116" rx="8" fill="var(--success-soft)" stroke="var(--success)" />
+    <text x="737" y="60" textAnchor="middle" fill="var(--success)" fontSize="13" fontWeight="700" fontFamily="sans-serif">4. Server API</text>
+    <text x="737" y="86" textAnchor="middle" fill="var(--text-primary)" fontSize="11.5" fontFamily="monospace">Verify JWT</text>
+    <text x="737" y="112" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">+ Enforce AuthZ</text>
+  </svg>
+</DiagramCard>
+
+</TopicSection>
+
+<TopicSection id="m02-p3-sec-d" letter="D" title="Practical Examples (Interactive)">
+
+#### Example 1: Redux Toolkit Slice, TanStack Query & Protected Router Pattern (TSX Reference)
+
+<CodeBlock
+  lang="tsx"
+  code={`import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
+
+// 1. Redux Toolkit slice (client UI workflow state)
+interface CartUiState {
+  drawerOpen: boolean;
+  promoCode: string | null;
+}
+const cartUiSlice = createSlice({
+  name: "cartUi",
+  initialState: { drawerOpen: false, promoCode: null } as CartUiState,
+  reducers: {
+    toggleDrawer(state) {
+      state.drawerOpen = !state.drawerOpen; // Immer produces immutable update
+    },
+    setPromoCode(state, action: PayloadAction<string | null>) {
+      state.promoCode = action.payload;
+    }
+  }
+});
+
+// 2. React Router layout guard (AuthN + AuthZ UX boundary)
+export function RequirePermission({
+  user,
+  permission
+}: {
+  readonly user: { readonly permissions: readonly string[] } | null;
+  readonly permission: string;
+}) {
+  const location = useLocation();
+  if (!user) return <Navigate to="/login" state={{ from: location }} replace />;
+  if (!user.permissions.includes(permission)) return <Navigate to="/forbidden" replace />;
+  return <Outlet />;
+}
+
+// 3. TanStack Query server state read + invalidation on mutation
+export function useOrdersPage(page: number) {
+  const queryClient = useQueryClient();
+  const ordersQuery = useQuery({
+    queryKey: ["orders", { page }],
+    staleTime: 30_000,
+    queryFn: async ({ signal }) => {
+      const res = await fetch("/api/orders?page=" + page, { signal });
+      if (!res.ok) throw new Error("Failed to load orders: " + res.status);
+      return (await res.json()) as { items: { id: string; totalCents: number }[] };
+    }
+  });
+
+  const cancelOrder = useMutation({
+    mutationFn: async (orderId: string) => {
+      const res = await fetch("/api/orders/" + encodeURIComponent(orderId) + "/cancel", { method: "POST" });
+      if (!res.ok) throw new Error("Cancel failed: " + res.status);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["orders"] })
+  });
+
+  return { ordersQuery, cancelOrder, cartUiActions: cartUiSlice.actions };
+}`}
+/>
+
+#### Example 2: Redux Store Core (`createStore`, Immutable Reducer, Re-Entrant Dispatch Guard)
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// Models Redux core store semantics: single source of truth, pure reducer, listeners
+function createReduxStore(reducer, initialState) {
+  if (typeof reducer !== "function") throw new TypeError("reducer must be a function");
+  let state = reducer(initialState, { type: "@@redux/INIT" });
+  const listeners = new Set();
+  let isDispatching = false;
+
+  return {
+    getState() {
+      if (isDispatching) throw new Error("Cannot call getState while reducer is executing");
+      return state;
+    },
+    dispatch(action) {
+      if (!action || typeof action !== "object" || typeof action.type !== "string" || !action.type) {
+        throw new TypeError("Action must be an object with a non-empty string type");
+      }
+      if (isDispatching) throw new Error("Reducers may not dispatch actions");
+      try {
+        isDispatching = true;
+        state = reducer(state, action);
+      } finally {
+        isDispatching = false;
+      }
+      for (const listener of [...listeners]) listener();
+      return action;
+    },
+    subscribe(listener) {
+      if (typeof listener !== "function") throw new TypeError("listener must be a function");
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    }
+  };
+}
+
+function counterReducer(state = { count: 0 }, action) {
+  switch (action.type) {
+    case "counter/increment":
+      return { count: state.count + (action.payload ?? 1) };
+    default:
+      return state;
+  }
+}
+
+const store = createReduxStore(counterReducer);
+let notifications = 0;
+const unsubscribe = store.subscribe(() => {
+  notifications++;
+});
+store.dispatch({ type: "counter/increment", payload: 2 });
+store.dispatch({ type: "counter/increment", payload: 3 });
+unsubscribe();
+store.dispatch({ type: "counter/increment", payload: 1 });
+console.log("Final count:", store.getState().count, "| Notifications:", notifications);`}
+/>
+
+#### Example 3: TanStack Query Cache & In-Flight Request Deduplicator (`createQueryCache`)
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// Models TanStack Query key serialization, staleTime freshness, and in-flight deduplication
+function serializeQueryKey(queryKey) {
+  if (!Array.isArray(queryKey) || queryKey.length === 0) {
+    throw new TypeError("queryKey must be a non-empty array");
+  }
+  return JSON.stringify(queryKey, (_, v) => {
+    if (v && typeof v === "object" && !Array.isArray(v)) {
+      return Object.fromEntries(Object.keys(v).sort().map((k) => [k, v[k]]));
+    }
+    return v;
+  });
+}
+
+function createQueryCache({ staleTimeMs = 30000, now = () => Date.now() } = {}) {
+  const entries = new Map();
+  const inflight = new Map();
+
+  return {
+    async fetchQuery(queryKey, fetcher) {
+      if (typeof fetcher !== "function") throw new TypeError("fetcher must be a function");
+      const key = serializeQueryKey(queryKey);
+      const cached = entries.get(key);
+      if (cached && now() - cached.updatedAt < staleTimeMs) {
+        return { data: cached.data, source: "cache-fresh" };
+      }
+      if (inflight.has(key)) {
+        const data = await inflight.get(key);
+        return { data, source: "deduped-inflight" };
+      }
+      const promise = new Promise((resolve, reject) => {
+        try {
+          resolve(fetcher());
+        } catch (err) {
+          reject(err);
+        }
+      })
+        .then((data) => {
+          entries.set(key, { data, updatedAt: now() });
+          return data;
+        })
+        .finally(() => {
+          inflight.delete(key);
+        });
+      inflight.set(key, promise);
+      const data = await promise;
+      return { data, source: cached ? "revalidated" : "network" };
+    },
+    invalidateQueries(prefixKey) {
+      const prefix = serializeQueryKey(prefixKey).slice(0, -1);
+      for (const key of entries.keys()) {
+        if (key === prefix + "]" || key.startsWith(prefix + ",")) {
+          entries.set(key, { ...entries.get(key), updatedAt: -Infinity });
+        }
+      }
+    }
+  };
+}
+
+let clock = 1000;
+let networkCalls = 0;
+const qc = createQueryCache({ staleTimeMs: 5000, now: () => clock });
+const loader = () => {
+  networkCalls++;
+  return { rows: ["ORD-1"] };
+};
+qc.fetchQuery(["orders", { status: "open", page: 1 }], loader);
+qc.fetchQuery(["orders", { page: 1, status: "open" }], loader);
+const keyA = serializeQueryKey(["orders", { status: "open", page: 1 }]);
+const keyB = serializeQueryKey(["orders", { page: 1, status: "open" }]);
+console.log("Keys match:", keyA === keyB, "| Network calls:", networkCalls);`}
+/>
+
+#### Example 4: Schema Form Validator & Route RBAC Guard (`validateOrderForm`, `canActivateRoute`)
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// Models schema-based form validation + React Router RBAC route guard
+function validateOrderForm(input) {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    throw new TypeError("Form input must be a plain object");
+  }
+  const errors = {};
+  const email = typeof input.email === "string" ? input.email.trim() : "";
+  const atIdx = email.indexOf("@");
+  const domain = atIdx > 0 ? email.slice(atIdx + 1) : "";
+  const hasWhitespace =
+    email.includes(" ") ||
+    email.includes(String.fromCharCode(9)) ||
+    email.includes(String.fromCharCode(10));
+  const validEmail =
+    !hasWhitespace &&
+    atIdx > 0 &&
+    email.indexOf("@", atIdx + 1) === -1 &&
+    domain.includes(".") &&
+    !domain.startsWith(".") &&
+    !domain.endsWith(".");
+  if (!validEmail) {
+    errors.email = "Valid work email is required";
+  }
+  const qty = Number(input.quantity);
+  if (!Number.isInteger(qty) || qty < 1 || qty > 100) {
+    errors.quantity = "Quantity must be an integer between 1 and 100";
+  }
+  return {
+    valid: Object.keys(errors).length === 0,
+    data: Object.keys(errors).length === 0 ? { email, quantity: qty } : null,
+    errors
+  };
+}
+
+function canActivateRoute(user, requiredPermission) {
+  if (!requiredPermission || typeof requiredPermission !== "string") {
+    throw new TypeError("requiredPermission must be a non-empty string");
+  }
+  if (!user) return { allow: false, redirectTo: "/login", status: 401 };
+  const perms = Array.isArray(user.permissions) ? user.permissions : [];
+  if (!perms.includes(requiredPermission)) {
+    return { allow: false, redirectTo: "/forbidden", status: 403 };
+  }
+  return { allow: true, redirectTo: null, status: 200 };
+}
+
+console.log("Valid form:", validateOrderForm({ email: " eng@acme.dev ", quantity: 5 }).valid);
+console.log("Bad form errors:", validateOrderForm({ email: "bad", quantity: 0 }).errors);
+console.log("Anon user:", canActivateRoute(null, "orders:write"));
+console.log("Viewer:", canActivateRoute({ permissions: ["orders:read"] }, "orders:write"));`}
+/>
+
+</TopicSection>
+
+<TopicSection id="m02-p3-sec-e" letter="E" title="Step-by-Step Walkthrough">
+
+Trace **`createQueryCache`** (**Example 3**) when two widgets request the same query concurrently:
+
+1. **Deterministic Key Serialization:** `["orders", { status: "open", page: 1 }]` and `["orders", { page: 1, status: "open" }]` both serialize to `'["orders",{"page":1,"status":"open"}]'` because object keys are sorted.
+2. **Freshness Check:** `entries.get(key)` is empty, so neither call hits `cache-fresh`.
+3. **In-Flight Deduplication:** Call 1 registers its promise in `inflight.set(key, promise)`. Call 2 sees `inflight.has(key)` and awaits the **same** promise (`networkCalls` stays `1`).
+4. **Invalidation:** Calling `invalidateQueries(["orders"])` marks matching entries stale (`updatedAt: -Infinity`) so the next mount triggers background revalidation.
+
+</TopicSection>
+
+<TopicSection id="m02-p3-sec-f" letter="F" title="Real-World Use Cases">
+
+#### Scenario 1: Checkout Page With Mixed Client & Server State
+
+**Problem:** A checkout team puts server-fetched shipping rates, cart UI drawer state, and coupon validation errors into one giant Redux slice, causing stale shipping quotes after address edits.
+
+**Production Solution:** Keep shipping rates and order mutations in **TanStack Query** (`queryKey: ["shipping", zip]`, invalidated on address update), keep drawer open/close UI state in **Redux Toolkit** or local `useState`, and use **React Hook Form + Zod** for checkout fields.
+
+#### Scenario 2: Multi-Widget Dashboard Experiencing a `401` Refresh Storm
+
+**Problem:** Five dashboard widgets fire `fetch()` simultaneously right as the 15-minute access token expires. All five receive `401` and fire five separate `/auth/refresh` requests, revoking rotating refresh tokens on the server.
+
+**Production Solution:** Coordinate refresh inside a shared HTTP client (`let refreshPromise = null`) so all five callers await the single in-flight refresh and then retry once with the updated session.
+
+</TopicSection>
+
+<TopicSection id="m02-p3-sec-g" letter="G" title="Common Mistakes">
+
+- **Duplicating TanStack Query server data into Redux:** Creates two sources of truth that drift out of sync after mutations or background refetches.
+- **Using a single monolithic Context for rapidly changing state:** Re-renders every consumer across the app on every keystroke or scroll tick.
+- **Storing JWTs in `localStorage` or `sessionStorage`:** Exposes session tokens to any third-party script or XSS vulnerability on the origin.
+- **Trusting React Router guards or hidden buttons as security:** Attackers can call backend endpoints directly—the server must enforce AuthZ on every request.
+- **Retrying `400`/`422`/`401` or non-idempotent `POST`s blindly:** Causes duplicate orders or account lockouts instead of normalizing errors cleanly.
+
+</TopicSection>
+
+<TopicSection id="m02-p3-sec-h" letter="H" title="Best Practices">
+
+- **Classify state before choosing a tool:** Local UI (`useState`), shared client workflow (`Context`/`RTK`), URL (`React Router`), server cache (`TanStack Query`), form state (`React Hook Form`).
+- **Normalize API errors at the HTTP client boundary** and always check `if (!res.ok)` before parsing `res.json()`.
+- **Share validation schemas (e.g., Zod)** between frontend forms and backend API handlers while treating server validation as authoritative.
+- **Use `HttpOnly; Secure; SameSite` cookies** (or BFF sessions) for authentication, and pair them with CSRF protection when using cookie auth.
+
+</TopicSection>
+
+<TopicSection id="m02-p3-sec-i" letter="I" title="Performance & Scalability">
+
+- **Request Deduplication & `staleTime`:** Setting sensible `staleTime` (e.g., `30s`–`5m` for reference data) eliminates redundant network waterfalls on route transitions.
+- **Selector Granularity in Redux:** Use memoized selectors (`createSelector` from RTK/Reselect) so components only re-render when their derived slice actually changes.
+- **Uncontrolled Forms at Scale:** For 40+ field enterprise forms, `ref`-based form libraries avoid re-rendering the entire form tree on every keystroke.
+
+</TopicSection>
+
+<TopicSection id="m02-p3-sec-j" letter="J" title="Security Considerations">
+
+- **Authentication vs. Authorization:** Always enforce both on the backend—never rely on hidden React routes or disabled buttons (`<button disabled={!isAdmin}>`) for access control.
+- **Token Storage & XSS:** Never persist bearer tokens in `localStorage`; prefer `HttpOnly` cookies via a BFF, and sanitize/avoid `dangerouslySetInnerHTML` everywhere.
+- **Open Redirect Prevention on Login:** When redirecting back to `location.state?.from` after login, validate that the target is a safe relative path starting with `/` (not `//evil.example`) before calling `navigate()`.
+
+</TopicSection>
+
+<TopicSection id="m02-p3-sec-k" letter="K" title="Comparisons & Decision Tables">
+
+#### 1. State Management Tool Selection Matrix
+
+| State Type | Example | Best Tool | Why |
+| --- | --- | --- | --- |
+| **Local UI** | Accordion open, hover | `useState` | Co-located, zero boilerplate |
+| **Low-Frequency Shared** | Theme, locale, current user | **Context API** | Built-in dependency injection |
+| **Complex Client Workflow** | Multi-pane editor, undo/redo | **Redux Toolkit** | Predictable actions, DevTools, selectors |
+| **Server Cache** | Orders, profiles, pagination | **TanStack Query** | Deduplication, `staleTime`, invalidation |
+| **Navigation & Filters** | `/orders?page=2&sort=desc` | **React Router** | Shareable, Back-button safe |
+
+#### 2. Client-Side vs. Server-Side Validation & Authorization
+
+| Layer | Purpose | Can Be Bypassed? | Required In Production? |
+| --- | --- | --- | --- |
+| **Client Validation** | Instant field feedback | Yes (`curl`, DevTools) | Yes (UX & accessibility) |
+| **Server Validation** | Reject malformed/malicious payloads | No | Yes (mandatory boundary) |
+| **Route / UI AuthZ Guard** | Hide inaccessible pages/buttons | Yes (edit JS / direct HTTP) | Yes (UX clarity) |
+| **Server API AuthZ** | Enforce RBAC/ABAC per resource | No | Yes (mandatory security) |
+
+#### 3. Token Storage & Refresh Strategies
+
+| Strategy | XSS Exposure | CSRF Exposure | Recommended Use |
+| --- | --- | --- | --- |
+| `localStorage` JWT | High (readable by any JS) | Low | Avoid for sensitive apps |
+| `HttpOnly; SameSite=Lax` Cookie + BFF | Mitigated (`HttpOnly`) | Mitigated (`SameSite` + CSRF token) | Recommended default for SPAs |
+| In-Memory Access Token + `HttpOnly` Refresh | Low (memory only) | Mitigated on refresh endpoint | High-security SPAs |
+
+</TopicSection>
+
+<TopicSection id="m02-p3-sec-l" letter="L" title="Tips to Remember (Mnemonics & Mental Models)">
+
+- **"Server state lives in Query, UI state lives in React/RTK, URL state lives in Router."**
+- **"Context transports values; it is not a subscription-granular store."**
+- **"AuthN = Who you are (401); AuthZ = What you may do (403)."**
+- **"Client guards are UX; server checks are security."**
+
+</TopicSection>
+
+<TopicSection id="m02-p3-sec-mn" letter="M/N" title="Interview Questions & Detailed Answers">
+
+<InterviewSection lessonId="m02-p3" />
+
+</TopicSection>
+
+<TopicSection id="m02-p3-sec-o" letter="O" title="Practical Exercises">
+
+<ExerciseCard
+  title="Exercise 1: Mini RTK Slice Reducer Builder (createSliceReducer)"
+  prompt={
+    <p>
+      Implement <code>createSliceReducer(name, initialState, handlers)</code> that returns <code>reducer(state, action)</code> and typed action creators without mutating the input state object.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function createSliceReducer(name, initialState, handlers) {
+  if (typeof name !== "string" || !name.trim()) throw new TypeError("name must be a non-empty string");
+  if (!handlers || typeof handlers !== "object") throw new TypeError("handlers must be an object");
+
+  const actions = {};
+  for (const key of Object.keys(handlers)) {
+    const type = name + "/" + key;
+    actions[key] = (payload) => ({ type, payload });
+  }
+
+  function reducer(state = initialState, action) {
+    if (!action || typeof action.type !== "string") return state;
+    const prefix = name + "/";
+    if (!action.type.startsWith(prefix)) return state;
+    const key = action.type.slice(prefix.length);
+    const handler = Object.hasOwn(handlers, key) ? handlers[key] : null;
+    if (typeof handler !== "function") return state;
+    return handler(state, action.payload);
+  }
+
+  return { reducer, actions };
+}
+
+const filters = createSliceReducer("filters", { query: "", page: 1 }, {
+  setQuery: (state, query) => ({ ...state, query, page: 1 }),
+  nextPage: (state) => ({ ...state, page: state.page + 1 })
+});
+
+const s1 = filters.reducer(undefined, filters.actions.nextPage());
+const s2 = filters.reducer(s1, filters.actions.setQuery("react"));
+console.log("State 1:", s1, "| State 2:", s2);`}
+  />
+</ExerciseCard>
+
+<ExerciseCard
+  title="Exercise 2: Single-Flight Auth Token Refresh Client (createAuthClient)"
+  prompt={
+    <p>
+      Implement <code>createAuthClient(&#123; request, refresh &#125;)</code> so concurrent <code>401</code> responses trigger only one <code>refresh()</code> call, retry each failed request once, and fail cleanly if refresh rejects.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function createAuthClient({ request, refresh }) {
+  if (typeof request !== "function" || typeof refresh !== "function") {
+    throw new TypeError("request and refresh must be functions");
+  }
+  let token = "expired-token";
+  let refreshInFlight = null;
+
+  async function ensureFreshToken() {
+    if (!refreshInFlight) {
+      refreshInFlight = Promise.resolve()
+        .then(() => refresh())
+        .then((nextToken) => {
+          if (typeof nextToken !== "string" || !nextToken) throw new Error("Invalid refreshed token");
+          token = nextToken;
+          return nextToken;
+        })
+        .finally(() => {
+          refreshInFlight = null;
+        });
+    }
+    return refreshInFlight;
+  }
+
+  return function fetchWithAuth(path) {
+    if (typeof path !== "string" || !path.startsWith("/") || path.startsWith("//")) {
+      throw new TypeError("path must be a relative path starting with a single /");
+    }
+    return (async () => {
+      const first = await request(path, token);
+      if (first.status !== 401) return first;
+      const freshToken = await ensureFreshToken();
+      return request(path, freshToken);
+    })();
+  };
+}
+
+let refreshCalls = 0;
+const client = createAuthClient({
+  request: (path, tok) => (tok === "fresh-token" ? { status: 200, path } : { status: 401, path }),
+  refresh: () => {
+    refreshCalls++;
+    return "fresh-token";
+  }
+});
+
+client("/api/orders");
+client("/api/profile");
+console.log("Auth client ready | Refresh calls queued:", refreshCalls);`}
+  />
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m02-p3-sec-p" letter="P" title="Advanced Challenge">
+
+<Callout variant="warn" title="Senior Challenge: Architecting State, Caching & Auth for a Multi-Tenant SaaS">
+  <p>
+    A B2B React app uses one giant Context for user auth, notification preferences, and fetched project lists. Switching tenants occasionally flashes old-tenant data, and expired tokens trigger multiple <code>/auth/refresh</code> calls that lock user accounts.
+  </p>
+  <p>
+    <strong>Your Task:</strong> Design the state separation (TanStack Query + RTK/Context + React Router), tenant-scoped query key / cache clearing strategy on tenant switch, and single-flight cookie/token refresh architecture.
+  </p>
+</Callout>
+
+<ExerciseCard
+  title="Reference Architecture Notes"
+  prompt={null}
+  buttonLabel="Reveal Approach"
+  hideLabel="Hide Approach"
+>
+  <ol>
+    <li>Namespace every TanStack Query key with <code>tenantId</code> (<code>[tenantId, "projects", filters]</code>) and call <code>queryClient.clear()</code> on logout or tenant switch so cached data never leaks across tenants.</li>
+    <li>Store only small client UI state in Context/RTK, keep route filters in React Router <code>useSearchParams</code>, and rely on <code>HttpOnly</code> BFF cookies with a single-flight refresh promise on <code>401</code>.</li>
+    <li>Enforce RBAC/ABAC checks on every backend endpoint using the verified session + tenant membership, treating React Router guards strictly as UX.</li>
+  </ol>
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m02-p3-sec-q" letter="Q" title="Summary & Key Takeaways">
+
+- **Right Tool per State Kind:** Keep UI state in `useState`/Context/RTK, URL state in React Router, and server cache in TanStack Query.
+- **Redux Toolkit & Immer:** `createSlice` + `configureStore` eliminate Redux boilerplate while preserving pure, predictable state updates.
+- **Forms & Validation:** Use schema validation on the client for fast accessible UX and on the server as the authoritative security boundary.
+- **AuthN vs. AuthZ:** Protect tokens with `HttpOnly` cookies or in-memory + single-flight refresh, and enforce permissions on the server—never only in React Router.
+
+</TopicSection>

@@ -21,6 +21,8 @@ import M02P1Mdx from "./modules/02-react/m02-p1.mdx";
 import m02p1Raw from "./modules/02-react/m02-p1.mdx?raw";
 import M02P2Mdx from "./modules/02-react/m02-p2.mdx";
 import m02p2Raw from "./modules/02-react/m02-p2.mdx?raw";
+import M02P3Mdx from "./modules/02-react/m02-p3.mdx";
+import m02p3Raw from "./modules/02-react/m02-p3.mdx?raw";
 import { m01p1Questions } from "./interviews/m01-p1.questions";
 import { m01p2Questions } from "./interviews/m01-p2.questions";
 import { m01p3Questions } from "./interviews/m01-p3.questions";
@@ -28,6 +30,7 @@ import { m01p4Questions } from "./interviews/m01-p4.questions";
 import { m01p5Questions } from "./interviews/m01-p5.questions";
 import { m02p1Questions } from "./interviews/m02-p1.questions";
 import { m02p2Questions } from "./interviews/m02-p2.questions";
+import { m02p3Questions } from "./interviews/m02-p3.questions";
 import { SYLLABUS_MODULES } from "./syllabus";
 
 export interface HandbookCatalog {
@@ -135,11 +138,11 @@ const modules: ModuleRecord[] = [
     number: 2,
     title: "React & Frontend Engineering",
     category: "frontend",
-    partSummary: "Parts 1–2 of 4",
+    partSummary: "Parts 1–3 of 4",
     scopeSummary:
-      "Scope (Parts 1–2): React Architecture, Components, Props, State, Rendering, Virtual DOM, JSX, Lifecycle, Hooks & Memoization",
-    lead: "Master React's declarative UI model, Fiber render/commit phases, Hooks, effect synchronization, and targeted memoization.",
-    lessonIds: ["m02-p1", "m02-p2"]
+      "Scope (Parts 1–3): React Architecture, Components, Props, State, Rendering, Virtual DOM, JSX, Lifecycle, Hooks, Memoization, State Management, Routing, Forms, API & Auth",
+    lead: "Master React's declarative UI model, Fiber render/commit phases, Hooks, state management, TanStack Query, routing, forms, and AuthN/AuthZ boundaries.",
+    lessonIds: ["m02-p1", "m02-p2", "m02-p3"]
   }
 ];
 
@@ -563,8 +566,65 @@ const lessons: LessonRecord[] = [
       }
     ],
     prevLessonId: "m02-p1",
-    nextLessonId: null,
+    nextLessonId: "m02-p3",
     Content: M02P2Mdx
+  },
+  {
+    id: "m02-p3",
+    moduleId: "module-2",
+    moduleNumber: 2,
+    moduleTitle: "React & Frontend Engineering",
+    partLabel: "Lesson M02-P3",
+    title: "Part 3: State Management, Routing, Forms, API Integration & Auth",
+    category: "frontend",
+    duration: "90 min (40m theory · 30m practice · 20m review)",
+    objectives: [
+      "Classify UI, URL, client workflow, and server cache state to pick the right owner (useState, Context, Redux Toolkit, React Router, TanStack Query).",
+      "Implement predictable Redux / Redux Toolkit slices and TanStack Query stale-while-revalidate caching with in-flight deduplication.",
+      "Design React Router protected layouts and schema-validated forms (React Hook Form + Zod) with accessible error mapping.",
+      "Build typed API clients with AbortSignal timeouts, error normalization, and single-flight 401 refresh while enforcing AuthZ on the server."
+    ],
+    sections: [
+      { id: "m02-p3-objectives", title: "Learning Objectives" },
+      { id: "m02-p3-sec-a", letter: "A", title: "Topic Introduction" },
+      { id: "m02-p3-sec-b", letter: "B", title: "Fundamentals (Simple Mental Models)" },
+      { id: "m02-p3-sec-c", letter: "C", title: "Internal Working & Architecture" },
+      { id: "m02-p3-sec-d", letter: "D", title: "Practical Examples (Interactive)" },
+      { id: "m02-p3-sec-e", letter: "E", title: "Step-by-Step Walkthrough" },
+      { id: "m02-p3-sec-f", letter: "F", title: "Real-World Use Cases" },
+      { id: "m02-p3-sec-g", letter: "G", title: "Common Mistakes" },
+      { id: "m02-p3-sec-h", letter: "H", title: "Best Practices" },
+      { id: "m02-p3-sec-i", letter: "I", title: "Performance & Scalability" },
+      { id: "m02-p3-sec-j", letter: "J", title: "Security Considerations" },
+      { id: "m02-p3-sec-k", letter: "K", title: "Comparisons & Decision Tables" },
+      { id: "m02-p3-sec-l", letter: "L", title: "Tips to Remember (Mnemonics & Mental Models)" },
+      { id: "m02-p3-sec-mn", letter: "M/N", title: "Interview Questions & Detailed Answers" },
+      { id: "m02-p3-sec-o", letter: "O", title: "Practical Exercises" },
+      { id: "m02-p3-sec-p", letter: "P", title: "Advanced Challenge" },
+      { id: "m02-p3-sec-q", letter: "Q", title: "Summary & Key Takeaways" },
+      { id: "m02-p3-mastery", title: "Mastery Assessment" }
+    ],
+    masteryItems: [
+      {
+        id: "m02-p3-m1",
+        label: "I can separate client UI state (Context/RTK), URL state (React Router), and server state (TanStack Query)."
+      },
+      {
+        id: "m02-p3-m2",
+        label: "I can explain RTK Immer drafts, staleTime vs. gcTime, and in-flight query deduplication."
+      },
+      {
+        id: "m02-p3-m3",
+        label: "I can design safe AuthN/AuthZ boundaries using HttpOnly cookies, single-flight refresh, and server-side RBAC."
+      },
+      {
+        id: "m02-p3-m4",
+        label: "I completed the M02-P3 exercises and can answer the interview questions without notes."
+      }
+    ],
+    prevLessonId: "m02-p2",
+    nextLessonId: null,
+    Content: M02P3Mdx
   }
 ];
 
@@ -575,7 +635,8 @@ const questionsByLesson: Record<string, InterviewQuestion[]> = {
   "m01-p4": m01p4Questions,
   "m01-p5": m01p5Questions,
   "m02-p1": m02p1Questions,
-  "m02-p2": m02p2Questions
+  "m02-p2": m02p2Questions,
+  "m02-p3": m02p3Questions
 };
 
 const allQuestions: InterviewQuestion[] = [
@@ -585,7 +646,8 @@ const allQuestions: InterviewQuestion[] = [
   ...m01p4Questions,
   ...m01p5Questions,
   ...m02p1Questions,
-  ...m02p2Questions
+  ...m02p2Questions,
+  ...m02p3Questions
 ];
 
 function mergeGlossaryEntries(...batches: GlossaryEntry[][]): GlossaryEntry[] {
@@ -608,7 +670,8 @@ const glossaryEntries: GlossaryEntry[] = mergeGlossaryEntries(
   extractGlossaryFromMdx(m01p4Raw, "m01-p4"),
   extractGlossaryFromMdx(m01p5Raw, "m01-p5"),
   extractGlossaryFromMdx(m02p1Raw, "m02-p1"),
-  extractGlossaryFromMdx(m02p2Raw, "m02-p2")
+  extractGlossaryFromMdx(m02p2Raw, "m02-p2"),
+  extractGlossaryFromMdx(m02p3Raw, "m02-p3")
 );
 
 function buildSearchRecords(): SearchRecord[] {
@@ -634,6 +697,7 @@ function buildSearchRecords(): SearchRecord[] {
   records.push(...extractSearchRecordsFromMdx(m01p5Raw, "m01-p5", lessons[4].title, 1));
   records.push(...extractSearchRecordsFromMdx(m02p1Raw, "m02-p1", lessons[5].title, 2));
   records.push(...extractSearchRecordsFromMdx(m02p2Raw, "m02-p2", lessons[6].title, 2));
+  records.push(...extractSearchRecordsFromMdx(m02p3Raw, "m02-p3", lessons[7].title, 2));
 
   for (const mod of SYLLABUS_MODULES) {
     for (const topic of mod.topics) {

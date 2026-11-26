@@ -394,17 +394,61 @@ export const SYLLABUS_MODULES: SyllabusModule[] = [
         lessonId: "m02-p1",
         anchorId: "m02-p1-topic-component-lifecycle-concepts"
       },
-      "State management",
-      "Context API",
-      "Redux",
-      "Redux Toolkit",
-      "React Query / TanStack Query",
-      "React Router",
-      "Forms",
-      "Validation",
-      "API integration",
-      "Authentication",
-      "Authorization",
+      {
+        title: "State management",
+        lessonId: "m02-p3",
+        anchorId: "m02-p3-topic-state-management"
+      },
+      {
+        title: "Context API",
+        lessonId: "m02-p3",
+        anchorId: "m02-p3-topic-context-api"
+      },
+      {
+        title: "Redux",
+        lessonId: "m02-p3",
+        anchorId: "m02-p3-topic-redux"
+      },
+      {
+        title: "Redux Toolkit",
+        lessonId: "m02-p3",
+        anchorId: "m02-p3-topic-redux-toolkit"
+      },
+      {
+        title: "React Query / TanStack Query",
+        lessonId: "m02-p3",
+        anchorId: "m02-p3-topic-tanstack-query"
+      },
+      {
+        title: "React Router",
+        lessonId: "m02-p3",
+        anchorId: "m02-p3-topic-react-router"
+      },
+      {
+        title: "Forms",
+        lessonId: "m02-p3",
+        anchorId: "m02-p3-topic-forms"
+      },
+      {
+        title: "Validation",
+        lessonId: "m02-p3",
+        anchorId: "m02-p3-topic-validation"
+      },
+      {
+        title: "API integration",
+        lessonId: "m02-p3",
+        anchorId: "m02-p3-topic-api-integration"
+      },
+      {
+        title: "Authentication",
+        lessonId: "m02-p3",
+        anchorId: "m02-p3-topic-authentication"
+      },
+      {
+        title: "Authorization",
+        lessonId: "m02-p3",
+        anchorId: "m02-p3-topic-authorization"
+      },
       "Error boundaries",
       "Lazy loading",
       "Code splitting",
