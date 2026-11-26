@@ -1001,7 +1001,7 @@ console.log("Normalized:", normalizeSignup(raw), "| Original:", raw);\`}
 `,(0,S.jsxs)(t.li,{children:[(0,S.jsx)(t.strong,{children:`Encapsulation & Abstraction`}),` prevent external callers from corrupting internal state (for example, setting `,(0,S.jsx)(t.code,{children:`invoice.total = -500`}),` directly).`]}),`
 `,(0,S.jsxs)(t.li,{children:[(0,S.jsx)(t.strong,{children:`Polymorphism & SOLID`}),` let you add new payment providers, storage backends, or notification channels without rewriting tested core workflows.`]}),`
 `]}),(0,S.jsx)(t.h4,{children:`Where is it used in real-world software?`}),(0,S.jsx)(t.p,{children:`Every production layer uses these concepts daily: React props and Redux state are immutable object/array trees; Express request/response objects and middleware chains use object composition; ORMs (Prisma, TypeORM), domain models, and backend service layers rely on classes, interfaces, dependency inversion, and polymorphism to keep business logic decoupled from databases and third-party APIs.`})]}),`
-`,(0,S.jsxs)(l,{id:`m01-p2-sec-b`,letter:`B`,title:`Fundamentals (Simple Mental Models)`,children:[(0,S.jsx)(c,{id:`m01-p2-topic-objects`}),(0,S.jsx)(t.h4,{children:`1. Objects: Key-Value Records, Prototypes & Property Descriptors`}),(0,S.jsxs)(t.p,{children:[`An `,(0,S.jsx)(t.strong,{children:`object`}),` in JavaScript is a mutable dictionary mapping string (or `,(0,S.jsx)(t.code,{children:`Symbol`}),`) keys to values. Values can be data (`,(0,S.jsx)(t.strong,{children:`properties`}),`) or functions (`,(0,S.jsx)(t.strong,{children:`methods`}),`). Every plain `,(0,S.jsx)(t.code,{children:`{}`}),` delegates missing key lookups to `,(0,S.jsx)(t.code,{children:`Object.prototype`}),`, so checking membership with `,(0,S.jsx)(t.code,{children:`"toString" in {}`}),` returns `,(0,S.jsx)(t.code,{children:`true`}),`. Always use `,(0,S.jsx)(t.code,{children:`Object.hasOwn(obj, key)`}),` (ES2022) to check own properties safely—even on `,(0,S.jsx)(t.code,{children:`Object.create(null)`}),` dictionaries that have no prototype.`]}),(0,S.jsxs)(t.p,{children:[`Underneath every property sits a `,(0,S.jsx)(o,{definition:`Metadata object describing a property's value/getter/setter and behavioral flags: writable, enumerable, and configurable.`,children:`Property Descriptor`}),` with four flags: `,(0,S.jsx)(t.code,{children:`value`}),`, `,(0,S.jsx)(t.code,{children:`writable`}),` (can be reassigned), `,(0,S.jsx)(t.code,{children:`enumerable`}),` (appears in `,(0,S.jsx)(t.code,{children:`Object.keys`}),` / `,(0,S.jsx)(t.code,{children:`for..in`}),` / `,(0,S.jsx)(t.code,{children:`JSON.stringify`}),`), and `,(0,S.jsx)(t.code,{children:`configurable`}),` (can be deleted or reconfigured). Calling `,(0,S.jsx)(t.code,{children:`Object.freeze(obj)`}),` sets `,(0,S.jsx)(t.code,{children:`writable: false`}),` and `,(0,S.jsx)(t.code,{children:`configurable: false`}),` on own properties—though only `,(0,S.jsx)(t.strong,{children:`shallowly`}),`! Spread syntax `,(0,S.jsx)(t.code,{children:`{ ...user }`}),` is also shallow: nested objects like `,(0,S.jsx)(t.code,{children:`user.address`}),` remain shared by reference unless cloned deeply with `,(0,S.jsx)(t.code,{children:`structuredClone(user)`}),`.`]}),(0,S.jsx)(c,{id:`m01-p2-topic-arrays`}),(0,S.jsx)(t.h4,{children:`2. Arrays: Ordered Lists, Mutation Traps & Non-Mutating Methods`}),(0,S.jsxs)(t.p,{children:[`An `,(0,S.jsx)(t.strong,{children:`array`}),` is a specialized object optimized for non-negative integer indices `,(0,S.jsx)(t.code,{children:`0, 1, 2, ...`}),` and an auto-updating `,(0,S.jsx)(t.code,{children:`.length`}),` property. Appending or removing at the tail (`,(0,S.jsx)(t.code,{children:`.push()`}),`, `,(0,S.jsx)(t.code,{children:`.pop()`}),`) is amortized `,(0,S.jsx)(t.code,{children:`O(1)`}),`, whereas inserting or removing at index `,(0,S.jsx)(t.code,{children:`0`}),` (`,(0,S.jsx)(t.code,{children:`.unshift()`}),`, `,(0,S.jsx)(t.code,{children:`.shift()`}),`) shifts every remaining element (`,(0,S.jsx)(t.code,{children:`O(n)`}),`).`]}),(0,S.jsxs)(t.p,{children:[`Pay close attention to `,(0,S.jsx)(t.strong,{children:`mutating vs. non-mutating`}),` array methods. Classic methods like `,(0,S.jsx)(t.code,{children:`.push()`}),`, `,(0,S.jsx)(t.code,{children:`.pop()`}),`, `,(0,S.jsx)(t.code,{children:`.splice()`}),`, `,(0,S.jsx)(t.code,{children:`.sort()`}),`, and `,(0,S.jsx)(t.code,{children:`.reverse()`}),` mutate the array in place—which causes subtle bugs when sorting React props or shared state. Modern ES2023 non-mutating counterparts—`,(0,S.jsx)(t.code,{children:`.toSorted()`}),`, `,(0,S.jsx)(t.code,{children:`.toReversed()`}),`, `,(0,S.jsx)(t.code,{children:`.toSpliced()`}),`, and `,(0,S.jsx)(t.code,{children:`.with(index, value)`}),`—alongside `,(0,S.jsx)(t.code,{children:`.map()`}),`, `,(0,S.jsx)(t.code,{children:`.filter()`}),`, and `,(0,S.jsx)(t.code,{children:`.slice()`}),` always return a `,(0,S.jsx)(t.strong,{children:`new`}),` array and leave the original untouched.`]}),(0,S.jsx)(c,{id:`m01-p2-topic-classes`}),(0,S.jsx)(t.h4,{children:`3. Classes: Blueprints, Constructors, Accessors & Static Members`}),(0,S.jsxs)(t.p,{children:[`Introduced in ES2015, a `,(0,S.jsx)(t.strong,{children:(0,S.jsx)(t.code,{children:`class`})}),` packages a `,(0,S.jsx)(t.code,{children:`constructor`}),` (which initializes each instance when invoked with `,(0,S.jsx)(t.code,{children:`new`}),`), shared instance methods (stored once on `,(0,S.jsx)(t.code,{children:`ClassName.prototype`}),`), `,(0,S.jsx)(t.code,{children:`get`}),`/`,(0,S.jsx)(t.code,{children:`set`}),` computed accessors, and `,(0,S.jsx)(t.code,{children:`static`}),` utility/factory methods attached directly to the class constructor itself (e.g., `,(0,S.jsx)(t.code,{children:`User.fromDTO(dto)`}),`).`]}),(0,S.jsxs)(t.p,{children:[`Unlike legacy constructor functions, ES2015+ classes enforce critical runtime safety rules: the class body always runs in `,(0,S.jsx)(t.strong,{children:`strict mode`}),`, methods are non-enumerable by default, and calling a class without `,(0,S.jsx)(t.code,{children:`new`}),` throws a `,(0,S.jsx)(t.code,{children:`TypeError`}),` immediately. Use `,(0,S.jsx)(t.code,{children:`instanceof`}),` to test whether an object's prototype chain includes a class constructor.`]}),(0,S.jsx)(c,{id:`m01-p2-topic-oop`}),(0,S.jsx)(t.h4,{children:`4. OOP: Modeling Domains Around Collaborating Objects`}),(0,S.jsxs)(t.p,{children:[(0,S.jsx)(t.strong,{children:`Object-Oriented Programming (OOP)`}),` structures a codebase around domain objects that combine relevant state with the operations allowed on that state, rather than scattering raw data structures and unrelated helper functions across files. Each object acts as a boundary responsible for its own consistency.`]}),(0,S.jsxs)(t.p,{children:[`OOP rests on four complementary pillars—`,(0,S.jsx)(t.strong,{children:`Encapsulation`}),`, `,(0,S.jsx)(t.strong,{children:`Abstraction`}),`, `,(0,S.jsx)(t.strong,{children:`Inheritance`}),`, and `,(0,S.jsx)(t.strong,{children:`Polymorphism`}),` (`,(0,S.jsx)(t.strong,{children:`A-P-I-E`}),`). In modern JavaScript and TypeScript, engineers combine OOP boundaries for stateful domain entities (`,(0,S.jsx)(t.code,{children:`LedgerAccount`}),`, `,(0,S.jsx)(t.code,{children:`Order`}),`, `,(0,S.jsx)(t.code,{children:`RateLimiter`}),`) with functional immutability for data transformations.`]}),(0,S.jsx)(c,{id:`m01-p2-topic-encapsulation`}),(0,S.jsxs)(t.h4,{children:[`5. Encapsulation: Protecting Invariants with `,(0,S.jsx)(t.code,{children:`#private`}),` State`]}),(0,S.jsxs)(t.p,{children:[(0,S.jsx)(o,{definition:`Bundling state and behavior together while restricting direct external mutation so internal invariants cannot be bypassed.`,children:`Encapsulation`}),` ensures callers can only change an object's state through validated methods rather than corrupting fields directly (such as setting `,(0,S.jsx)(t.code,{children:`account.balance = -500`}),`). Naming conventions like `,(0,S.jsx)(t.code,{children:`_balance`}),` only ask nicely—external code can still read, mutate, and serialize `,(0,S.jsx)(t.code,{children:`_balance`}),`.`]}),(0,S.jsxs)(t.p,{children:[`In ES2022+, prefixing a class field or method with `,(0,S.jsx)(t.code,{children:`#`}),` (e.g., `,(0,S.jsx)(t.code,{children:`#balanceCents`}),`) creates true runtime encapsulation: referencing `,(0,S.jsx)(t.code,{children:`account.#balanceCents`}),` outside the declaring class fails at parse time with a `,(0,S.jsx)(t.code,{children:`SyntaxError`}),`, and `,(0,S.jsx)(t.code,{children:`#private`}),` slots never leak into `,(0,S.jsx)(t.code,{children:`Object.keys()`}),`, `,(0,S.jsx)(t.code,{children:`for..in`}),`, or `,(0,S.jsx)(t.code,{children:`JSON.stringify()`}),`.`]}),(0,S.jsx)(c,{id:`m01-p2-topic-abstraction`}),(0,S.jsx)(t.h4,{children:`6. Abstraction: Minimal Public Contracts Over Complex Internals`}),(0,S.jsxs)(t.p,{children:[(0,S.jsx)(o,{definition:`Exposing only a clean, minimal public interface while hiding complex internal workflows, protocols, or storage details.`,children:`Abstraction`}),` separates `,(0,S.jsx)(t.em,{children:`what`}),` a component does from `,(0,S.jsx)(t.em,{children:`how`}),` it does it. When `,(0,S.jsx)(t.code,{children:`CheckoutService`}),` calls `,(0,S.jsx)(t.code,{children:`gateway.charge(amountCents)`}),`, it only depends on a simple input/output contract (`,(0,S.jsx)(t.code,{children:`charge(cents) -> Receipt`}),`), hiding HTTP retries, HMAC signing, webhook verification, and vendor SDK quirks behind that boundary.`]}),(0,S.jsx)(t.p,{children:`Good abstraction shrinks cognitive load and localizes change: if you swap payment providers or migrate from SMTP to AWS SES, callers depending only on the narrow abstraction require zero code changes.`}),(0,S.jsx)(c,{id:`m01-p2-topic-inheritance`}),(0,S.jsxs)(t.h4,{children:[`7. Inheritance: Shallow `,(0,S.jsx)(t.code,{children:`extends`}),` Taxonomies vs. Composition`]}),(0,S.jsxs)(t.p,{children:[(0,S.jsx)(o,{definition:`Defining a specialized child class via extends that reuses and refines a parent class's contract while initializing parent state with super().`,children:`Inheritance`}),` creates a subtype relationship (`,(0,S.jsx)(t.code,{children:`class RateLimitError extends AppError`}),`) where the child class inherits prototype methods, initializes parent state via `,(0,S.jsx)(t.code,{children:`super(...)`}),`, and can override behavior while delegating back with `,(0,S.jsx)(t.code,{children:`super.method()`}),`. Note that a child class does `,(0,S.jsx)(t.strong,{children:`not`}),` inherit direct access to a parent's `,(0,S.jsx)(t.code,{children:`#private`}),` fields—it must use the parent's public API.`]}),(0,S.jsxs)(t.p,{children:[`Reserve inheritance for shallow, genuine `,(0,S.jsx)(t.em,{children:`"is-a"`}),` hierarchies (such as typed `,(0,S.jsx)(t.code,{children:`Error`}),` subclasses). Deep `,(0,S.jsx)(t.code,{children:`extends`}),` chains create tight coupling (`,(0,S.jsx)(t.strong,{children:`Fragile Base Class`}),` problem); for sharing capabilities across services, prefer `,(0,S.jsx)(t.strong,{children:`composition`}),` (`,(0,S.jsx)(t.em,{children:`"has-a"`}),`).`]}),(0,S.jsx)(c,{id:`m01-p2-topic-polymorphism`}),(0,S.jsx)(t.h4,{children:`8. Polymorphism: Uniform Dispatch Across Interchangeable Types`}),(0,S.jsxs)(t.p,{children:[(0,S.jsx)(o,{definition:`Allowing different classes or objects implementing the same method contract to be used interchangeably through a shared caller interface.`,children:`Polymorphism`}),` (`,(0,S.jsx)(t.em,{children:`"many forms"`}),`) lets a single piece of orchestration code work uniformly across multiple implementations without `,(0,S.jsx)(t.code,{children:`if (provider === "stripe") ... else if (provider === "paypal")`}),` branches. Both `,(0,S.jsx)(t.code,{children:`StripeGateway`}),` and `,(0,S.jsx)(t.code,{children:`MockGateway`}),` implement `,(0,S.jsx)(t.code,{children:`.charge(cents)`}),` and return a consistent receipt shape.`]}),(0,S.jsxs)(t.p,{children:[`Because JavaScript is dynamically typed, polymorphism works both via shared parent classes (`,(0,S.jsx)(t.code,{children:`extends`}),`) and via structural `,(0,S.jsx)(t.strong,{children:`duck typing`}),` (any object exposing the expected method signature). To stay reliable, every polymorphic implementation must honor the same input, output, and error contract.`]}),(0,S.jsx)(c,{id:`m01-p2-topic-solid`}),(0,S.jsx)(t.h4,{children:`9. SOLID Fundamentals: Five Guidelines for Modular Change`}),(0,S.jsxs)(t.p,{children:[`Coined and popularized by Robert C. Martin, `,(0,S.jsx)(o,{definition:`Five object-oriented design principles (SRP, OCP, LSP, ISP, DIP) that keep software modular, extensible, and testable.`,children:`SOLID`}),` provides five practical guardrails against rigid, tightly coupled code:`]}),(0,S.jsxs)(t.ol,{children:[`
+`,(0,S.jsxs)(l,{id:`m01-p2-sec-b`,letter:`B`,title:`Fundamentals (Simple Mental Models)`,children:[(0,S.jsx)(c,{id:`m01-p2-topic-objects`}),(0,S.jsx)(t.h4,{children:`1. Objects: Key-Value Records, Prototypes & Property Descriptors`}),(0,S.jsxs)(t.p,{children:[`An `,(0,S.jsx)(t.strong,{children:`object`}),` in JavaScript is a mutable dictionary mapping string (or `,(0,S.jsx)(t.code,{children:`Symbol`}),`) keys to values. Values can be data (`,(0,S.jsx)(t.strong,{children:`properties`}),`) or functions (`,(0,S.jsx)(t.strong,{children:`methods`}),`). Every plain `,(0,S.jsx)(t.code,{children:`{}`}),` delegates missing key lookups to `,(0,S.jsx)(t.code,{children:`Object.prototype`}),`, so checking membership with `,(0,S.jsx)(t.code,{children:`"toString" in {}`}),` returns `,(0,S.jsx)(t.code,{children:`true`}),`. Always use `,(0,S.jsx)(t.code,{children:`Object.hasOwn(obj, key)`}),` (ES2022) to check own properties safely—even on `,(0,S.jsx)(t.code,{children:`Object.create(null)`}),` dictionaries that have no prototype.`]}),(0,S.jsxs)(t.p,{children:[`Underneath every property sits a `,(0,S.jsx)(o,{definition:`Metadata object describing a property's value/getter/setter and behavioral flags: writable, enumerable, and configurable.`,children:`Property Descriptor`}),` with four flags: `,(0,S.jsx)(t.code,{children:`value`}),`, `,(0,S.jsx)(t.code,{children:`writable`}),` (can be reassigned), `,(0,S.jsx)(t.code,{children:`enumerable`}),` (appears in `,(0,S.jsx)(t.code,{children:`Object.keys`}),` / `,(0,S.jsx)(t.code,{children:`for..in`}),` / `,(0,S.jsx)(t.code,{children:`JSON.stringify`}),`), and `,(0,S.jsx)(t.code,{children:`configurable`}),` (can be deleted or reconfigured). Calling `,(0,S.jsx)(t.code,{children:`Object.freeze(obj)`}),` sets `,(0,S.jsx)(t.code,{children:`writable: false`}),` and `,(0,S.jsx)(t.code,{children:`configurable: false`}),` on own properties—though only `,(0,S.jsx)(t.strong,{children:`shallowly`}),`! Spread syntax `,(0,S.jsx)(t.code,{children:`{ ...user }`}),` is also shallow: nested objects like `,(0,S.jsx)(t.code,{children:`user.address`}),` remain shared by reference unless cloned deeply with `,(0,S.jsx)(t.code,{children:`structuredClone(user)`}),`.`]}),(0,S.jsxs)(t.p,{children:[`For dynamic key-value collections, prefer `,(0,S.jsx)(t.code,{children:`Map`}),` and `,(0,S.jsx)(t.code,{children:`Set`}),` over plain `,(0,S.jsx)(t.code,{children:`{}`}),`—and when attaching metadata or visited-state to objects without preventing garbage collection, use `,(0,S.jsx)(t.strong,{children:(0,S.jsx)(t.code,{children:`WeakMap`})}),` and `,(0,S.jsx)(t.strong,{children:(0,S.jsx)(t.code,{children:`WeakSet`})}),`. Unlike `,(0,S.jsx)(t.code,{children:`Map`}),`/`,(0,S.jsx)(t.code,{children:`Set`}),`, weak collections hold `,(0,S.jsx)(t.strong,{children:`weak references`}),` to object keys (so entries are automatically reclaimed when the key object becomes unreachable elsewhere) and are intentionally non-enumerable (no `,(0,S.jsx)(t.code,{children:`.size`}),`, `,(0,S.jsx)(t.code,{children:`.keys()`}),`, or `,(0,S.jsx)(t.code,{children:`for..of`}),` iteration).`]}),(0,S.jsx)(c,{id:`m01-p2-topic-arrays`}),(0,S.jsx)(t.h4,{children:`2. Arrays: Ordered Lists, Mutation Traps & Non-Mutating Methods`}),(0,S.jsxs)(t.p,{children:[`An `,(0,S.jsx)(t.strong,{children:`array`}),` is a specialized object optimized for non-negative integer indices `,(0,S.jsx)(t.code,{children:`0, 1, 2, ...`}),` and an auto-updating `,(0,S.jsx)(t.code,{children:`.length`}),` property. Appending or removing at the tail (`,(0,S.jsx)(t.code,{children:`.push()`}),`, `,(0,S.jsx)(t.code,{children:`.pop()`}),`) is amortized `,(0,S.jsx)(t.code,{children:`O(1)`}),`, whereas inserting or removing at index `,(0,S.jsx)(t.code,{children:`0`}),` (`,(0,S.jsx)(t.code,{children:`.unshift()`}),`, `,(0,S.jsx)(t.code,{children:`.shift()`}),`) shifts every remaining element (`,(0,S.jsx)(t.code,{children:`O(n)`}),`).`]}),(0,S.jsxs)(t.p,{children:[`Pay close attention to `,(0,S.jsx)(t.strong,{children:`mutating vs. non-mutating`}),` array methods. Classic methods like `,(0,S.jsx)(t.code,{children:`.push()`}),`, `,(0,S.jsx)(t.code,{children:`.pop()`}),`, `,(0,S.jsx)(t.code,{children:`.splice()`}),`, `,(0,S.jsx)(t.code,{children:`.sort()`}),`, and `,(0,S.jsx)(t.code,{children:`.reverse()`}),` mutate the array in place—which causes subtle bugs when sorting React props or shared state. Modern ES2023 non-mutating counterparts—`,(0,S.jsx)(t.code,{children:`.toSorted()`}),`, `,(0,S.jsx)(t.code,{children:`.toReversed()`}),`, `,(0,S.jsx)(t.code,{children:`.toSpliced()`}),`, and `,(0,S.jsx)(t.code,{children:`.with(index, value)`}),`—alongside `,(0,S.jsx)(t.code,{children:`.map()`}),`, `,(0,S.jsx)(t.code,{children:`.filter()`}),`, and `,(0,S.jsx)(t.code,{children:`.slice()`}),` always return a `,(0,S.jsx)(t.strong,{children:`new`}),` array and leave the original untouched.`]}),(0,S.jsx)(c,{id:`m01-p2-topic-classes`}),(0,S.jsx)(t.h4,{children:`3. Classes: Blueprints, Constructors, Accessors & Static Members`}),(0,S.jsxs)(t.p,{children:[`Introduced in ES2015, a `,(0,S.jsx)(t.strong,{children:(0,S.jsx)(t.code,{children:`class`})}),` packages a `,(0,S.jsx)(t.code,{children:`constructor`}),` (which initializes each instance when invoked with `,(0,S.jsx)(t.code,{children:`new`}),`), shared instance methods (stored once on `,(0,S.jsx)(t.code,{children:`ClassName.prototype`}),`), `,(0,S.jsx)(t.code,{children:`get`}),`/`,(0,S.jsx)(t.code,{children:`set`}),` computed accessors, and `,(0,S.jsx)(t.code,{children:`static`}),` utility/factory methods attached directly to the class constructor itself (e.g., `,(0,S.jsx)(t.code,{children:`User.fromDTO(dto)`}),`).`]}),(0,S.jsxs)(t.p,{children:[`Unlike legacy constructor functions, ES2015+ classes enforce critical runtime safety rules: the class body always runs in `,(0,S.jsx)(t.strong,{children:`strict mode`}),`, methods are non-enumerable by default, and calling a class without `,(0,S.jsx)(t.code,{children:`new`}),` throws a `,(0,S.jsx)(t.code,{children:`TypeError`}),` immediately. Use `,(0,S.jsx)(t.code,{children:`instanceof`}),` to test whether an object's prototype chain includes a class constructor.`]}),(0,S.jsx)(c,{id:`m01-p2-topic-oop`}),(0,S.jsx)(t.h4,{children:`4. OOP: Modeling Domains Around Collaborating Objects`}),(0,S.jsxs)(t.p,{children:[(0,S.jsx)(t.strong,{children:`Object-Oriented Programming (OOP)`}),` structures a codebase around domain objects that combine relevant state with the operations allowed on that state, rather than scattering raw data structures and unrelated helper functions across files. Each object acts as a boundary responsible for its own consistency.`]}),(0,S.jsxs)(t.p,{children:[`OOP rests on four complementary pillars—`,(0,S.jsx)(t.strong,{children:`Encapsulation`}),`, `,(0,S.jsx)(t.strong,{children:`Abstraction`}),`, `,(0,S.jsx)(t.strong,{children:`Inheritance`}),`, and `,(0,S.jsx)(t.strong,{children:`Polymorphism`}),` (`,(0,S.jsx)(t.strong,{children:`A-P-I-E`}),`). In modern JavaScript and TypeScript, engineers combine OOP boundaries for stateful domain entities (`,(0,S.jsx)(t.code,{children:`LedgerAccount`}),`, `,(0,S.jsx)(t.code,{children:`Order`}),`, `,(0,S.jsx)(t.code,{children:`RateLimiter`}),`) with functional immutability for data transformations.`]}),(0,S.jsx)(c,{id:`m01-p2-topic-encapsulation`}),(0,S.jsxs)(t.h4,{children:[`5. Encapsulation: Protecting Invariants with `,(0,S.jsx)(t.code,{children:`#private`}),` State`]}),(0,S.jsxs)(t.p,{children:[(0,S.jsx)(o,{definition:`Bundling state and behavior together while restricting direct external mutation so internal invariants cannot be bypassed.`,children:`Encapsulation`}),` ensures callers can only change an object's state through validated methods rather than corrupting fields directly (such as setting `,(0,S.jsx)(t.code,{children:`account.balance = -500`}),`). Naming conventions like `,(0,S.jsx)(t.code,{children:`_balance`}),` only ask nicely—external code can still read, mutate, and serialize `,(0,S.jsx)(t.code,{children:`_balance`}),`.`]}),(0,S.jsxs)(t.p,{children:[`In ES2022+, prefixing a class field or method with `,(0,S.jsx)(t.code,{children:`#`}),` (e.g., `,(0,S.jsx)(t.code,{children:`#balanceCents`}),`) creates true runtime encapsulation: referencing `,(0,S.jsx)(t.code,{children:`account.#balanceCents`}),` outside the declaring class fails at parse time with a `,(0,S.jsx)(t.code,{children:`SyntaxError`}),`, and `,(0,S.jsx)(t.code,{children:`#private`}),` slots never leak into `,(0,S.jsx)(t.code,{children:`Object.keys()`}),`, `,(0,S.jsx)(t.code,{children:`for..in`}),`, or `,(0,S.jsx)(t.code,{children:`JSON.stringify()`}),`.`]}),(0,S.jsx)(c,{id:`m01-p2-topic-abstraction`}),(0,S.jsx)(t.h4,{children:`6. Abstraction: Minimal Public Contracts Over Complex Internals`}),(0,S.jsxs)(t.p,{children:[(0,S.jsx)(o,{definition:`Exposing only a clean, minimal public interface while hiding complex internal workflows, protocols, or storage details.`,children:`Abstraction`}),` separates `,(0,S.jsx)(t.em,{children:`what`}),` a component does from `,(0,S.jsx)(t.em,{children:`how`}),` it does it. When `,(0,S.jsx)(t.code,{children:`CheckoutService`}),` calls `,(0,S.jsx)(t.code,{children:`gateway.charge(amountCents)`}),`, it only depends on a simple input/output contract (`,(0,S.jsx)(t.code,{children:`charge(cents) -> Receipt`}),`), hiding HTTP retries, HMAC signing, webhook verification, and vendor SDK quirks behind that boundary.`]}),(0,S.jsx)(t.p,{children:`Good abstraction shrinks cognitive load and localizes change: if you swap payment providers or migrate from SMTP to AWS SES, callers depending only on the narrow abstraction require zero code changes.`}),(0,S.jsx)(c,{id:`m01-p2-topic-inheritance`}),(0,S.jsxs)(t.h4,{children:[`7. Inheritance: Shallow `,(0,S.jsx)(t.code,{children:`extends`}),` Taxonomies vs. Composition`]}),(0,S.jsxs)(t.p,{children:[(0,S.jsx)(o,{definition:`Defining a specialized child class via extends that reuses and refines a parent class's contract while initializing parent state with super().`,children:`Inheritance`}),` creates a subtype relationship (`,(0,S.jsx)(t.code,{children:`class RateLimitError extends AppError`}),`) where the child class inherits prototype methods, initializes parent state via `,(0,S.jsx)(t.code,{children:`super(...)`}),`, and can override behavior while delegating back with `,(0,S.jsx)(t.code,{children:`super.method()`}),`. Note that a child class does `,(0,S.jsx)(t.strong,{children:`not`}),` inherit direct access to a parent's `,(0,S.jsx)(t.code,{children:`#private`}),` fields—it must use the parent's public API.`]}),(0,S.jsxs)(t.p,{children:[`Reserve inheritance for shallow, genuine `,(0,S.jsx)(t.em,{children:`"is-a"`}),` hierarchies (such as typed `,(0,S.jsx)(t.code,{children:`Error`}),` subclasses). Deep `,(0,S.jsx)(t.code,{children:`extends`}),` chains create tight coupling (`,(0,S.jsx)(t.strong,{children:`Fragile Base Class`}),` problem); for sharing capabilities across services, prefer `,(0,S.jsx)(t.strong,{children:`composition`}),` (`,(0,S.jsx)(t.em,{children:`"has-a"`}),`).`]}),(0,S.jsx)(c,{id:`m01-p2-topic-polymorphism`}),(0,S.jsx)(t.h4,{children:`8. Polymorphism: Uniform Dispatch Across Interchangeable Types`}),(0,S.jsxs)(t.p,{children:[(0,S.jsx)(o,{definition:`Allowing different classes or objects implementing the same method contract to be used interchangeably through a shared caller interface.`,children:`Polymorphism`}),` (`,(0,S.jsx)(t.em,{children:`"many forms"`}),`) lets a single piece of orchestration code work uniformly across multiple implementations without `,(0,S.jsx)(t.code,{children:`if (provider === "stripe") ... else if (provider === "paypal")`}),` branches. Both `,(0,S.jsx)(t.code,{children:`StripeGateway`}),` and `,(0,S.jsx)(t.code,{children:`MockGateway`}),` implement `,(0,S.jsx)(t.code,{children:`.charge(cents)`}),` and return a consistent receipt shape.`]}),(0,S.jsxs)(t.p,{children:[`Because JavaScript is dynamically typed, polymorphism works both via shared parent classes (`,(0,S.jsx)(t.code,{children:`extends`}),`) and via structural `,(0,S.jsx)(t.strong,{children:`duck typing`}),` (any object exposing the expected method signature). To stay reliable, every polymorphic implementation must honor the same input, output, and error contract.`]}),(0,S.jsx)(c,{id:`m01-p2-topic-solid`}),(0,S.jsx)(t.h4,{children:`9. SOLID Fundamentals: Five Guidelines for Modular Change`}),(0,S.jsxs)(t.p,{children:[`Coined and popularized by Robert C. Martin, `,(0,S.jsx)(o,{definition:`Five object-oriented design principles (SRP, OCP, LSP, ISP, DIP) that keep software modular, extensible, and testable.`,children:`SOLID`}),` provides five practical guardrails against rigid, tightly coupled code:`]}),(0,S.jsxs)(t.ol,{children:[`
 `,(0,S.jsxs)(t.li,{children:[(0,S.jsx)(t.strong,{children:`S — Single Responsibility Principle (SRP):`}),` A class or module should serve one cohesive actor/reason to change (keep tax math separate from PDF rendering and SQL persistence).`]}),`
 `,(0,S.jsxs)(t.li,{children:[(0,S.jsx)(t.strong,{children:`O — Open/Closed Principle (OCP):`}),` Open for extension, closed for modification—add new variants (discount rules, notification channels) by registering a new class/strategy rather than editing core `,(0,S.jsx)(t.code,{children:`switch`}),` statements.`]}),`
 `,(0,S.jsxs)(t.li,{children:[(0,S.jsxs)(t.strong,{children:[`L — `,(0,S.jsx)(o,{definition:`Subtypes or interchangeable implementations must preserve the caller's expectations around inputs, return shapes, and error behavior.`,children:`Liskov Substitution Principle (LSP)`}),`:`]}),` Any subtype or strategy implementation must honor the base contract (never throwing unexpected error types or returning incompatible shapes).`]}),`
@@ -1169,7 +1169,82 @@ toClientPayload() {
 
 const err = new RateLimitError(30);
 console.log("instanceof AppError & Error:", err instanceof AppError, err instanceof Error);
-console.log("Client payload:", err.toClientPayload());`})]}),`
+console.log("Client payload:", err.toClientPayload());`}),(0,S.jsx)(t.h4,{children:`Example 5: SOLID — Single Responsibility (SRP) & Interface Segregation (ISP)`}),(0,S.jsx)(r,{lang:`javascript`,runnable:!0,code:`// SRP: Separate pure invoice math, formatting, and storage into single-purpose collaborators
+class InvoiceCalculator {
+subtotalCents(items) {
+  if (!Array.isArray(items) || items.length === 0) {
+    throw new TypeError("items must be a non-empty array");
+  }
+  return items.reduce((sum, item) => {
+    if (!item || !Number.isSafeInteger(item.unitCents) || item.unitCents < 0) {
+      throw new TypeError("unitCents must be a non-negative safe integer");
+    }
+    if (!Number.isSafeInteger(item.qty) || item.qty <= 0) {
+      throw new TypeError("qty must be a positive safe integer");
+    }
+    const next = sum + item.unitCents * item.qty;
+    if (!Number.isSafeInteger(next)) throw new RangeError("Subtotal overflow");
+    return next;
+  }, 0);
+}
+}
+
+class InvoiceFormatter {
+toSummaryText(invoiceId, totalCents) {
+  if (typeof invoiceId !== "string" || invoiceId.trim().length === 0) {
+    throw new TypeError("invoiceId must be a non-empty string");
+  }
+  if (!Number.isSafeInteger(totalCents) || totalCents < 0) {
+    throw new RangeError("totalCents must be a non-negative safe integer");
+  }
+  return \`Invoice \${invoiceId}: $\${(totalCents / 100).toFixed(2)}\`;
+}
+}
+
+// ISP: Small, segregated contracts so read-only consumers don't depend on write/refund methods
+function createReadOnlyAuditView(ledgerReader) {
+if (!ledgerReader || typeof ledgerReader.getBalanceCents !== "function") {
+  throw new TypeError("ledgerReader must implement getBalanceCents()");
+}
+return {
+  snapshot() {
+    return { balanceCents: ledgerReader.getBalanceCents() };
+  }
+};
+}
+
+const calc = new InvoiceCalculator();
+const fmt = new InvoiceFormatter();
+const total = calc.subtotalCents([{ unitCents: 1250, qty: 2 }, { unitCents: 500, qty: 1 }]);
+const auditView = createReadOnlyAuditView({ getBalanceCents: () => total });
+console.log(fmt.toSummaryText("INV-101", total));
+console.log("ISP read-only snapshot:", auditView.snapshot());`}),(0,S.jsxs)(t.h4,{children:[`Example 6: `,(0,S.jsx)(t.code,{children:`WeakMap`}),` & `,(0,S.jsx)(t.code,{children:`WeakSet`}),` for Leak-Free Object Metadata`]}),(0,S.jsx)(r,{lang:`javascript`,runnable:!0,code:`// WeakMap attaches per-object metadata without mutating the object or leaking memory after GC
+const requestTimings = new WeakMap();
+const processedPayloads = new WeakSet();
+
+function tagRequest(req, startedAtMs) {
+if (!req || typeof req !== "object") {
+  throw new TypeError("WeakMap/WeakSet keys must be objects");
+}
+if (!Number.isFinite(startedAtMs) || startedAtMs < 0) {
+  throw new RangeError("startedAtMs must be a non-negative finite number");
+}
+requestTimings.set(req, { startedAtMs });
+return requestTimings.get(req);
+}
+
+function markProcessedOnce(payload) {
+if (!payload || typeof payload !== "object") {
+  throw new TypeError("payload must be an object");
+}
+if (processedPayloads.has(payload)) return false;
+processedPayloads.add(payload);
+return true;
+}
+
+const reqObj = { path: "/api/orders" };
+console.log("Timing tagged:", tagRequest(reqObj, 120));
+console.log("First process:", markProcessedOnce(reqObj), "| Duplicate process:", markProcessedOnce(reqObj));`})]}),`
 `,(0,S.jsxs)(l,{id:`m01-p2-sec-e`,letter:`E`,title:`Step-by-Step Walkthrough`,children:[(0,S.jsxs)(t.p,{children:[`Trace every step of `,(0,S.jsx)(t.strong,{children:`Example 3`}),` (`,(0,S.jsx)(t.code,{children:`LedgerAccount`}),` + `,(0,S.jsx)(t.code,{children:`CheckoutService`}),`):`]}),(0,S.jsxs)(t.ol,{children:[`
 `,(0,S.jsxs)(t.li,{children:[(0,S.jsxs)(t.strong,{children:[`Instantiation (`,(0,S.jsx)(t.code,{children:`new LedgerAccount("Maya", 500)`}),`):`]}),` V8 allocates a `,(0,S.jsx)(t.code,{children:`LedgerAccount`}),` instance on the heap, runs `,(0,S.jsx)(t.code,{children:`constructor`}),`, validates non-empty `,(0,S.jsx)(t.code,{children:`owner`}),` and non-negative safe-integer `,(0,S.jsx)(t.code,{children:`initialCents`}),`, sets public `,(0,S.jsx)(t.code,{children:`this.owner = "Maya"`}),`, and initializes private internal slots `,(0,S.jsx)(t.code,{children:`#balanceCents = 500`}),` and `,(0,S.jsx)(t.code,{children:`#entries = []`}),`.`]}),`
 `,(0,S.jsxs)(t.li,{children:[(0,S.jsx)(t.strong,{children:`Encapsulation & Overflow Guarantee:`}),` External code cannot execute `,(0,S.jsx)(t.code,{children:`acct.#balanceCents = 999999`}),` (parse-time `,(0,S.jsx)(t.code,{children:`SyntaxError`}),`) or mutate `,(0,S.jsx)(t.code,{children:`acct.#entries.push(...)`}),`. Only `,(0,S.jsx)(t.code,{children:`deposit()`}),` can change `,(0,S.jsx)(t.code,{children:`#balanceCents`}),`, enforcing both positive safe-integer checks and `,(0,S.jsx)(t.code,{children:`MAX_SAFE_INTEGER`}),` overflow protection.`]}),`
@@ -1196,6 +1271,7 @@ console.log("Client payload:", err.toClientPayload());`})]}),`
 `]})}),`
 `,(0,S.jsx)(l,{id:`m01-p2-sec-i`,letter:`I`,title:`Performance & Scalability`,children:(0,S.jsxs)(t.ul,{children:[`
 `,(0,S.jsxs)(t.li,{children:[(0,S.jsxs)(t.strong,{children:[(0,S.jsx)(t.code,{children:`Object`}),` vs. `,(0,S.jsx)(t.code,{children:`Map`}),` at Scale:`]}),` Plain objects with static shapes optimize well for fixed-schema records (V8 Hidden Classes). `,(0,S.jsx)(t.code,{children:`Map`}),` is optimized for dynamic dictionaries with frequent key insertions/deletions and avoids prototype chain checks.`]}),`
+`,(0,S.jsxs)(t.li,{children:[(0,S.jsxs)(t.strong,{children:[`Preventing Memory Leaks with `,(0,S.jsx)(t.code,{children:`WeakMap`}),` / `,(0,S.jsx)(t.code,{children:`WeakSet`}),`:`]}),` Storing request or DOM-node metadata in a global `,(0,S.jsx)(t.code,{children:`Map`}),` or `,(0,S.jsx)(t.code,{children:`Set`}),` keeps strong references alive forever unless manually deleted. `,(0,S.jsx)(t.code,{children:`WeakMap`}),` and `,(0,S.jsx)(t.code,{children:`WeakSet`}),` allow the Garbage Collector to reclaim entries automatically once the key object is no longer referenced elsewhere.`]}),`
 `,(0,S.jsxs)(t.li,{children:[(0,S.jsx)(t.strong,{children:`Array Operation Complexity:`}),` `,(0,S.jsx)(t.code,{children:`.push()`}),` and `,(0,S.jsx)(t.code,{children:`.pop()`}),` at the tail are amortized `,(0,S.jsx)(t.code,{children:`O(1)`}),`. `,(0,S.jsx)(t.code,{children:`.shift()`}),` and `,(0,S.jsx)(t.code,{children:`.unshift()`}),` at index `,(0,S.jsx)(t.code,{children:`0`}),` re-index every element (`,(0,S.jsx)(t.code,{children:`O(n)`}),`), becoming a bottleneck on queues of 50,000+ items (use a ring buffer or head-index pointer instead).`]}),`
 `,(0,S.jsxs)(t.li,{children:[(0,S.jsx)(t.strong,{children:`Keep Hot Arrays Dense & Homogeneous:`}),` Avoid mixing integers, floats, and strings or leaving sparse holes in tight numeric loops so V8 stays in `,(0,S.jsx)(t.code,{children:`PACKED_SMI`}),` / `,(0,S.jsx)(t.code,{children:`PACKED_DOUBLE`}),` storage.`]}),`
 `,(0,S.jsxs)(t.li,{children:[(0,S.jsxs)(t.strong,{children:[(0,S.jsx)(t.code,{children:`structuredClone`}),` Cost:`]}),` Deep cloning huge nested payloads on every request allocates significant heap memory. Clone only at untrusted boundaries or use structural sharing for incremental updates.`]}),`
@@ -1206,7 +1282,7 @@ console.log("Client payload:", err.toClientPayload());`})]}),`
 `,(0,S.jsxs)(t.li,{children:[(0,S.jsx)(t.strong,{children:`Accidental Secret Leakage in Serialization:`}),` Plain public properties like `,(0,S.jsx)(t.code,{children:`user._passwordHash`}),` are included by `,(0,S.jsx)(t.code,{children:`JSON.stringify(user)`}),`. Keep sensitive fields `,(0,S.jsx)(t.code,{children:`#private`}),` or return explicit DTOs / `,(0,S.jsx)(t.code,{children:`toJSON()`}),` outputs.`]}),`
 `,(0,S.jsxs)(t.li,{children:[(0,S.jsx)(t.strong,{children:`Freezing Shared Configuration:`}),` Call `,(0,S.jsx)(t.code,{children:`Object.freeze()`}),` (or recursive deep freeze) on startup configuration objects so buggy plugins cannot mutate shared runtime settings.`]}),`
 `]})}),`
-`,(0,S.jsxs)(l,{id:`m01-p2-sec-k`,letter:`K`,title:`Comparisons & Decision Tables`,children:[(0,S.jsxs)(t.h4,{children:[`1. Plain `,(0,S.jsx)(t.code,{children:`Object`}),` vs. `,(0,S.jsx)(t.code,{children:`Map`}),` vs. `,(0,S.jsx)(t.code,{children:`Set`})]}),(0,S.jsxs)(t.table,{children:[(0,S.jsx)(t.thead,{children:(0,S.jsxs)(t.tr,{children:[(0,S.jsx)(t.th,{children:`Criterion`}),(0,S.jsxs)(t.th,{children:[`Plain `,(0,S.jsx)(t.code,{children:`Object`})]}),(0,S.jsx)(t.th,{children:(0,S.jsx)(t.code,{children:`Map`})}),(0,S.jsx)(t.th,{children:(0,S.jsx)(t.code,{children:`Set`})})]})}),(0,S.jsxs)(t.tbody,{children:[(0,S.jsxs)(t.tr,{children:[(0,S.jsx)(t.td,{children:`Key types`}),(0,S.jsxs)(t.td,{children:[(0,S.jsx)(t.code,{children:`string`}),` and `,(0,S.jsx)(t.code,{children:`Symbol`}),` only`]}),(0,S.jsx)(t.td,{children:`Any value (objects, functions, primitives)`}),(0,S.jsx)(t.td,{children:`Unique values only (no key-value pair)`})]}),(0,S.jsxs)(t.tr,{children:[(0,S.jsx)(t.td,{children:`Prototype collisions`}),(0,S.jsxs)(t.td,{children:[`Inherits `,(0,S.jsx)(t.code,{children:`Object.prototype`}),` (use `,(0,S.jsx)(t.code,{children:`Object.hasOwn`}),`)`]}),(0,S.jsx)(t.td,{children:`None (clean key space)`}),(0,S.jsx)(t.td,{children:`None`})]}),(0,S.jsxs)(t.tr,{children:[(0,S.jsx)(t.td,{children:`Size lookup`}),(0,S.jsxs)(t.td,{children:[(0,S.jsx)(t.code,{children:`Object.keys(o).length`}),` (`,(0,S.jsx)(t.code,{children:`O(n)`}),`)`]}),(0,S.jsxs)(t.td,{children:[(0,S.jsx)(t.code,{children:`map.size`}),` (`,(0,S.jsx)(t.code,{children:`O(1)`}),`)`]}),(0,S.jsxs)(t.td,{children:[(0,S.jsx)(t.code,{children:`set.size`}),` (`,(0,S.jsx)(t.code,{children:`O(1)`}),`)`]})]}),(0,S.jsxs)(t.tr,{children:[(0,S.jsx)(t.td,{children:`JSON serialization`}),(0,S.jsxs)(t.td,{children:[`Native `,(0,S.jsx)(t.code,{children:`JSON.stringify`}),` support`]}),(0,S.jsxs)(t.td,{children:[`Requires `,(0,S.jsx)(t.code,{children:`[...map]`}),` conversion`]}),(0,S.jsxs)(t.td,{children:[`Requires `,(0,S.jsx)(t.code,{children:`[...set]`}),` conversion`]})]}),(0,S.jsxs)(t.tr,{children:[(0,S.jsx)(t.td,{children:`Best fit`}),(0,S.jsx)(t.td,{children:`Fixed-shape records, DTOs, JSON payloads`}),(0,S.jsx)(t.td,{children:`Dynamic dictionaries, caches, frequent add/delete`}),(0,S.jsxs)(t.td,{children:[`Deduplication, `,(0,S.jsx)(t.code,{children:`O(1)`}),` membership tests`]})]})]})]}),(0,S.jsx)(t.h4,{children:`2. Composition vs. Inheritance`}),(0,S.jsxs)(t.table,{children:[(0,S.jsx)(t.thead,{children:(0,S.jsxs)(t.tr,{children:[(0,S.jsx)(t.th,{children:`Dimension`}),(0,S.jsxs)(t.th,{children:[`Composition (`,(0,S.jsx)(t.em,{children:`Has-A`}),`)`]}),(0,S.jsxs)(t.th,{children:[`Inheritance (`,(0,S.jsx)(t.em,{children:`Is-A`}),`)`]})]})}),(0,S.jsxs)(t.tbody,{children:[(0,S.jsxs)(t.tr,{children:[(0,S.jsx)(t.td,{children:`Coupling`}),(0,S.jsx)(t.td,{children:`Loose (depends on small public contract)`}),(0,S.jsx)(t.td,{children:`Tight (coupled to parent internals/lifecycle)`})]}),(0,S.jsxs)(t.tr,{children:[(0,S.jsx)(t.td,{children:`Runtime flexibility`}),(0,S.jsx)(t.td,{children:`Swap behaviors dynamically via constructor/props`}),(0,S.jsx)(t.td,{children:`Fixed class hierarchy at definition time`})]}),(0,S.jsxs)(t.tr,{children:[(0,S.jsx)(t.td,{children:`Multiple capabilities`}),(0,S.jsx)(t.td,{children:`Combine any number of collaborators cleanly`}),(0,S.jsxs)(t.td,{children:[`JS supports single `,(0,S.jsx)(t.code,{children:`extends`}),` only`]})]}),(0,S.jsxs)(t.tr,{children:[(0,S.jsx)(t.td,{children:`Best fit`}),(0,S.jsx)(t.td,{children:`Services, plugins, UI patterns, retry/auth policies`}),(0,S.jsxs)(t.td,{children:[`Shallow taxonomies (e.g., custom `,(0,S.jsx)(t.code,{children:`AppError extends Error`}),`)`]})]})]})]}),(0,S.jsx)(t.h4,{children:`3. SOLID Principles Quick Decision Guide`}),(0,S.jsxs)(t.table,{children:[(0,S.jsx)(t.thead,{children:(0,S.jsxs)(t.tr,{children:[(0,S.jsx)(t.th,{children:`Principle`}),(0,S.jsx)(t.th,{children:`Core Question`}),(0,S.jsx)(t.th,{children:`Warning Sign of Violation`})]})}),(0,S.jsxs)(t.tbody,{children:[(0,S.jsxs)(t.tr,{children:[(0,S.jsxs)(t.td,{children:[(0,S.jsx)(t.strong,{children:`S`}),`RP`]}),(0,S.jsx)(t.td,{children:`Does this module change for one reason/actor?`}),(0,S.jsx)(t.td,{children:`A class mixes SQL queries, pricing math, and HTML formatting`})]}),(0,S.jsxs)(t.tr,{children:[(0,S.jsxs)(t.td,{children:[(0,S.jsx)(t.strong,{children:`O`}),`CP`]}),(0,S.jsx)(t.td,{children:`Can we add a variant without editing core code?`}),(0,S.jsxs)(t.td,{children:[`A 10-branch `,(0,S.jsx)(t.code,{children:`switch (provider)`}),` duplicated across files`]})]}),(0,S.jsxs)(t.tr,{children:[(0,S.jsxs)(t.td,{children:[(0,S.jsx)(t.strong,{children:`L`}),`SP`]}),(0,S.jsx)(t.td,{children:`Can any subtype replace the base seamlessly?`}),(0,S.jsxs)(t.td,{children:[`Subclass throws `,(0,S.jsx)(t.code,{children:`NotImplementedError`}),` or changes return shape`]})]}),(0,S.jsxs)(t.tr,{children:[(0,S.jsxs)(t.td,{children:[(0,S.jsx)(t.strong,{children:`I`}),`SP`]}),(0,S.jsx)(t.td,{children:`Are callers forced to depend on unused methods?`}),(0,S.jsx)(t.td,{children:`A mock needs 15 dummy methods just to test 1 read call`})]}),(0,S.jsxs)(t.tr,{children:[(0,S.jsxs)(t.td,{children:[(0,S.jsx)(t.strong,{children:`D`}),`IP`]}),(0,S.jsx)(t.td,{children:`Does domain logic depend on abstractions, not SDKs?`}),(0,S.jsxs)(t.td,{children:[`Business logic directly imports `,(0,S.jsx)(t.code,{children:`mysql2`}),` or `,(0,S.jsx)(t.code,{children:`stripe`})]})]})]})]})]}),`
+`,(0,S.jsxs)(l,{id:`m01-p2-sec-k`,letter:`K`,title:`Comparisons & Decision Tables`,children:[(0,S.jsxs)(t.h4,{children:[`1. Plain `,(0,S.jsx)(t.code,{children:`Object`}),` vs. `,(0,S.jsx)(t.code,{children:`Map`}),` vs. `,(0,S.jsx)(t.code,{children:`Set`}),` vs. `,(0,S.jsx)(t.code,{children:`WeakMap`}),` / `,(0,S.jsx)(t.code,{children:`WeakSet`})]}),(0,S.jsxs)(t.table,{children:[(0,S.jsx)(t.thead,{children:(0,S.jsxs)(t.tr,{children:[(0,S.jsx)(t.th,{children:`Criterion`}),(0,S.jsxs)(t.th,{children:[`Plain `,(0,S.jsx)(t.code,{children:`Object`})]}),(0,S.jsx)(t.th,{children:(0,S.jsx)(t.code,{children:`Map`})}),(0,S.jsx)(t.th,{children:(0,S.jsx)(t.code,{children:`Set`})}),(0,S.jsxs)(t.th,{children:[(0,S.jsx)(t.code,{children:`WeakMap`}),` / `,(0,S.jsx)(t.code,{children:`WeakSet`})]})]})}),(0,S.jsxs)(t.tbody,{children:[(0,S.jsxs)(t.tr,{children:[(0,S.jsx)(t.td,{children:`Key / element types`}),(0,S.jsxs)(t.td,{children:[(0,S.jsx)(t.code,{children:`string`}),` and `,(0,S.jsx)(t.code,{children:`Symbol`}),` only`]}),(0,S.jsx)(t.td,{children:`Any value (objects, functions, primitives)`}),(0,S.jsx)(t.td,{children:`Unique values of any type`}),(0,S.jsxs)(t.td,{children:[`Objects (and non-registered `,(0,S.jsx)(t.code,{children:`Symbol`}),`s) only`]})]}),(0,S.jsxs)(t.tr,{children:[(0,S.jsx)(t.td,{children:`Prototype collisions`}),(0,S.jsxs)(t.td,{children:[`Inherits `,(0,S.jsx)(t.code,{children:`Object.prototype`}),` (use `,(0,S.jsx)(t.code,{children:`Object.hasOwn`}),`)`]}),(0,S.jsx)(t.td,{children:`None (clean key space)`}),(0,S.jsx)(t.td,{children:`None`}),(0,S.jsx)(t.td,{children:`None`})]}),(0,S.jsxs)(t.tr,{children:[(0,S.jsx)(t.td,{children:`GC & Memory behavior`}),(0,S.jsx)(t.td,{children:`Strong references (manual delete)`}),(0,S.jsxs)(t.td,{children:[`Strong references (manual `,(0,S.jsx)(t.code,{children:`.delete()`}),`)`]}),(0,S.jsxs)(t.td,{children:[`Strong references (manual `,(0,S.jsx)(t.code,{children:`.delete()`}),`)`]}),(0,S.jsxs)(t.td,{children:[(0,S.jsx)(t.strong,{children:`Weak`}),` references (auto-reclaimed by GC)`]})]}),(0,S.jsxs)(t.tr,{children:[(0,S.jsx)(t.td,{children:`Size & iteration`}),(0,S.jsxs)(t.td,{children:[(0,S.jsx)(t.code,{children:`Object.keys(o).length`}),` (`,(0,S.jsx)(t.code,{children:`O(n)`}),`)`]}),(0,S.jsxs)(t.td,{children:[(0,S.jsx)(t.code,{children:`map.size`}),` (`,(0,S.jsx)(t.code,{children:`O(1)`}),`), iterable`]}),(0,S.jsxs)(t.td,{children:[(0,S.jsx)(t.code,{children:`set.size`}),` (`,(0,S.jsx)(t.code,{children:`O(1)`}),`), iterable`]}),(0,S.jsxs)(t.td,{children:[`Not enumerable (no `,(0,S.jsx)(t.code,{children:`.size`}),`, no `,(0,S.jsx)(t.code,{children:`for..of`}),`)`]})]}),(0,S.jsxs)(t.tr,{children:[(0,S.jsx)(t.td,{children:`Best fit`}),(0,S.jsx)(t.td,{children:`Fixed-shape records, DTOs, JSON payloads`}),(0,S.jsx)(t.td,{children:`Dynamic dictionaries, caches, frequent add/delete`}),(0,S.jsxs)(t.td,{children:[`Deduplication, `,(0,S.jsx)(t.code,{children:`O(1)`}),` membership tests`]}),(0,S.jsx)(t.td,{children:`Per-object private metadata, visited-object tracking`})]})]})]}),(0,S.jsx)(t.h4,{children:`2. Shallow vs. Deep Copying Strategies`}),(0,S.jsxs)(t.table,{children:[(0,S.jsx)(t.thead,{children:(0,S.jsxs)(t.tr,{children:[(0,S.jsx)(t.th,{children:`Strategy`}),(0,S.jsx)(t.th,{children:`Depth`}),(0,S.jsx)(t.th,{children:`Circular Refs`}),(0,S.jsxs)(t.th,{children:[`Special Types (`,(0,S.jsx)(t.code,{children:`Date`}),`, `,(0,S.jsx)(t.code,{children:`Map`}),`, `,(0,S.jsx)(t.code,{children:`Set`}),`, `,(0,S.jsx)(t.code,{children:`BigInt`}),`, `,(0,S.jsx)(t.code,{children:`fn`}),`)`]}),(0,S.jsx)(t.th,{children:`Cost & Best Fit`})]})}),(0,S.jsxs)(t.tbody,{children:[(0,S.jsxs)(t.tr,{children:[(0,S.jsxs)(t.td,{children:[(0,S.jsx)(t.code,{children:`{ ...obj }`}),`, `,(0,S.jsx)(t.code,{children:`Object.assign()`}),`, `,(0,S.jsx)(t.code,{children:`[...arr]`})]}),(0,S.jsxs)(t.td,{children:[(0,S.jsx)(t.strong,{children:`Shallow`}),` (top-level only)`]}),(0,S.jsx)(t.td,{children:`Preserves top-level refs`}),(0,S.jsx)(t.td,{children:`Copies references as-is`}),(0,S.jsxs)(t.td,{children:[(0,S.jsx)(t.code,{children:`O(k)`}),` fast; React/Redux structural sharing`]})]}),(0,S.jsxs)(t.tr,{children:[(0,S.jsx)(t.td,{children:(0,S.jsx)(t.code,{children:`JSON.parse(JSON.stringify(x))`})}),(0,S.jsx)(t.td,{children:`Deep (JSON subset)`}),(0,S.jsxs)(t.td,{children:[(0,S.jsx)(t.strong,{children:`Throws`}),` `,(0,S.jsx)(t.code,{children:`TypeError`})]}),(0,S.jsxs)(t.td,{children:[`Drops `,(0,S.jsx)(t.code,{children:`undefined`}),`/`,(0,S.jsx)(t.code,{children:`fn`}),`/`,(0,S.jsx)(t.code,{children:`Symbol`}),`; stringifies `,(0,S.jsx)(t.code,{children:`Date`}),`; throws on `,(0,S.jsx)(t.code,{children:`BigInt`})]}),(0,S.jsx)(t.td,{children:`Slowest & lossy; avoid for rich JS objects`})]}),(0,S.jsxs)(t.tr,{children:[(0,S.jsxs)(t.td,{children:[(0,S.jsx)(t.code,{children:`structuredClone(x)`}),` (Node 17+ / modern browsers)`]}),(0,S.jsx)(t.td,{children:(0,S.jsx)(t.strong,{children:`Deep`})}),(0,S.jsx)(t.td,{children:(0,S.jsx)(t.strong,{children:`Supported`})}),(0,S.jsxs)(t.td,{children:[`Preserves `,(0,S.jsx)(t.code,{children:`Date`}),`, `,(0,S.jsx)(t.code,{children:`Map`}),`, `,(0,S.jsx)(t.code,{children:`Set`}),`, `,(0,S.jsx)(t.code,{children:`RegExp`}),`, `,(0,S.jsx)(t.code,{children:`BigInt`}),`; `,(0,S.jsx)(t.strong,{children:`throws`}),` on `,(0,S.jsx)(t.code,{children:`fn`}),`/`,(0,S.jsx)(t.code,{children:`Symbol`}),`/DOM`]}),(0,S.jsx)(t.td,{children:`Allocates full deep copy; untrusted/isolated snapshots`})]}),(0,S.jsxs)(t.tr,{children:[(0,S.jsxs)(t.td,{children:[`Structural sharing (`,(0,S.jsx)(t.code,{children:`{ ...s, nested: { ...s.nested } }`}),`)`]}),(0,S.jsx)(t.td,{children:`Selective paths`}),(0,S.jsx)(t.td,{children:`Manual`}),(0,S.jsx)(t.td,{children:`Preserves everything along unchanged branches`}),(0,S.jsx)(t.td,{children:`Best balance of immutability & GC efficiency`})]})]})]}),(0,S.jsx)(t.h4,{children:`3. Composition vs. Inheritance`}),(0,S.jsxs)(t.table,{children:[(0,S.jsx)(t.thead,{children:(0,S.jsxs)(t.tr,{children:[(0,S.jsx)(t.th,{children:`Dimension`}),(0,S.jsxs)(t.th,{children:[`Composition (`,(0,S.jsx)(t.em,{children:`Has-A`}),`)`]}),(0,S.jsxs)(t.th,{children:[`Inheritance (`,(0,S.jsx)(t.em,{children:`Is-A`}),`)`]})]})}),(0,S.jsxs)(t.tbody,{children:[(0,S.jsxs)(t.tr,{children:[(0,S.jsx)(t.td,{children:`Coupling`}),(0,S.jsx)(t.td,{children:`Loose (depends on small public contract)`}),(0,S.jsx)(t.td,{children:`Tight (coupled to parent internals/lifecycle)`})]}),(0,S.jsxs)(t.tr,{children:[(0,S.jsx)(t.td,{children:`Runtime flexibility`}),(0,S.jsx)(t.td,{children:`Swap behaviors dynamically via constructor/props`}),(0,S.jsx)(t.td,{children:`Fixed class hierarchy at definition time`})]}),(0,S.jsxs)(t.tr,{children:[(0,S.jsx)(t.td,{children:`Multiple capabilities`}),(0,S.jsx)(t.td,{children:`Combine any number of collaborators cleanly`}),(0,S.jsxs)(t.td,{children:[`JS supports single `,(0,S.jsx)(t.code,{children:`extends`}),` only`]})]}),(0,S.jsxs)(t.tr,{children:[(0,S.jsx)(t.td,{children:`Best fit`}),(0,S.jsx)(t.td,{children:`Services, plugins, UI patterns, retry/auth policies`}),(0,S.jsxs)(t.td,{children:[`Shallow taxonomies (e.g., custom `,(0,S.jsx)(t.code,{children:`AppError extends Error`}),`)`]})]})]})]}),(0,S.jsx)(t.h4,{children:`4. SOLID Principles Quick Decision Guide`}),(0,S.jsxs)(t.table,{children:[(0,S.jsx)(t.thead,{children:(0,S.jsxs)(t.tr,{children:[(0,S.jsx)(t.th,{children:`Principle`}),(0,S.jsx)(t.th,{children:`Core Question`}),(0,S.jsx)(t.th,{children:`Warning Sign of Violation`})]})}),(0,S.jsxs)(t.tbody,{children:[(0,S.jsxs)(t.tr,{children:[(0,S.jsxs)(t.td,{children:[(0,S.jsx)(t.strong,{children:`S`}),`RP`]}),(0,S.jsx)(t.td,{children:`Does this module change for one reason/actor?`}),(0,S.jsx)(t.td,{children:`A class mixes SQL queries, pricing math, and HTML formatting`})]}),(0,S.jsxs)(t.tr,{children:[(0,S.jsxs)(t.td,{children:[(0,S.jsx)(t.strong,{children:`O`}),`CP`]}),(0,S.jsx)(t.td,{children:`Can we add a variant without editing core code?`}),(0,S.jsxs)(t.td,{children:[`A 10-branch `,(0,S.jsx)(t.code,{children:`switch (provider)`}),` duplicated across files`]})]}),(0,S.jsxs)(t.tr,{children:[(0,S.jsxs)(t.td,{children:[(0,S.jsx)(t.strong,{children:`L`}),`SP`]}),(0,S.jsx)(t.td,{children:`Can any subtype replace the base seamlessly?`}),(0,S.jsxs)(t.td,{children:[`Subclass throws `,(0,S.jsx)(t.code,{children:`NotImplementedError`}),` or changes return shape`]})]}),(0,S.jsxs)(t.tr,{children:[(0,S.jsxs)(t.td,{children:[(0,S.jsx)(t.strong,{children:`I`}),`SP`]}),(0,S.jsx)(t.td,{children:`Are callers forced to depend on unused methods?`}),(0,S.jsx)(t.td,{children:`A mock needs 15 dummy methods just to test 1 read call`})]}),(0,S.jsxs)(t.tr,{children:[(0,S.jsxs)(t.td,{children:[(0,S.jsx)(t.strong,{children:`D`}),`IP`]}),(0,S.jsx)(t.td,{children:`Does domain logic depend on abstractions, not SDKs?`}),(0,S.jsxs)(t.td,{children:[`Business logic directly imports `,(0,S.jsx)(t.code,{children:`mysql2`}),` or `,(0,S.jsx)(t.code,{children:`stripe`})]})]})]})]})]}),`
 `,(0,S.jsx)(l,{id:`m01-p2-sec-l`,letter:`L`,title:`Tips to Remember (Mnemonics & Mental Models)`,children:(0,S.jsxs)(t.ul,{children:[`
 `,(0,S.jsxs)(t.li,{children:[(0,S.jsxs)(t.strong,{children:[`OOP Pillars — `,(0,S.jsx)(t.code,{children:`A-P-I-E`}),`:`]}),` `,(0,S.jsx)(t.strong,{children:`A`}),`bstraction (hide complexity), `,(0,S.jsx)(t.strong,{children:`P`}),`olymorphism (one interface, many forms), `,(0,S.jsx)(t.strong,{children:`I`}),`nheritance (is-a specialization), `,(0,S.jsx)(t.strong,{children:`E`}),`ncapsulation (protect invariants with `,(0,S.jsx)(t.code,{children:`#private`}),`).`]}),`
 `,(0,S.jsxs)(t.li,{children:[(0,S.jsxs)(t.strong,{children:[(0,S.jsx)(t.code,{children:`SOLID`}),` 5-Word Summary:`]}),` `,(0,S.jsx)(t.strong,{children:`S`}),`ingle reason, `,(0,S.jsx)(t.strong,{children:`O`}),`pen to extend, `,(0,S.jsx)(t.strong,{children:`L`}),`iskov substitutable, `,(0,S.jsx)(t.strong,{children:`I`}),`nterfaces small, `,(0,S.jsx)(t.strong,{children:`D`}),`epend on abstractions.`]}),`
@@ -1218,7 +1294,7 @@ console.log("Client payload:", err.toClientPayload());`})]}),`
 `,(0,S.jsxs)(l,{id:`m01-p2-sec-o`,letter:`O`,title:`Practical Exercises`,children:[(0,S.jsx)(a,{title:`Exercise 1: Prototype-Pollution-Safe Config Merger`,prompt:(0,S.jsxs)(t.p,{children:[`Write `,(0,S.jsx)(t.code,{children:`safeMerge(base, override)`}),` that validates both arguments as plain objects, creates a shallow-isolated copy merging own properties of `,(0,S.jsx)(t.code,{children:`base`}),` and `,(0,S.jsx)(t.code,{children:`override`}),`, and explicitly blocks `,(0,S.jsx)(t.code,{children:`__proto__`}),`, `,(0,S.jsx)(t.code,{children:`constructor`}),`, and `,(0,S.jsx)(t.code,{children:`prototype`}),` keys plus inherited prototype properties.`]}),children:(0,S.jsx)(r,{lang:`javascript`,runnable:!0,code:`const FORBIDDEN_KEYS = new Set(["__proto__", "constructor", "prototype"]);
 
 function isPlainObject(value) {
-return value !== null && typeof value === "object" && !Array.isArray(value);
+return value !== null && typeof value === "object" && Object.prototype.toString.call(value) === "[object Object]";
 }
 
 function safeMerge(base, override) {
@@ -1239,7 +1315,7 @@ return result;
 const malicious = JSON.parse('{"theme":"dark","__proto__":{"isAdmin":true}}');
 const merged = safeMerge({ theme: "light", timeoutMs: 3000 }, malicious);
 console.log("Merged:", merged);
-console.log("Object.prototype polluted?", ({}).isAdmin === true); // false`})}),(0,S.jsx)(a,{title:`Exercise 2: Non-Mutating Array Analytics Pipeline`,prompt:(0,S.jsxs)(t.p,{children:[`Given an array of order objects `,(0,S.jsx)(t.code,{children:`{ id, amountCents, status }`}),`, write a pure function `,(0,S.jsx)(t.code,{children:`topPaidOrders(orders, limit)`}),` that validates inputs, filters `,(0,S.jsx)(t.code,{children:`"PAID"`}),` orders, sorts descending by `,(0,S.jsx)(t.code,{children:`amountCents`}),` without mutating the input array, and returns the top `,(0,S.jsx)(t.code,{children:`limit`}),` items.`]}),children:(0,S.jsx)(r,{lang:`javascript`,runnable:!0,code:`function topPaidOrders(orders, limit = 3) {
+console.log("Prototype polluted?", merged.isAdmin === true || ({}).isAdmin === true); // false`})}),(0,S.jsx)(a,{title:`Exercise 2: Non-Mutating Array Analytics Pipeline`,prompt:(0,S.jsxs)(t.p,{children:[`Given an array of order objects `,(0,S.jsx)(t.code,{children:`{ id, amountCents, status }`}),`, write a pure function `,(0,S.jsx)(t.code,{children:`topPaidOrders(orders, limit)`}),` that validates inputs, filters `,(0,S.jsx)(t.code,{children:`"PAID"`}),` orders, sorts descending by `,(0,S.jsx)(t.code,{children:`amountCents`}),` without mutating the input array, and returns the top `,(0,S.jsx)(t.code,{children:`limit`}),` items.`]}),children:(0,S.jsx)(r,{lang:`javascript`,runnable:!0,code:`function topPaidOrders(orders, limit = 3) {
 if (!Array.isArray(orders)) {
   throw new TypeError("orders must be an array");
 }
@@ -1279,13 +1355,16 @@ register(code, fn) {
 }
 
 apply(code, subtotalCents) {
+  if (typeof code !== "string" || code.trim().length === 0) {
+    throw new TypeError("Discount code must be a non-empty string");
+  }
   if (!Number.isSafeInteger(subtotalCents) || subtotalCents < 0) {
     throw new RangeError("subtotalCents must be a non-negative safe integer");
   }
   const strategy = this.#strategies.get(code);
   if (!strategy) throw new Error(\`Unknown discount code: \${code}\`);
   const finalCents = strategy(subtotalCents);
-  if (!Number.isSafeInteger(finalCents) || finalCents < 0) {
+  if (!Number.isSafeInteger(finalCents) || finalCents < 0 || finalCents > subtotalCents) {
     throw new RangeError("Strategy violated LSP postcondition: invalid cents result");
   }
   return finalCents;
@@ -1341,6 +1420,8 @@ Every production layer uses these concepts daily: React props and Redux state ar
 An **object** in JavaScript is a mutable dictionary mapping string (or \`Symbol\`) keys to values. Values can be data (**properties**) or functions (**methods**). Every plain \`{}\` delegates missing key lookups to \`Object.prototype\`, so checking membership with \`"toString" in {}\` returns \`true\`. Always use \`Object.hasOwn(obj, key)\` (ES2022) to check own properties safely—even on \`Object.create(null)\` dictionaries that have no prototype.
 
 Underneath every property sits a <GlossaryTerm definition="Metadata object describing a property's value/getter/setter and behavioral flags: writable, enumerable, and configurable.">Property Descriptor</GlossaryTerm> with four flags: \`value\`, \`writable\` (can be reassigned), \`enumerable\` (appears in \`Object.keys\` / \`for..in\` / \`JSON.stringify\`), and \`configurable\` (can be deleted or reconfigured). Calling \`Object.freeze(obj)\` sets \`writable: false\` and \`configurable: false\` on own properties—though only **shallowly**! Spread syntax \`{ ...user }\` is also shallow: nested objects like \`user.address\` remain shared by reference unless cloned deeply with \`structuredClone(user)\`.
+
+For dynamic key-value collections, prefer \`Map\` and \`Set\` over plain \`{}\`—and when attaching metadata or visited-state to objects without preventing garbage collection, use **\`WeakMap\`** and **\`WeakSet\`**. Unlike \`Map\`/\`Set\`, weak collections hold **weak references** to object keys (so entries are automatically reclaimed when the key object becomes unreachable elsewhere) and are intentionally non-enumerable (no \`.size\`, \`.keys()\`, or \`for..of\` iteration).
 
 <TopicAnchor id="m01-p2-topic-arrays" />
 
@@ -1708,6 +1789,97 @@ console.log("instanceof AppError & Error:", err instanceof AppError, err instanc
 console.log("Client payload:", err.toClientPayload());\`}
 />
 
+#### Example 5: SOLID — Single Responsibility (SRP) & Interface Segregation (ISP)
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={\`// SRP: Separate pure invoice math, formatting, and storage into single-purpose collaborators
+class InvoiceCalculator {
+  subtotalCents(items) {
+    if (!Array.isArray(items) || items.length === 0) {
+      throw new TypeError("items must be a non-empty array");
+    }
+    return items.reduce((sum, item) => {
+      if (!item || !Number.isSafeInteger(item.unitCents) || item.unitCents < 0) {
+        throw new TypeError("unitCents must be a non-negative safe integer");
+      }
+      if (!Number.isSafeInteger(item.qty) || item.qty <= 0) {
+        throw new TypeError("qty must be a positive safe integer");
+      }
+      const next = sum + item.unitCents * item.qty;
+      if (!Number.isSafeInteger(next)) throw new RangeError("Subtotal overflow");
+      return next;
+    }, 0);
+  }
+}
+
+class InvoiceFormatter {
+  toSummaryText(invoiceId, totalCents) {
+    if (typeof invoiceId !== "string" || invoiceId.trim().length === 0) {
+      throw new TypeError("invoiceId must be a non-empty string");
+    }
+    if (!Number.isSafeInteger(totalCents) || totalCents < 0) {
+      throw new RangeError("totalCents must be a non-negative safe integer");
+    }
+    return \\\`Invoice \\\${invoiceId}: $\\\${(totalCents / 100).toFixed(2)}\\\`;
+  }
+}
+
+// ISP: Small, segregated contracts so read-only consumers don't depend on write/refund methods
+function createReadOnlyAuditView(ledgerReader) {
+  if (!ledgerReader || typeof ledgerReader.getBalanceCents !== "function") {
+    throw new TypeError("ledgerReader must implement getBalanceCents()");
+  }
+  return {
+    snapshot() {
+      return { balanceCents: ledgerReader.getBalanceCents() };
+    }
+  };
+}
+
+const calc = new InvoiceCalculator();
+const fmt = new InvoiceFormatter();
+const total = calc.subtotalCents([{ unitCents: 1250, qty: 2 }, { unitCents: 500, qty: 1 }]);
+const auditView = createReadOnlyAuditView({ getBalanceCents: () => total });
+console.log(fmt.toSummaryText("INV-101", total));
+console.log("ISP read-only snapshot:", auditView.snapshot());\`}
+/>
+
+#### Example 6: \`WeakMap\` & \`WeakSet\` for Leak-Free Object Metadata
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={\`// WeakMap attaches per-object metadata without mutating the object or leaking memory after GC
+const requestTimings = new WeakMap();
+const processedPayloads = new WeakSet();
+
+function tagRequest(req, startedAtMs) {
+  if (!req || typeof req !== "object") {
+    throw new TypeError("WeakMap/WeakSet keys must be objects");
+  }
+  if (!Number.isFinite(startedAtMs) || startedAtMs < 0) {
+    throw new RangeError("startedAtMs must be a non-negative finite number");
+  }
+  requestTimings.set(req, { startedAtMs });
+  return requestTimings.get(req);
+}
+
+function markProcessedOnce(payload) {
+  if (!payload || typeof payload !== "object") {
+    throw new TypeError("payload must be an object");
+  }
+  if (processedPayloads.has(payload)) return false;
+  processedPayloads.add(payload);
+  return true;
+}
+
+const reqObj = { path: "/api/orders" };
+console.log("Timing tagged:", tagRequest(reqObj, 120));
+console.log("First process:", markProcessedOnce(reqObj), "| Duplicate process:", markProcessedOnce(reqObj));\`}
+/>
+
 </TopicSection>
 
 <TopicSection id="m01-p2-sec-e" letter="E" title="Step-by-Step Walkthrough">
@@ -1763,6 +1935,7 @@ Trace every step of **Example 3** (\`LedgerAccount\` + \`CheckoutService\`):
 <TopicSection id="m01-p2-sec-i" letter="I" title="Performance & Scalability">
 
 - **\`Object\` vs. \`Map\` at Scale:** Plain objects with static shapes optimize well for fixed-schema records (V8 Hidden Classes). \`Map\` is optimized for dynamic dictionaries with frequent key insertions/deletions and avoids prototype chain checks.
+- **Preventing Memory Leaks with \`WeakMap\` / \`WeakSet\`:** Storing request or DOM-node metadata in a global \`Map\` or \`Set\` keeps strong references alive forever unless manually deleted. \`WeakMap\` and \`WeakSet\` allow the Garbage Collector to reclaim entries automatically once the key object is no longer referenced elsewhere.
 - **Array Operation Complexity:** \`.push()\` and \`.pop()\` at the tail are amortized \`O(1)\`. \`.shift()\` and \`.unshift()\` at index \`0\` re-index every element (\`O(n)\`), becoming a bottleneck on queues of 50,000+ items (use a ring buffer or head-index pointer instead).
 - **Keep Hot Arrays Dense & Homogeneous:** Avoid mixing integers, floats, and strings or leaving sparse holes in tight numeric loops so V8 stays in \`PACKED_SMI\` / \`PACKED_DOUBLE\` storage.
 - **\`structuredClone\` Cost:** Deep cloning huge nested payloads on every request allocates significant heap memory. Clone only at untrusted boundaries or use structural sharing for incremental updates.
@@ -1780,17 +1953,26 @@ Trace every step of **Example 3** (\`LedgerAccount\` + \`CheckoutService\`):
 
 <TopicSection id="m01-p2-sec-k" letter="K" title="Comparisons & Decision Tables">
 
-#### 1. Plain \`Object\` vs. \`Map\` vs. \`Set\`
+#### 1. Plain \`Object\` vs. \`Map\` vs. \`Set\` vs. \`WeakMap\` / \`WeakSet\`
 
-| Criterion | Plain \`Object\` | \`Map\` | \`Set\` |
-| --- | --- | --- | --- |
-| Key types | \`string\` and \`Symbol\` only | Any value (objects, functions, primitives) | Unique values only (no key-value pair) |
-| Prototype collisions | Inherits \`Object.prototype\` (use \`Object.hasOwn\`) | None (clean key space) | None |
-| Size lookup | \`Object.keys(o).length\` (\`O(n)\`) | \`map.size\` (\`O(1)\`) | \`set.size\` (\`O(1)\`) |
-| JSON serialization | Native \`JSON.stringify\` support | Requires \`[...map]\` conversion | Requires \`[...set]\` conversion |
-| Best fit | Fixed-shape records, DTOs, JSON payloads | Dynamic dictionaries, caches, frequent add/delete | Deduplication, \`O(1)\` membership tests |
+| Criterion | Plain \`Object\` | \`Map\` | \`Set\` | \`WeakMap\` / \`WeakSet\` |
+| --- | --- | --- | --- | --- |
+| Key / element types | \`string\` and \`Symbol\` only | Any value (objects, functions, primitives) | Unique values of any type | Objects (and non-registered \`Symbol\`s) only |
+| Prototype collisions | Inherits \`Object.prototype\` (use \`Object.hasOwn\`) | None (clean key space) | None | None |
+| GC & Memory behavior | Strong references (manual delete) | Strong references (manual \`.delete()\`) | Strong references (manual \`.delete()\`) | **Weak** references (auto-reclaimed by GC) |
+| Size & iteration | \`Object.keys(o).length\` (\`O(n)\`) | \`map.size\` (\`O(1)\`), iterable | \`set.size\` (\`O(1)\`), iterable | Not enumerable (no \`.size\`, no \`for..of\`) |
+| Best fit | Fixed-shape records, DTOs, JSON payloads | Dynamic dictionaries, caches, frequent add/delete | Deduplication, \`O(1)\` membership tests | Per-object private metadata, visited-object tracking |
 
-#### 2. Composition vs. Inheritance
+#### 2. Shallow vs. Deep Copying Strategies
+
+| Strategy | Depth | Circular Refs | Special Types (\`Date\`, \`Map\`, \`Set\`, \`BigInt\`, \`fn\`) | Cost & Best Fit |
+| --- | --- | --- | --- | --- |
+| \`{ ...obj }\`, \`Object.assign()\`, \`[...arr]\` | **Shallow** (top-level only) | Preserves top-level refs | Copies references as-is | \`O(k)\` fast; React/Redux structural sharing |
+| \`JSON.parse(JSON.stringify(x))\` | Deep (JSON subset) | **Throws** \`TypeError\` | Drops \`undefined\`/\`fn\`/\`Symbol\`; stringifies \`Date\`; throws on \`BigInt\` | Slowest & lossy; avoid for rich JS objects |
+| \`structuredClone(x)\` (Node 17+ / modern browsers) | **Deep** | **Supported** | Preserves \`Date\`, \`Map\`, \`Set\`, \`RegExp\`, \`BigInt\`; **throws** on \`fn\`/\`Symbol\`/DOM | Allocates full deep copy; untrusted/isolated snapshots |
+| Structural sharing (\`{ ...s, nested: { ...s.nested } }\`) | Selective paths | Manual | Preserves everything along unchanged branches | Best balance of immutability & GC efficiency |
+
+#### 3. Composition vs. Inheritance
 
 | Dimension | Composition (*Has-A*) | Inheritance (*Is-A*) |
 | --- | --- | --- |
@@ -1799,7 +1981,7 @@ Trace every step of **Example 3** (\`LedgerAccount\` + \`CheckoutService\`):
 | Multiple capabilities | Combine any number of collaborators cleanly | JS supports single \`extends\` only |
 | Best fit | Services, plugins, UI patterns, retry/auth policies | Shallow taxonomies (e.g., custom \`AppError extends Error\`) |
 
-#### 3. SOLID Principles Quick Decision Guide
+#### 4. SOLID Principles Quick Decision Guide
 
 | Principle | Core Question | Warning Sign of Violation |
 | --- | --- | --- |
@@ -1841,7 +2023,7 @@ Trace every step of **Example 3** (\`LedgerAccount\` + \`CheckoutService\`):
     code={\`const FORBIDDEN_KEYS = new Set(["__proto__", "constructor", "prototype"]);
 
 function isPlainObject(value) {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
+  return value !== null && typeof value === "object" && Object.prototype.toString.call(value) === "[object Object]";
 }
 
 function safeMerge(base, override) {
@@ -1862,7 +2044,7 @@ function safeMerge(base, override) {
 const malicious = JSON.parse('{"theme":"dark","__proto__":{"isAdmin":true}}');
 const merged = safeMerge({ theme: "light", timeoutMs: 3000 }, malicious);
 console.log("Merged:", merged);
-console.log("Object.prototype polluted?", ({}).isAdmin === true); // false\`}
+console.log("Prototype polluted?", merged.isAdmin === true || ({}).isAdmin === true); // false\`}
   />
 </ExerciseCard>
 
@@ -1932,13 +2114,16 @@ console.log("Original first item untouched:", orders[0].id);\`}
   }
 
   apply(code, subtotalCents) {
+    if (typeof code !== "string" || code.trim().length === 0) {
+      throw new TypeError("Discount code must be a non-empty string");
+    }
     if (!Number.isSafeInteger(subtotalCents) || subtotalCents < 0) {
       throw new RangeError("subtotalCents must be a non-negative safe integer");
     }
     const strategy = this.#strategies.get(code);
     if (!strategy) throw new Error(\\\`Unknown discount code: \\\${code}\\\`);
     const finalCents = strategy(subtotalCents);
-    if (!Number.isSafeInteger(finalCents) || finalCents < 0) {
+    if (!Number.isSafeInteger(finalCents) || finalCents < 0 || finalCents > subtotalCents) {
       throw new RangeError("Strategy violated LSP postcondition: invalid cents result");
     }
     return finalCents;

@@ -5,23 +5,22 @@
 
 ## Current Run Status
 - **Branch:** `react-fsd`
-- **Current Part:** `M01-P1 Remediation` — **DONE** (committed locally on `react-fsd`; next part: `M01-P2 Remediation`)
+- **Current Part:** `M01-P2 Remediation` — **DONE** (ready for local commit on `react-fsd`; next part: `M01-P3`)
 - **Current Step:** `COMMIT`
 - **Parts Limit:** Default 1 part per run (up to 3 if requested, or continuous part-by-part via `/handbook-next all`)
-- **Split Rationale:** `M01-P1` and `M01-P2` are separate lesson parts with distinct files and parity rules (`verify-parity.mjs` applies to `M01-P1` only); splitting remediation 1 part per run gives each part a clean check, fresh subagent audit, and local commit.
-- **Completed Sections (current work):** All steps (`PLAN`, `WRITE`, `CHECK`, `AUDIT`, `UPDATE`, `COMMIT`) complete for `M01-P1 Remediation` + `scripts/verify-quality.mjs` SVG `getBBox()` check fix.
-- **Files Changed (current run):**
-  - `scripts/verify-quality.mjs` (line 274 `split(/\\s+/)`, missing `viewBox` assertion, content-box parent width)
-  - `content/modules/01-programming/m01-p1.mdx` (Figure 1.2 SVG layout, Control Flow section, hardened `calculateLineTotalCents`/`createTaxCalculator`, `parseQueryFlags`, `splitAmountCents`, `flattenIterative`, and `composeValidators`/`normalizeSignup`)
-  - `content/coverage/m01-p1.coverage.ts` (expanded edge-case assertions and 14 safety mutation checks for `m01-p1`)
-  - `TECHNICAL_REVIEW_LOG.md` (updated `M01-P1` file paths, remediation summary, and official `https://` URLs)
-  - `QUALITY_GATE.md` (updated Audit Record line citations and `M01-P1` / `M01-P2` status)
-  - `PROJECT_STATUS.md` (updated overall status & next action to `M01-P2 Remediation`)
+- **Split Rationale:** Completed `M01-P2 Remediation` as Part 1 of this run (`M01-P3` is Part 2).
+- **Completed Sections (current work):** All steps (`PLAN`, `WRITE`, `CHECK`, `AUDIT`, `UPDATE`, `COMMIT`) complete for `M01-P2 Remediation`.
+- **Files Changed (M01-P2 Remediation):**
+  - `content/modules/01-programming/m01-p2.mdx` (`WeakMap`/`WeakSet` in Sections B, D `Example 6`, I, K; Shallow vs. Deep Copying table in Section K; `SRP` + `ISP` runnable `Example 5`; hardened `safeMerge` `isPlainObject` + inline check and `PriceCalculator.apply` `finalCents <= subtotalCents` postcondition)
+  - `content/coverage/m01-p2.coverage.ts` (updated topic mappings, added `Example 5` & `Example 6` `codeTests` + `safetyMutations`, strengthened `safeMerge` & `PriceCalculator` tests -> 9 runnable blocks, 13 safety mutations)
+  - `TECHNICAL_REVIEW_LOG.md` (added `WeakMap`, `WeakSet`, `Array.prototype.toSpliced`, `Array.prototype.with` official MDN `https://` URLs)
+  - `QUALITY_GATE.md` (updated Audit Record for `M01-P1` & `M01-P2`)
+  - `PROJECT_STATUS.md` (updated status for `M01-P3`)
   - `PIPELINE_STATE.md` (updated)
-- **Step 5/6 Quality & Audit Results (2026-11-26):**
-  - `npm run quality` (after last code/content edit): **PASS** (`typecheck`, `vite build` `576.28 kB`, `steiger ./src` `0` problems, `verify:syllabus` `28/945/13/932`, `verify:parity` `13/13` metrics + `7` demos, `verify:offline` `562.8 KB` `0` CDNs, `verify:quality` `2` lessons, `13` mapped topics, `14` runnable blocks, `24` safety mutation checks, `23` interview Q&As `{"basic":7,"intermediate":7,"advanced":6,"senior-architect":3}`, `14` live Run Demos, `4` SVGs checked with live `getBBox()`, `0` horizontal overflow at `360/390/768/1024/1440`).
-  - **Fresh Audit Round 1 (`d2e716df`):** `FAIL` (2 MAJOR: Block 7 `composeValidators`/`normalizeSignup` edge cases & missing M3 links in `TECHNICAL_REVIEW_LOG.md`; plus MINOR `-0`/cap/doc items) — all fixed.
-  - **Fresh Audit Round 2 (`8f4773c9`):** `PASS` (`0 CRITICAL`, `0 MAJOR`, `4 MINOR` — Minor #1 stale `QUALITY_GATE.md` line citations fixed immediately after Round 2; remaining 3 minor nits: `parentContentWidth` 2px border slack in `verify-quality.mjs`, numeric vs string unsafe-int error class `TypeError`/`RangeError` in `parseQueryFlags`, and generic root URLs for ECMA-262/V8 blog).
+- **Step 5/6 Quality & Audit Results (`M01-P2 Remediation` — 2026-11-26):**
+  - `npm run quality` (after last code/content edit): **PASS** (`typecheck`, `vite build` `590.45 kB`, `steiger ./src` `0` problems, `verify:syllabus` `28/945/13/932`, `verify:parity` `13/13` metrics + `7` demos, `verify:offline` `576.6 KB` `0` CDNs, `verify:quality` `2` lessons, `13` mapped topics, `16` runnable blocks, `27` safety mutation checks, `23` interview Q&As `{"basic":7,"intermediate":7,"advanced":6,"senior-architect":3}`, `16` live Run Demos, `4` SVGs checked with live `getBBox()`, `0` horizontal overflow at `360/390/768/1024/1440`).
+  - **Fresh Audit Round 1 (`11b64a8b`):** `FAIL` (`M1`, `M2`, `M4` PASS; 1 MAJOR `M3` missing `WeakMap`/`WeakSet` URLs in `TECHNICAL_REVIEW_LOG.md` + 1 MINOR stale `QUALITY_GATE.md` note) — fixed.
+  - **Fresh Audit Round 2 (`925178cf`):** `PASS` (`0 CRITICAL`, `0 MAJOR`; all M1–M4 rules and counts verified).
 
 ---
 

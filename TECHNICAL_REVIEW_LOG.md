@@ -118,9 +118,9 @@ For each review, add:
    - **Official Reference:** https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/hasOwn
    - **Status:** Verified
 
-3. **`Array.prototype.toSorted()` & `toReversed()` (ES2023) + Array `sort()` Stability (ES2019)**
-   - **Verified Claim:** ES2023 `toSorted()` and `toReversed()` return new copies without mutating the source array; `Array.prototype.sort()` is guaranteed stable since ES2019 (ECMA-262).
-   - **Official References:** https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/toSorted and https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/sort
+3. **`Array.prototype.toSorted()`, `toReversed()`, `toSpliced()`, `with()` (ES2023) + Array `sort()` Stability (ES2019)**
+   - **Verified Claim:** ES2023 `toSorted()`, `toReversed()`, `toSpliced()`, and `with()` return new copies without mutating the source array; `Array.prototype.sort()` is guaranteed stable since ES2019 (ECMA-262).
+   - **Official References:** https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/toSorted, https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/toSpliced, https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/with, and https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/sort
    - **Status:** Verified
 
 4. **`structuredClone()` Deep Cloning**
@@ -133,6 +133,11 @@ For each review, add:
    - **Official Reference:** https://v8.dev/blog/elements-kinds
    - **Status:** Verified
 
+6. **`WeakMap` & `WeakSet` (ES2015 + ES2023 Non-Registered `Symbol` Keys)**
+   - **Verified Claim:** `WeakMap` and `WeakSet` hold weak references to object keys (and non-registered `Symbol`s since ES2023), allowing Garbage Collection when no other strong references remain, and are intentionally non-enumerable (no `.size` or iteration).
+   - **Official References:** https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WeakMap and https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WeakSet
+   - **Status:** Verified
+
 ### 2026-11-26 — Strict Audit & Edge-Case Remediation of `M01-P2`
 - **Reviewer/model:** Gemini 4 Hydrogen (High)
 - **Files/sections reviewed:** `content/modules/01-programming/m01-p2.mdx`, `content/interviews/m01-p2.questions.ts`, `content/coverage/m01-p2.coverage.ts`, `scripts/verify-quality.mjs`, `QUALITY_GATE.md`, `TECHNICAL_REVIEW_LOG.md`
@@ -142,5 +147,5 @@ For each review, add:
   2. **Edge-Case Bugs in `M01-P2` Code:** `CheckoutService.pay(acct, -500)` charged the gateway before `account.deposit()` rejected negative cents; `LedgerAccount.deposit()` allowed silent `MAX_SAFE_INTEGER` overflow; `safeMerge` accepted strings/arrays/`null` `base` and copied forbidden keys from `base`; `topPaidOrders(orders, -1)` returned `slice(0, -1)` items; `PriceCalculator.apply("PCT10", -500)` returned `-450`.
   3. **Weak Quality Gate Checks:** `scripts/verify-quality.mjs` checked `.demo-error` instead of `.demo-output.is-error`, only clicked Block 1 in DOM, didn't open `<ExerciseCard>` solutions in Chrome, allowed shared primary headings across topics, and didn't verify Rule M3 `https://` doc links.
   4. **Interview Question Gaps & M3 URLs:** `m01-p2-iq-4` follow-up was vague about comparator failure (`Infinity - Infinity === NaN`), `iq-7` Step 8 omitted explicit `__proto__`/`constructor`/`prototype` blocklist alongside `Object.hasOwn`, and `Classes` / `Composition vs. Inheritance & LSP` lacked dedicated Basic/Intermediate questions.
-- **Corrections made:** Expanded all 9 topics in `m01-p2.mdx` Section B into standalone subsections, added `Example 4` (`AppError` -> `RateLimitError` with `extends`/`super`/`instanceof`), fixed all 5 code edge-case bugs, added `iq-8` & `iq-9`, tightened `m01-p2.coverage.ts` + `scripts/verify-quality.mjs`, and added full `https://` official documentation links above.
+- **Corrections made:** Expanded all 9 topics in `m01-p2.mdx` Section B into standalone subsections, added `Example 4` (`AppError` -> `RateLimitError` with `extends`/`super`/`instanceof`), `Example 5` (SRP + ISP), `Example 6` (`WeakMap`/`WeakSet`), Shallow vs. Deep Copying table, fixed `safeMerge` (`isPlainObject` + inline check) & `PriceCalculator.apply` (`finalCents <= subtotalCents`), added `iq-8` & `iq-9`, tightened `m01-p2.coverage.ts` (9 runnable blocks, 13 safety mutations) + `scripts/verify-quality.mjs`, and added full `https://` official documentation links above.
 - **Status:** Corrected
