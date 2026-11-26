@@ -599,20 +599,76 @@ export const SYLLABUS_MODULES: SyllabusModule[] = [
       lessonId: "m03-p1",
       anchorId: "m03-p1-topic-file-handling"
     },
-    "Express",
-    "Middleware",
-    "Routing",
-    "REST API",
-    "API design",
-    "HTTP",
-    "HTTP methods",
-    "Status codes",
-    "Headers",
-    "Request lifecycle",
-    "API versioning",
-    "API validation",
-    "Error handling",
-    "Logging",
+    {
+      title: "Express",
+      lessonId: "m03-p2",
+      anchorId: "m03-p2-topic-express"
+    },
+    {
+      title: "Middleware",
+      lessonId: "m03-p2",
+      anchorId: "m03-p2-topic-middleware"
+    },
+    {
+      title: "Routing",
+      lessonId: "m03-p2",
+      anchorId: "m03-p2-topic-routing"
+    },
+    {
+      title: "REST API",
+      lessonId: "m03-p2",
+      anchorId: "m03-p2-topic-rest-api"
+    },
+    {
+      title: "API design",
+      lessonId: "m03-p2",
+      anchorId: "m03-p2-topic-api-design"
+    },
+    {
+      title: "HTTP",
+      lessonId: "m03-p2",
+      anchorId: "m03-p2-topic-http"
+    },
+    {
+      title: "HTTP methods",
+      lessonId: "m03-p2",
+      anchorId: "m03-p2-topic-http-methods"
+    },
+    {
+      title: "Status codes",
+      lessonId: "m03-p2",
+      anchorId: "m03-p2-topic-status-codes"
+    },
+    {
+      title: "Headers",
+      lessonId: "m03-p2",
+      anchorId: "m03-p2-topic-headers"
+    },
+    {
+      title: "Request lifecycle",
+      lessonId: "m03-p2",
+      anchorId: "m03-p2-topic-request-lifecycle"
+    },
+    {
+      title: "API versioning",
+      lessonId: "m03-p2",
+      anchorId: "m03-p2-topic-api-versioning"
+    },
+    {
+      title: "API validation",
+      lessonId: "m03-p2",
+      anchorId: "m03-p2-topic-api-validation"
+    },
+    {
+      title: "Error handling",
+      lessonId: "m03-p2",
+      anchorId: "m03-p2-topic-error-handling"
+    },
+    {
+      title: "Logging",
+      lessonId: "m03-p2",
+      anchorId: "m03-p2-topic-logging"
+    },
     "Authentication",
     "JWT",
     "Refresh tokens",

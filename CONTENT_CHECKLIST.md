@@ -167,20 +167,20 @@ Split into 4 parts:
 - [x] Streams
 - [x] Buffers
 - [x] File handling
-- [ ] Express
-- [ ] Middleware
-- [ ] Routing
-- [ ] REST API
-- [ ] API design
-- [ ] HTTP
-- [ ] HTTP methods
-- [ ] Status codes
-- [ ] Headers
-- [ ] Request lifecycle
-- [ ] API versioning
-- [ ] API validation
-- [ ] Error handling
-- [ ] Logging
+- [x] Express
+- [x] Middleware
+- [x] Routing
+- [x] REST API
+- [x] API design
+- [x] HTTP
+- [x] HTTP methods
+- [x] Status codes
+- [x] Headers
+- [x] Request lifecycle
+- [x] API versioning
+- [x] API validation
+- [x] Error handling
+- [x] Logging
 - [ ] Authentication
 - [ ] JWT
 - [ ] Refresh tokens

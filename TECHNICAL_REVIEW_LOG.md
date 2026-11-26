@@ -263,3 +263,15 @@ For each review, add:
   - Node.js `Buffer` (`Buffer.alloc` vs deprecated `new Buffer`) & `node:fs/promises`: `https://nodejs.org/api/buffer.html` and `https://nodejs.org/api/fs.html`
   - V8 Blog (Elements Kinds / Hidden Classes / Ignition & TurboFan): `https://v8.dev/blog`
 - **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m03-p1.mdx`, `m03-p1.questions.ts`, and `m03-p1.coverage.ts`.
+
+---
+
+### Module 03 Part 2 (M03-P2) Technical Review Log — 2026-11-26
+
+- **Scope:** Express, Middleware, Routing, REST API, API design, HTTP, HTTP methods, Status codes, Headers, Request lifecycle, API versioning, API validation, Error handling, Logging.
+- **Official Documentation Verified (`M3`):**
+  - Express 5 Routing, Middleware & Error Handling: `https://expressjs.com/en/guide/error-handling.html` and `https://expressjs.com/en/5x/api.html`
+  - HTTP Semantics (RFC 9110 — Safe & Idempotent Methods, Status Codes, Headers): `https://www.rfc-editor.org/rfc/rfc9110.html`
+  - Problem Details for HTTP APIs (RFC 9457): `https://www.rfc-editor.org/rfc/rfc9457.html`
+  - Node.js HTTP Server Timeouts (`headersTimeout`, `requestTimeout`): `https://nodejs.org/api/http.html`
+- **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m03-p2.mdx`, `m03-p2.questions.ts`, and `m03-p2.coverage.ts`.

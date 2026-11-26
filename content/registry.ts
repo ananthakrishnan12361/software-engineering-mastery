@@ -27,6 +27,8 @@ import M02P4Mdx from "./modules/02-react/m02-p4.mdx";
 import m02p4Raw from "./modules/02-react/m02-p4.mdx?raw";
 import M03P1Mdx from "./modules/03-nodejs/m03-p1.mdx";
 import m03p1Raw from "./modules/03-nodejs/m03-p1.mdx?raw";
+import M03P2Mdx from "./modules/03-nodejs/m03-p2.mdx";
+import m03p2Raw from "./modules/03-nodejs/m03-p2.mdx?raw";
 import { m01p1Questions } from "./interviews/m01-p1.questions";
 import { m01p2Questions } from "./interviews/m01-p2.questions";
 import { m01p3Questions } from "./interviews/m01-p3.questions";
@@ -37,6 +39,7 @@ import { m02p2Questions } from "./interviews/m02-p2.questions";
 import { m02p3Questions } from "./interviews/m02-p3.questions";
 import { m02p4Questions } from "./interviews/m02-p4.questions";
 import { m03p1Questions } from "./interviews/m03-p1.questions";
+import { m03p2Questions } from "./interviews/m03-p2.questions";
 import { SYLLABUS_MODULES } from "./syllabus";
 
 export interface HandbookCatalog {
@@ -155,11 +158,11 @@ const modules: ModuleRecord[] = [
     number: 3,
     title: "Node.js & Backend Engineering",
     category: "backend",
-    partSummary: "Part 1 of 4",
+    partSummary: "Parts 1–2 of 4",
     scopeSummary:
-      "Scope (Part 1): Node.js Architecture, V8, libuv, Event Loop, Thread Pool, Worker Threads, Process vs Thread, Async I/O, Streams, Buffers & File Handling",
-    lead: "Master Node.js runtime internals, V8 + libuv concurrency, non-blocking async I/O, backpressure streams, and safe binary/file handling.",
-    lessonIds: ["m03-p1"]
+      "Scope (Parts 1–2): Node.js Architecture, V8, libuv, Event Loop, Streams, Buffers, Express, Middleware, Routing, REST, HTTP, Validation, Errors & Logging",
+    lead: "Master Node.js runtime internals, V8 + libuv concurrency, streams/buffers, Express middleware pipelines, REST API design, validation, and structured logging.",
+    lessonIds: ["m03-p1", "m03-p2"]
   }
 ];
 
@@ -754,8 +757,65 @@ const lessons: LessonRecord[] = [
       }
     ],
     prevLessonId: "m02-p4",
-    nextLessonId: null,
+    nextLessonId: "m03-p2",
     Content: M03P1Mdx
+  },
+  {
+    id: "m03-p2",
+    moduleId: "module-3",
+    moduleNumber: 3,
+    moduleTitle: "Node.js & Backend Engineering",
+    partLabel: "Lesson M03-P2",
+    title: "Part 2: Express, Routing, REST APIs, HTTP, Validation, Errors & Logging",
+    category: "backend",
+    duration: "90 min (40m theory · 30m practice · 20m review)",
+    objectives: [
+      "Build modular Express 5 routers and middleware pipelines with explicit ordering and next(err) short-circuiting.",
+      "Apply HTTP method safety/idempotency, accurate status codes, headers, and URI vs. Accept-header API versioning.",
+      "Enforce strict edge schema validation (.strict()) to block mass assignment before service logic runs.",
+      "Centralize error handling with redacted RFC 9457 Problem Details and secret-redacting structured JSON logging."
+    ],
+    sections: [
+      { id: "m03-p2-objectives", title: "Learning Objectives" },
+      { id: "m03-p2-sec-a", letter: "A", title: "Topic Introduction" },
+      { id: "m03-p2-sec-b", letter: "B", title: "Fundamentals (Simple Mental Models)" },
+      { id: "m03-p2-sec-c", letter: "C", title: "Internal Working & Architecture" },
+      { id: "m03-p2-sec-d", letter: "D", title: "Practical Examples (Interactive)" },
+      { id: "m03-p2-sec-e", letter: "E", title: "Step-by-Step Walkthrough" },
+      { id: "m03-p2-sec-f", letter: "F", title: "Real-World Use Cases" },
+      { id: "m03-p2-sec-g", letter: "G", title: "Common Mistakes" },
+      { id: "m03-p2-sec-h", letter: "H", title: "Best Practices" },
+      { id: "m03-p2-sec-i", letter: "I", title: "Performance & Scalability" },
+      { id: "m03-p2-sec-j", letter: "J", title: "Security Considerations" },
+      { id: "m03-p2-sec-k", letter: "K", title: "Comparisons & Decision Tables" },
+      { id: "m03-p2-sec-l", letter: "L", title: "Tips to Remember (Mnemonics & Mental Models)" },
+      { id: "m03-p2-sec-mn", letter: "M/N", title: "Interview Questions & Detailed Answers" },
+      { id: "m03-p2-sec-o", letter: "O", title: "Practical Exercises" },
+      { id: "m03-p2-sec-p", letter: "P", title: "Advanced Challenge" },
+      { id: "m03-p2-sec-q", letter: "Q", title: "Summary & Key Takeaways" },
+      { id: "m03-p2-mastery", title: "Mastery Assessment" }
+    ],
+    masteryItems: [
+      {
+        id: "m03-p2-m1",
+        label: "I can explain Express middleware ordering, next(err) short-circuiting, and static-before-param routing."
+      },
+      {
+        id: "m03-p2-m2",
+        label: "I can choose accurate HTTP methods (safe vs. idempotent) and status codes (201, 400, 401, 403, 422, 500)."
+      },
+      {
+        id: "m03-p2-m3",
+        label: "I can implement strict edge validation, redacted Problem Details, and secret-scrubbing structured JSON logs."
+      },
+      {
+        id: "m03-p2-m4",
+        label: "I completed the M03-P2 exercises and can answer the interview questions without notes."
+      }
+    ],
+    prevLessonId: "m03-p1",
+    nextLessonId: null,
+    Content: M03P2Mdx
   }
 ];
 
@@ -769,7 +829,8 @@ const questionsByLesson: Record<string, InterviewQuestion[]> = {
   "m02-p2": m02p2Questions,
   "m02-p3": m02p3Questions,
   "m02-p4": m02p4Questions,
-  "m03-p1": m03p1Questions
+  "m03-p1": m03p1Questions,
+  "m03-p2": m03p2Questions
 };
 
 const allQuestions: InterviewQuestion[] = [
@@ -782,7 +843,8 @@ const allQuestions: InterviewQuestion[] = [
   ...m02p2Questions,
   ...m02p3Questions,
   ...m02p4Questions,
-  ...m03p1Questions
+  ...m03p1Questions,
+  ...m03p2Questions
 ];
 
 function mergeGlossaryEntries(...batches: GlossaryEntry[][]): GlossaryEntry[] {
@@ -808,7 +870,8 @@ const glossaryEntries: GlossaryEntry[] = mergeGlossaryEntries(
   extractGlossaryFromMdx(m02p2Raw, "m02-p2"),
   extractGlossaryFromMdx(m02p3Raw, "m02-p3"),
   extractGlossaryFromMdx(m02p4Raw, "m02-p4"),
-  extractGlossaryFromMdx(m03p1Raw, "m03-p1")
+  extractGlossaryFromMdx(m03p1Raw, "m03-p1"),
+  extractGlossaryFromMdx(m03p2Raw, "m03-p2")
 );
 
 function buildSearchRecords(): SearchRecord[] {
@@ -837,6 +900,7 @@ function buildSearchRecords(): SearchRecord[] {
   records.push(...extractSearchRecordsFromMdx(m02p3Raw, "m02-p3", lessons[7].title, 2));
   records.push(...extractSearchRecordsFromMdx(m02p4Raw, "m02-p4", lessons[8].title, 2));
   records.push(...extractSearchRecordsFromMdx(m03p1Raw, "m03-p1", lessons[9].title, 3));
+  records.push(...extractSearchRecordsFromMdx(m03p2Raw, "m03-p2", lessons[10].title, 3));
 
   for (const mod of SYLLABUS_MODULES) {
     for (const topic of mod.topics) {
