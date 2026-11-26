@@ -4,10 +4,10 @@
 Maintain a comfortable, offline-capable React + TypeScript + MDX learning portal built with Feature-Sliced Design v2.1 and bundled into `dist/software_engineering_mastery.html`.
 
 ## Overall status
-**Module 1 Complete + `M02-P1`–`M02-P3` Audited (`PASS`) — `M02-P4` next**
+**Modules 1 & 2 Complete (`93/945` topics, `70` IQs) Audited (`PASS`) — `M03-P1` next**
 
 ## Current phase
-Phase 3 design remains locked in [DESIGN_GUIDE.md](DESIGN_GUIDE.md). Module 1 is complete (`47/47` topics, `35/35` IQs); Module 2 (`React & Frontend Engineering`) Parts 1–3 (`M02-P1`–`M02-P3`) are complete & verified (`M02-P4` next).
+Phase 3 design remains locked in [DESIGN_GUIDE.md](DESIGN_GUIDE.md). Module 1 (`47/47` topics, `35/35` IQs) and Module 2 (`46/46` topics, `35/35` IQs) are complete & verified (`M03-P1` next).
 
 ## Completed
 - [x] Phase 1 & 2: Legacy v1 archived in `legacy/`, React 19 + TS + Vite 8 + MDX + `vite-plugin-singlefile` + Steiger setup
@@ -19,13 +19,13 @@ Phase 3 design remains locked in [DESIGN_GUIDE.md](DESIGN_GUIDE.md). Module 1 is
 - [x] Verification: `tsc`, `vite build`, `steiger ./src`, `verify:syllabus`, `verify:parity`, `verify:offline`, and headless Chrome CDP checks at `360`, `390`, `768`, `1024`, `1440` widths across all 3 themes
 
 ## Module progress
-Use `COURSE_OUTLINE.md` and `CONTENT_CHECKLIST.md` to track module and part status. Currently written: Module 1 complete (`47/47` topics, `35/35` IQs) + `M02-P1`–`M02-P3` (`28/46` topics, `27/35` IQs: `8` Basic, `8` Intermediate, `8` Advanced, `3` Senior/Architect) = `75` topics available, `870` not written yet.
+Use `COURSE_OUTLINE.md` and `CONTENT_CHECKLIST.md` to track module and part status. Currently written: Module 1 complete (`47/47` topics, `35/35` IQs) + Module 2 complete (`46/46` topics, `35/35` IQs: `10` Basic, `10` Intermediate, `10` Advanced, `5` Senior/Architect) = `93` topics available, `852` not written yet.
 
 ## Current task
-`M02-P3` completed, audited (`PASS`), and committed locally on `react-fsd`. Next part: `M02-P4` (final 18 topics of Module 2: Error boundaries, Lazy loading, Code splitting, Performance/Rendering optimization, Memoization, Frontend caching, Accessibility, Responsive design, Security, XSS, CSRF, Large frontend architecture, Component design patterns, Testing, Unit/Integration testing, Frontend debugging).
+`M02-P4` completed, audited (`PASS` Round 2), and committed locally on `react-fsd` (Module 2 complete). Next part: `M03-P1` (Module 3: Node.js & Backend Engineering Part 1).
 
 ## Next actions
-1. Proceed to `M02-P4` (`PLAN -> WRITE -> CHECK -> AUDIT -> UPDATE -> COMMIT` on `react-fsd`).
+1. Proceed to `M03-P1` (`PLAN -> WRITE -> CHECK -> AUDIT -> UPDATE -> COMMIT` on `react-fsd`).
 2. User decides when to approve removing `legacy/`.
 
 ## Decisions

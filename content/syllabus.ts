@@ -449,24 +449,96 @@ export const SYLLABUS_MODULES: SyllabusModule[] = [
         lessonId: "m02-p3",
         anchorId: "m02-p3-topic-authorization"
       },
-      "Error boundaries",
-      "Lazy loading",
-      "Code splitting",
-      "Performance optimization",
-      "Rendering optimization",
-      "Memoization",
-      "Frontend caching",
-      "Accessibility",
-      "Responsive design",
-      "Security",
-      "XSS",
-      "CSRF",
-      "Large frontend architecture",
-      "Component design patterns",
-      "Testing",
-      "Unit testing",
-      "Integration testing",
-      "Frontend debugging"
+      {
+        title: "Error boundaries",
+        lessonId: "m02-p4",
+        anchorId: "m02-p4-topic-error-boundaries"
+      },
+      {
+        title: "Lazy loading",
+        lessonId: "m02-p4",
+        anchorId: "m02-p4-topic-lazy-loading"
+      },
+      {
+        title: "Code splitting",
+        lessonId: "m02-p4",
+        anchorId: "m02-p4-topic-code-splitting"
+      },
+      {
+        title: "Performance optimization",
+        lessonId: "m02-p4",
+        anchorId: "m02-p4-topic-performance-optimization"
+      },
+      {
+        title: "Rendering optimization",
+        lessonId: "m02-p4",
+        anchorId: "m02-p4-topic-rendering-optimization"
+      },
+      {
+        title: "Memoization",
+        lessonId: "m02-p4",
+        anchorId: "m02-p4-topic-memoization"
+      },
+      {
+        title: "Frontend caching",
+        lessonId: "m02-p4",
+        anchorId: "m02-p4-topic-frontend-caching"
+      },
+      {
+        title: "Accessibility",
+        lessonId: "m02-p4",
+        anchorId: "m02-p4-topic-accessibility"
+      },
+      {
+        title: "Responsive design",
+        lessonId: "m02-p4",
+        anchorId: "m02-p4-topic-responsive-design"
+      },
+      {
+        title: "Security",
+        lessonId: "m02-p4",
+        anchorId: "m02-p4-topic-security"
+      },
+      {
+        title: "XSS",
+        lessonId: "m02-p4",
+        anchorId: "m02-p4-topic-xss"
+      },
+      {
+        title: "CSRF",
+        lessonId: "m02-p4",
+        anchorId: "m02-p4-topic-csrf"
+      },
+      {
+        title: "Large frontend architecture",
+        lessonId: "m02-p4",
+        anchorId: "m02-p4-topic-large-frontend-architecture"
+      },
+      {
+        title: "Component design patterns",
+        lessonId: "m02-p4",
+        anchorId: "m02-p4-topic-component-design-patterns"
+      },
+      {
+        title: "Testing",
+        lessonId: "m02-p4",
+        anchorId: "m02-p4-topic-testing"
+      },
+      {
+        title: "Unit testing",
+        lessonId: "m02-p4",
+        anchorId: "m02-p4-topic-unit-testing"
+      },
+      {
+        title: "Integration testing",
+        lessonId: "m02-p4",
+        anchorId: "m02-p4-topic-integration-testing"
+      },
+      {
+        title: "Frontend debugging",
+        lessonId: "m02-p4",
+        anchorId: "m02-p4-topic-frontend-debugging"
+      }
     ],
     "Includes real React code and optimization examples."
   ),

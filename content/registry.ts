@@ -23,6 +23,8 @@ import M02P2Mdx from "./modules/02-react/m02-p2.mdx";
 import m02p2Raw from "./modules/02-react/m02-p2.mdx?raw";
 import M02P3Mdx from "./modules/02-react/m02-p3.mdx";
 import m02p3Raw from "./modules/02-react/m02-p3.mdx?raw";
+import M02P4Mdx from "./modules/02-react/m02-p4.mdx";
+import m02p4Raw from "./modules/02-react/m02-p4.mdx?raw";
 import { m01p1Questions } from "./interviews/m01-p1.questions";
 import { m01p2Questions } from "./interviews/m01-p2.questions";
 import { m01p3Questions } from "./interviews/m01-p3.questions";
@@ -31,6 +33,7 @@ import { m01p5Questions } from "./interviews/m01-p5.questions";
 import { m02p1Questions } from "./interviews/m02-p1.questions";
 import { m02p2Questions } from "./interviews/m02-p2.questions";
 import { m02p3Questions } from "./interviews/m02-p3.questions";
+import { m02p4Questions } from "./interviews/m02-p4.questions";
 import { SYLLABUS_MODULES } from "./syllabus";
 
 export interface HandbookCatalog {
@@ -138,11 +141,11 @@ const modules: ModuleRecord[] = [
     number: 2,
     title: "React & Frontend Engineering",
     category: "frontend",
-    partSummary: "Parts 1–3 of 4",
+    partSummary: "Parts 1–4 of 4",
     scopeSummary:
-      "Scope (Parts 1–3): React Architecture, Components, Props, State, Rendering, Virtual DOM, JSX, Lifecycle, Hooks, Memoization, State Management, Routing, Forms, API & Auth",
-    lead: "Master React's declarative UI model, Fiber render/commit phases, Hooks, state management, TanStack Query, routing, forms, and AuthN/AuthZ boundaries.",
-    lessonIds: ["m02-p1", "m02-p2", "m02-p3"]
+      "Scope (Parts 1–4): Complete React & Frontend Engineering — Architecture, Hooks, State, Routing, Forms, Auth, Performance, a11y, Security, Architecture & Testing",
+    lead: "Master React's declarative UI model, Fiber internals, Hooks, state management, routing, auth, performance, accessibility, XSS/CSRF security, FSD architecture, and testing.",
+    lessonIds: ["m02-p1", "m02-p2", "m02-p3", "m02-p4"]
   }
 ];
 
@@ -623,8 +626,65 @@ const lessons: LessonRecord[] = [
       }
     ],
     prevLessonId: "m02-p2",
-    nextLessonId: null,
+    nextLessonId: "m02-p4",
     Content: M02P3Mdx
+  },
+  {
+    id: "m02-p4",
+    moduleId: "module-2",
+    moduleNumber: 2,
+    moduleTitle: "React & Frontend Engineering",
+    partLabel: "Lesson M02-P4",
+    title: "Part 4: Performance, Accessibility, Security, Architecture & Testing",
+    category: "frontend",
+    duration: "95 min (45m theory · 30m practice · 20m review)",
+    objectives: [
+      "Isolate render crashes and shrink initial bundles using Error Boundaries, React.lazy code splitting, and Suspense boundaries.",
+      "Optimize Core Web Vitals (LCP, INP, CLS), push state down, virtualize large lists, and bound client LRU caches.",
+      "Build WCAG AA accessible, mobile-first responsive UIs and harden apps against XSS, CSRF, and open redirects.",
+      "Structure scalable Feature-Sliced frontends and verify behavior with unit, RTL/MSW integration, and E2E tests."
+    ],
+    sections: [
+      { id: "m02-p4-objectives", title: "Learning Objectives" },
+      { id: "m02-p4-sec-a", letter: "A", title: "Topic Introduction" },
+      { id: "m02-p4-sec-b", letter: "B", title: "Fundamentals (Simple Mental Models)" },
+      { id: "m02-p4-sec-c", letter: "C", title: "Internal Working & Architecture" },
+      { id: "m02-p4-sec-d", letter: "D", title: "Practical Examples (Interactive)" },
+      { id: "m02-p4-sec-e", letter: "E", title: "Step-by-Step Walkthrough" },
+      { id: "m02-p4-sec-f", letter: "F", title: "Real-World Use Cases" },
+      { id: "m02-p4-sec-g", letter: "G", title: "Common Mistakes" },
+      { id: "m02-p4-sec-h", letter: "H", title: "Best Practices" },
+      { id: "m02-p4-sec-i", letter: "I", title: "Performance & Scalability" },
+      { id: "m02-p4-sec-j", letter: "J", title: "Security Considerations" },
+      { id: "m02-p4-sec-k", letter: "K", title: "Comparisons & Decision Tables" },
+      { id: "m02-p4-sec-l", letter: "L", title: "Tips to Remember (Mnemonics & Mental Models)" },
+      { id: "m02-p4-sec-mn", letter: "M/N", title: "Interview Questions & Detailed Answers" },
+      { id: "m02-p4-sec-o", letter: "O", title: "Practical Exercises" },
+      { id: "m02-p4-sec-p", letter: "P", title: "Advanced Challenge" },
+      { id: "m02-p4-sec-q", letter: "Q", title: "Summary & Key Takeaways" },
+      { id: "m02-p4-mastery", title: "Mastery Assessment" }
+    ],
+    masteryItems: [
+      {
+        id: "m02-p4-m1",
+        label: "I can design ErrorBoundary + React.lazy + Suspense routes and explain what Error Boundaries do not catch."
+      },
+      {
+        id: "m02-p4-m2",
+        label: "I can diagnose LCP/INP/CLS bottlenecks and apply state placement, virtualization, and bounded caching."
+      },
+      {
+        id: "m02-p4-m3",
+        label: "I can harden React apps against XSS and CSRF while enforcing semantic accessibility and FSD boundaries."
+      },
+      {
+        id: "m02-p4-m4",
+        label: "I completed the M02-P4 exercises and can answer the interview questions without notes."
+      }
+    ],
+    prevLessonId: "m02-p3",
+    nextLessonId: null,
+    Content: M02P4Mdx
   }
 ];
 
@@ -636,7 +696,8 @@ const questionsByLesson: Record<string, InterviewQuestion[]> = {
   "m01-p5": m01p5Questions,
   "m02-p1": m02p1Questions,
   "m02-p2": m02p2Questions,
-  "m02-p3": m02p3Questions
+  "m02-p3": m02p3Questions,
+  "m02-p4": m02p4Questions
 };
 
 const allQuestions: InterviewQuestion[] = [
@@ -647,7 +708,8 @@ const allQuestions: InterviewQuestion[] = [
   ...m01p5Questions,
   ...m02p1Questions,
   ...m02p2Questions,
-  ...m02p3Questions
+  ...m02p3Questions,
+  ...m02p4Questions
 ];
 
 function mergeGlossaryEntries(...batches: GlossaryEntry[][]): GlossaryEntry[] {
@@ -671,7 +733,8 @@ const glossaryEntries: GlossaryEntry[] = mergeGlossaryEntries(
   extractGlossaryFromMdx(m01p5Raw, "m01-p5"),
   extractGlossaryFromMdx(m02p1Raw, "m02-p1"),
   extractGlossaryFromMdx(m02p2Raw, "m02-p2"),
-  extractGlossaryFromMdx(m02p3Raw, "m02-p3")
+  extractGlossaryFromMdx(m02p3Raw, "m02-p3"),
+  extractGlossaryFromMdx(m02p4Raw, "m02-p4")
 );
 
 function buildSearchRecords(): SearchRecord[] {
@@ -698,6 +761,7 @@ function buildSearchRecords(): SearchRecord[] {
   records.push(...extractSearchRecordsFromMdx(m02p1Raw, "m02-p1", lessons[5].title, 2));
   records.push(...extractSearchRecordsFromMdx(m02p2Raw, "m02-p2", lessons[6].title, 2));
   records.push(...extractSearchRecordsFromMdx(m02p3Raw, "m02-p3", lessons[7].title, 2));
+  records.push(...extractSearchRecordsFromMdx(m02p4Raw, "m02-p4", lessons[8].title, 2));
 
   for (const mod of SYLLABUS_MODULES) {
     for (const topic of mod.topics) {

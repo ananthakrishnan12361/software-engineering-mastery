@@ -1,0 +1,629 @@
+<Callout variant="info" title="Topics Covered in Part 4 (M02-P4)">
+  <p>
+    This final part of Module 2 covers 18 production React &amp; frontend engineering topics: <strong>Error boundaries</strong>, <strong>Lazy loading</strong>, <strong>Code splitting</strong>, <strong>Performance optimization</strong>, <strong>Rendering optimization</strong>, <strong>Memoization</strong>, <strong>Frontend caching</strong>, <strong>Accessibility</strong>, <strong>Responsive design</strong>, <strong>Security</strong>, <strong>XSS</strong>, <strong>CSRF</strong>, <strong>Large frontend architecture</strong>, <strong>Component design patterns</strong>, <strong>Testing</strong>, <strong>Unit testing</strong>, <strong>Integration testing</strong>, and <strong>Frontend debugging</strong>.
+  </p>
+</Callout>
+
+<TopicSection id="m02-p4-sec-a" letter="A" title="Topic Introduction">
+
+#### What is this?
+
+Building a React feature is only half of frontend engineering. Shipping a reliable production web application requires **resilience** (**Error boundaries**), **fast initial load and runtime** (**Code splitting**, **Lazy loading**, **Performance & Rendering optimization**, **Memoization**, **Frontend caching**), **inclusive UX** (**Accessibility**, **Responsive design**), **defense-in-depth** (**Security**, **XSS**, **CSRF**), **maintainable structure** (**Large frontend architecture**, **Component design patterns**), and **confidence** (**Testing**, **Unit testing**, **Integration testing**, **Frontend debugging**).
+
+#### Why does it exist & what problem does it solve?
+
+Without these practices, a single uncaught widget error crashes the entire blank-screen app, bloated JS bundles stall mobile Time-to-Interactive, unescaped inputs enable session-hijacking XSS, and tangled component folders slow down every team release.
+
+#### Where is it used in real-world software?
+
+Every enterprise SaaS platform, banking portal, and high-traffic e-commerce storefront enforces these patterns through CI bundle budgets, `axe` accessibility checks, CSP headers, Feature-Sliced / domain-module architecture, and React Testing Library integration suites.
+
+</TopicSection>
+
+<TopicSection id="m02-p4-sec-b" letter="B" title="Fundamentals (Simple Mental Models)">
+
+<TopicAnchor id="m02-p4-topic-error-boundaries" />
+
+#### 1. Error Boundaries: Isolating Render Crashes Gracefully
+
+An **Error Boundary** is a React class component implementing `static getDerivedStateFromError(error)` and `componentDidCatch(error, info)` (or a wrapper like `react-error-boundary`) that catches JavaScript errors during rendering, lifecycle methods, and constructors in its child tree, rendering a safe fallback UI instead of unmounting the whole app.
+
+Note that Error Boundaries do **not** catch errors inside async callbacks (`setTimeout`, `fetch`), event handlers (`onClick`), or SSR—use `try/catch` in event handlers and error states (`isError`) in TanStack Query for those.
+
+<TopicAnchor id="m02-p4-topic-lazy-loading" />
+
+#### 2. Lazy Loading: Deferring Non-Critical Code & Media
+
+**Lazy loading** delays downloading components, routes, images (`loading="lazy"`), or heavy charts until the user actually navigates to them or scrolls near them. In React, `const AdminChart = lazy(() => import("./AdminChart"))` pairs with `<Suspense fallback={<Skeleton />}>` to stream loading states cleanly.
+
+Always preload critical above-the-fold content eagerly while deferring heavy modals, rich-text editors, and admin-only tabs so first-paint stays fast on slow mobile networks.
+
+<TopicAnchor id="m02-p4-topic-code-splitting" />
+
+#### 3. Code Splitting: Breaking One Giant Bundle Into Route & Feature Chunks
+
+**Code splitting** lets bundlers like Vite/Rollup split your application into smaller JavaScript chunks at dynamic `import()` boundaries instead of shipping one multi-megabyte `bundle.js` upfront. The highest-ROI split point is **route-level splitting** (each page is its own chunk).
+
+Avoid over-splitting tiny 2 KB components into dozens of extra HTTP requests; split at routes, heavy third-party libraries (PDF/chart/editor), and authenticated admin panels.
+
+<TopicAnchor id="m02-p4-topic-performance-optimization" />
+
+#### 4. Performance Optimization: Measuring Core Web Vitals First
+
+Frontend **performance optimization** targets real user metrics (**Core Web Vitals**): **LCP** (Largest Contentful Paint &lt;= 2.5s), **INP** (Interaction to Next Paint &lt;= 200ms), and **CLS** (Cumulative Layout Shift &lt;= 0.1).
+
+Always profile before optimizing using Chrome DevTools Performance/Lighthouse and React Profiler; common wins include eliminating render-blocking scripts, reserving image dimensions (`aspect-ratio`) to stop CLS, virtualizing 1,000+ row lists, and shrinking JS bundle parse time.
+
+<TopicAnchor id="m02-p4-topic-rendering-optimization" />
+
+#### 5. Rendering Optimization: Minimizing Wasted Work in React Trees
+
+**Rendering optimization** reduces how often components re-render and how expensive each render is. Push fast-changing state **down** into leaf components (`SearchInput`) instead of holding it at `<App />`, pass children as `props.children` so parent state updates do not re-render static child subtrees, and virtualize long lists.
+
+Remember: moving state down and **component composition** (`<Layout sidebar={<Sidebar />} />`) often eliminates re-renders more cleanly than scattering memoization everywhere.
+
+<TopicAnchor id="m02-p4-topic-memoization" />
+
+#### 6. Memoization: Targeted Caching of Values, Callbacks & Components
+
+**Memoization** (`useMemo`, `useCallback`, `React.memo`) trades a tiny amount of memory and shallow `Object.is` comparison cost to skip expensive recalculations or child subtree renders when inputs have not changed.
+
+Apply memoization deliberately on profiled bottlenecks, stable context provider values, and virtualized/large table rows—and remember that React Compiler (React 19) automates much of this safely at build time.
+
+<TopicAnchor id="m02-p4-topic-frontend-caching" />
+
+#### 7. Frontend Caching: Browser HTTP Cache, Memory Cache & Stale-While-Revalidate
+
+**Frontend caching** spans three layers: **HTTP cache headers** (`Cache-Control: public, max-age=31536000, immutable` for content-hashed Vite JS/CSS assets vs. `no-cache` for `index.html`), **in-memory query cache** (TanStack Query), and **Service Workers / IndexedDB** for offline-first workflows.
+
+Always include explicit cache invalidation or bounded LRU eviction so stale data never grows unboundedly in browser memory or persists across user logout.
+
+<TopicAnchor id="m02-p4-topic-accessibility" />
+
+#### 8. Accessibility (a11y): Semantic HTML, Keyboard Navigation & ARIA
+
+**Accessibility (WCAG 2.1/2.2 AA)** ensures keyboard-only, screen-reader, and low-vision users can operate every feature. Start with **native semantic HTML** (`<button>`, `<nav>`, `<main>`, `<label htmlFor>`), maintain logical heading order, and enforce `>= 4.5:1` text contrast.
+
+Reserve ARIA (`aria-expanded`, `aria-live="polite"`, `role="dialog"`) for custom widgets that HTML alone cannot express, manage focus cleanly when opening/closing modals, and never build clickable `<div onClick>` controls.
+
+<TopicAnchor id="m02-p4-topic-responsive-design" />
+
+#### 9. Responsive Design: Mobile-First Fluid Layouts & Container Queries
+
+**Responsive design** adapts layouts seamlessly from `360px` phones to `1440px+` widescreens using **mobile-first CSS**, fluid units (`rem`, `%`, `clamp()`, `minmax()`), CSS Grid/Flexbox, and modern **container queries** (`@container`) so reusable cards adapt to their parent slot rather than only the global viewport.
+
+Maintain `>= 44x44px` touch targets on interactive controls, test zero horizontal overflow (`scrollWidth <= innerWidth`) across mobile, tablet, and desktop breakpoints, and honor `prefers-reduced-motion` for animations.
+
+<TopicAnchor id="m02-p4-topic-security" />
+
+#### 10. Security: Defense-in-Depth in the Browser
+
+Browser **security** starts from one core rule: **everything running in the browser is untrusted by the server, and third-party scripts/inputs on the page are untrusted by your app**. Enforce **Content Security Policy (CSP)**, `Subresource Integrity (SRI)` on external scripts, strict dependency auditing, and safe URL validation.
+
+Never ship API secrets, admin bypass flags, or private keys inside frontend Vite `VITE_*` environment variables—anything bundled into client JS is readable by any visitor.
+
+<TopicAnchor id="m02-p4-topic-xss" />
+
+#### 11. XSS (Cross-Site Scripting): Output Encoding & Safe DOM Sinks
+
+**Cross-Site Scripting (XSS)** occurs when attacker-controlled strings execute as JavaScript in another user's browser, stealing cookies/DOM data or acting as the victim. React auto-escapes JSX text (`{userInput}`), blocking most reflected/stored HTML injection automatically.
+
+XSS still sneaks in through **`dangerouslySetInnerHTML`**, unsanitized Markdown/SVG, or **`javascript:` URLs** in `<a href={url}>`! Always escape or sanitize HTML with DOMPurify and allowlist `https:`/`/` URLs explicitly.
+
+<TopicAnchor id="m02-p4-topic-csrf" />
+
+#### 12. CSRF (Cross-Site Request Forgery): SameSite Cookies & Anti-CSRF Tokens
+
+**Cross-Site Request Forgery (CSRF)** tricks a logged-in user's browser into sending an unwanted state-changing request (`POST /transfer`) to your backend from a malicious third-party site because the browser attaches cookies automatically.
+
+Defend with **`SameSite=Lax`** (or `Strict`) on session cookies, custom **anti-CSRF tokens** (synchronizer or double-submit cookie verified in a custom header like `X-CSRF-Token`), and strict server `Origin` checks on mutations.
+
+<TopicAnchor id="m02-p4-topic-large-frontend-architecture" />
+
+#### 13. Large Frontend Architecture: Feature-Sliced Design & Unidirectional Imports
+
+At 50+ engineers, grouping files only by technical type (`components/`, `hooks/`, `utils/`) turns into an unmaintainable dependency tangle. **Feature-Sliced Design (FSD)** and domain-module architectures organize code into strict layers (`app -> pages -> widgets -> features -> entities -> shared`) where imports may only flow **downward**.
+
+Each feature/entity exposes a narrow **public API** (`index.ts`) and enforces architectural boundaries automatically in CI with tools like **Steiger** or ESLint import rules.
+
+<TopicAnchor id="m02-p4-topic-component-design-patterns" />
+
+#### 14. Component Design Patterns: Composition, Compound Components & Headless Hooks
+
+Great React APIs favor **composition over boolean prop explosion**. Instead of `<Card showHeader hasFooter footerVariant="primary" ... />` with 20 flags, use **Compound Components** (`<Card><Card.Header /><Card.Body /></Card>`) or **Headless Hooks** (`useCombobox()`) that encapsulate keyboard/ARIA state while letting callers render any markup.
+
+Keep presentational primitives (`Button`, `Badge`) stateless and props-only, isolating data fetching and side effects at page/feature boundaries.
+
+<TopicAnchor id="m02-p4-topic-testing" />
+
+#### 15. Testing: Testing Behavior Over Implementation Details
+
+A healthy frontend **testing strategy** follows the Testing Trophy: fast static checks (`TypeScript` + ESLint), focused **unit tests** for pure utilities/reducers, high-value **integration tests** (React Testing Library + MSW) for user flows, and a thin layer of **E2E tests** (Playwright) for critical checkout/login paths.
+
+Test what the user sees and does (`getByRole`, `userEvent.click`)—never assert internal React component state or private hook slot details that break on harmless refactors.
+
+<TopicAnchor id="m02-p4-topic-unit-testing" />
+
+#### 16. Unit Testing: Pure Functions, Reducers, Validators & Edge Cases
+
+**Unit testing** verifies isolated functions—currency formatters, Zod or custom schema validators, Redux reducers, permission helpers, and date math—in milliseconds without spinning up a browser DOM.
+
+Good unit tests cover happy paths, boundary values (`0`, `-0`, `NaN`, empty arrays), and invalid input rejection (`TypeError` or `RangeError`), running deterministically with zero real network calls, shared mutable fixtures, or wall-clock flakiness.
+
+<TopicAnchor id="m02-p4-topic-integration-testing" />
+
+#### 17. Integration Testing: Multi-Component Flows with Mocked APIs
+
+**Integration testing** renders a full form, table, or route with its real context, router, and query provider wiring while intercepting HTTP calls at the network boundary (for example, using **Mock Service Worker — MSW**).
+
+One integration test verifying *"user fills invalid email -> sees accessible validation error -> fixes email -> submits -> sees confirmation toast"* catches wiring bugs between UI, validation, state, and API parsing that isolated unit tests miss.
+
+<TopicAnchor id="m02-p4-topic-frontend-debugging" />
+
+#### 18. Frontend Debugging: Systematic Root-Cause Isolation
+
+Effective **frontend debugging** replaces random `console.log` guessing with structured tooling: **React DevTools Profiler** ("Why did this component render?"), Chrome **Network** tab (timing, status codes, CORS, and cache headers), **Source Maps** with conditional breakpoints, and **Performance** flamegraphs for long main-thread tasks (`> 50ms`).
+
+Reproduce deterministically, bisect state versus network versus CSS layout (`overflow-x`), and turn every fixed production bug into an automated regression test.
+
+</TopicSection>
+
+<TopicSection id="m02-p4-sec-c" letter="C" title="Internal Working & Architecture">
+
+#### 1. Route-Level Code Splitting, Suspense & Error Boundary Isolation
+
+Combining `React.lazy`, `<Suspense>`, and `<ErrorBoundary>` creates resilient fault-and-bundle boundaries: only the active route's JS chunk downloads, slow networks show a scoped skeleton, and a widget crash degrades only that panel.
+
+<DiagramCard caption="Figure 2.7 — Route-level lazy chunks shrink initial JS while nested ErrorBoundary + Suspense wrappers isolate loading and crash fallbacks.">
+  <svg viewBox="0 0 820 190" role="img" aria-label="Route-level code splitting, Suspense, and ErrorBoundary isolation tree">
+    <rect x="10" y="10" width="800" height="170" rx="10" fill="var(--bg-subtle)" stroke="var(--border)" />
+
+    <rect x="28" y="34" width="175" height="122" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" />
+    <text x="115" y="60" textAnchor="middle" fill="var(--accent-strong)" fontSize="13" fontWeight="700" fontFamily="sans-serif">App Shell (Eager)</text>
+    <text x="115" y="88" textAnchor="middle" fill="var(--text-primary)" fontSize="11.5" fontFamily="monospace">Router + Nav</text>
+    <text x="115" y="114" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Fast initial paint</text>
+
+    <line x1="203" y1="95" x2="243" y2="95" stroke="var(--accent)" strokeWidth="2" />
+    <polygon points="243,95 233,90 233,100" fill="var(--accent)" />
+
+    <rect x="247" y="34" width="180" height="122" rx="8" fill="var(--danger-soft)" stroke="var(--danger)" />
+    <text x="337" y="60" textAnchor="middle" fill="var(--danger)" fontSize="13" fontWeight="700" fontFamily="sans-serif">ErrorBoundary</text>
+    <text x="337" y="88" textAnchor="middle" fill="var(--text-primary)" fontSize="11.5" fontFamily="monospace">getDerivedState</text>
+    <text x="337" y="114" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Catches render/chunk err</text>
+
+    <line x1="427" y1="95" x2="467" y2="95" stroke="var(--warning)" strokeWidth="2" />
+    <polygon points="467,95 457,90 457,100" fill="var(--warning)" />
+
+    <rect x="471" y="34" width="165" height="122" rx="8" fill="var(--warning-soft)" stroke="var(--warning)" />
+    <text x="553" y="60" textAnchor="middle" fill="var(--warning)" fontSize="13" fontWeight="700" fontFamily="sans-serif">Suspense</text>
+    <text x="553" y="88" textAnchor="middle" fill="var(--text-primary)" fontSize="11.5" fontFamily="monospace">fallback=Skeleton</text>
+    <text x="553" y="114" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Waits for lazy chunk</text>
+
+    <line x1="636" y1="95" x2="670" y2="95" stroke="var(--success)" strokeWidth="2" />
+    <polygon points="670,95 660,90 660,100" fill="var(--success)" />
+
+    <rect x="674" y="34" width="120" height="122" rx="8" fill="var(--success-soft)" stroke="var(--success)" />
+    <text x="734" y="60" textAnchor="middle" fill="var(--success)" fontSize="13" fontWeight="700" fontFamily="sans-serif">Lazy Chunk</text>
+    <text x="734" y="88" textAnchor="middle" fill="var(--text-primary)" fontSize="11.5" fontFamily="monospace">import(Page)</text>
+    <text x="734" y="114" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Loaded on demand</text>
+  </svg>
+</DiagramCard>
+
+#### 2. Browser Security Boundaries: Defending Against XSS & CSRF Together
+
+XSS attacks inject malicious scripts *inside* your origin (defended by JSX escaping, CSP, HTML sanitization, and URL allowlisting), while CSRF attacks forge cross-origin requests carrying ambient cookies (defended by `SameSite` cookies + custom `X-CSRF-Token` verification).
+
+<DiagramCard caption="Figure 2.8 — XSS injects code into your origin (stop via escaping, safe URLs, and CSP); CSRF forges cross-site cookie requests (stop via SameSite + CSRF tokens).">
+  <svg viewBox="0 0 820 185" role="img" aria-label="XSS vs CSRF threat vectors and browser defenses">
+    <rect x="10" y="10" width="800" height="165" rx="10" fill="var(--bg-subtle)" stroke="var(--border)" />
+
+    <rect x="28" y="30" width="368" height="125" rx="8" fill="var(--danger-soft)" stroke="var(--danger)" />
+    <text x="212" y="56" textAnchor="middle" fill="var(--danger)" fontSize="13.5" fontWeight="700" fontFamily="sans-serif">XSS Threat (Same-Origin Script Execution)</text>
+    <text x="212" y="84" textAnchor="middle" fill="var(--text-primary)" fontSize="11.5" fontFamily="monospace">Sink: innerHTML / javascript: href</text>
+    <text x="212" y="110" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Defense: JSX escape + URL allowlist + CSP</text>
+    <text x="212" y="134" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">+ HttpOnly cookies protect session tokens</text>
+
+    <rect x="424" y="30" width="368" height="125" rx="8" fill="var(--warning-soft)" stroke="var(--warning)" />
+    <text x="608" y="56" textAnchor="middle" fill="var(--warning)" fontSize="13.5" fontWeight="700" fontFamily="sans-serif">CSRF Threat (Cross-Site Forged POST)</text>
+    <text x="608" y="84" textAnchor="middle" fill="var(--text-primary)" fontSize="11.5" fontFamily="monospace">Sink: Cross-site form/fetch + cookie</text>
+    <text x="608" y="110" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Defense: SameSite=Lax + X-CSRF-Token header</text>
+    <text x="608" y="134" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">+ Server verifies Origin &amp; token match</text>
+  </svg>
+</DiagramCard>
+
+</TopicSection>
+
+<TopicSection id="m02-p4-sec-d" letter="D" title="Practical Examples (Interactive)">
+
+#### Example 1: `PanelErrorBoundary` & `React.lazy` Route Splitting (TSX Reference)
+
+<CodeBlock
+  lang="tsx"
+  code={`import { Component, Suspense, lazy, type ErrorInfo, type ReactNode } from "react";
+
+const AnalyticsPage = lazy(() => import("./AnalyticsPage"));
+
+interface BoundaryProps {
+  readonly fallback: ReactNode;
+  readonly children: ReactNode;
+}
+interface BoundaryState {
+  hasError: boolean;
+}
+
+export class PanelErrorBoundary extends Component<BoundaryProps, BoundaryState> {
+  state: BoundaryState = { hasError: false };
+
+  static getDerivedStateFromError(): BoundaryState {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo): void {
+    console.error("Panel crashed:", error.message, info.componentStack);
+  }
+
+  render() {
+    if (this.state.hasError) return this.props.fallback;
+    return this.props.children;
+  }
+}
+
+export function AnalyticsRoute() {
+  return (
+    <PanelErrorBoundary fallback={<div role="alert">Failed to load analytics panel.</div>}>
+      <Suspense fallback={<div aria-busy="true">Loading analytics chunk...</div>}>
+        <AnalyticsPage />
+      </Suspense>
+    </PanelErrorBoundary>
+  );
+}`}
+/>
+
+#### Example 2: Bounded LRU Frontend Cache & Lazy Chunk Deduplicator
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// Models bounded frontend LRU cache + lazy chunk loader deduplication
+function createLruCache(maxEntries = 3) {
+  if (!Number.isInteger(maxEntries) || maxEntries < 1) {
+    throw new TypeError("maxEntries must be a positive integer");
+  }
+  const map = new Map();
+
+  return {
+    get(key) {
+      if (!map.has(key)) return undefined;
+      const val = map.get(key);
+      map.delete(key);
+      map.set(key, val); // refresh recency
+      return val;
+    },
+    set(key, value) {
+      if (typeof key !== "string" || !key) throw new TypeError("key must be a non-empty string");
+      if (map.has(key)) map.delete(key);
+      map.set(key, value);
+      if (map.size > maxEntries) {
+        const oldestKey = map.keys().next().value;
+        map.delete(oldestKey);
+      }
+    },
+    keys() {
+      return [...map.keys()];
+    }
+  };
+}
+
+function createChunkLoader(importer) {
+  if (typeof importer !== "function") throw new TypeError("importer must be a function");
+  const cache = new Map();
+  return function loadChunk(chunkId) {
+    if (typeof chunkId !== "string" || !chunkId) throw new TypeError("chunkId must be a non-empty string");
+    if (!cache.has(chunkId)) {
+      cache.set(chunkId, Promise.resolve().then(() => importer(chunkId)));
+    }
+    return cache.get(chunkId);
+  };
+}
+
+let loads = 0;
+const loadChunk = createChunkLoader((id) => {
+  loads++;
+  return { id };
+});
+const c1 = loadChunk("analytics");
+const c2 = loadChunk("analytics");
+
+const cache = createLruCache(2);
+cache.set("page:1", { rows: 20 });
+cache.set("page:2", { rows: 15 });
+cache.get("page:1"); // touch page:1 so page:2 becomes LRU
+cache.set("page:3", { rows: 10 });
+console.log("LRU keys remaining:", cache.keys(), "| Same chunk promise?", c1 === c2);`}
+/>
+
+#### Example 3: XSS Output Escaping, Safe URL Allowlist & CSRF Token Verification
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// Models defense-in-depth against XSS sinks and CSRF double-submit verification
+function escapeHtml(raw) {
+  if (typeof raw !== "string") throw new TypeError("Input must be a string");
+  return raw
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function isSafeLinkHref(href) {
+  if (typeof href !== "string") return false;
+  const trimmed = href.trim();
+  if (!trimmed) return false;
+  for (let i = 0; i < trimmed.length; i++) {
+    const code = trimmed.charCodeAt(i);
+    if (code <= 31 || code === 127) return false;
+  }
+  if (trimmed.startsWith("/") && !trimmed.startsWith("//") && !trimmed.startsWith("/" + String.fromCharCode(92))) {
+    return true;
+  }
+  const lower = trimmed.toLowerCase();
+  const httpsPrefix = "https:" + "//";
+  return lower.startsWith(httpsPrefix) && trimmed.length > httpsPrefix.length;
+}
+
+function verifyCsrfRequest(req) {
+  if (!req || typeof req !== "object") {
+    throw new TypeError("Request metadata must be an object");
+  }
+  const { method, cookieToken, headerToken } = req;
+  const safeMethods = new Set(["GET", "HEAD", "OPTIONS"]);
+  if (safeMethods.has(method)) return { ok: true };
+  if (typeof cookieToken !== "string" || cookieToken.trim().length < 16) {
+    return { ok: false, reason: "Missing CSRF cookie" };
+  }
+  if (cookieToken !== headerToken) {
+    return { ok: false, reason: "CSRF token mismatch" };
+  }
+  return { ok: true };
+}
+
+console.log("Escaped XSS:", escapeHtml("<img src=x onerror=alert(1)>"));
+console.log("javascript: blocked?", !isSafeLinkHref("javascript:alert(1)"));
+console.log("CSRF POST valid?", verifyCsrfRequest({ method: "POST", cookieToken: "tok_1234567890abcd", headerToken: "tok_1234567890abcd" }).ok);`}
+/>
+
+</TopicSection>
+
+<TopicSection id="m02-p4-sec-e" letter="E" title="Step-by-Step Walkthrough">
+
+Trace **`createLruCache(2)`** (**Example 2**) and **`verifyCsrfRequest`** (**Example 3**):
+
+1. **LRU Touch & Eviction:** `cache.set("page:1")` and `cache.set("page:2")` fill capacity (`2`). Reading `cache.get("page:1")` deletes and re-inserts `"page:1"` at the newest end of JavaScript `Map` iteration order, so inserting `"page:3"` evicts `"page:2"` (the least recently used entry).
+2. **XSS Sink Defense:** `escapeHtml` converts `<`, `>`, `&`, `"`, `'` into HTML entities before insertion, while `isSafeLinkHref` rejects control characters, protocol-relative `//`, and `javascript:` URIs.
+3. **CSRF Verification:** Safe idempotent reads (`GET`/`HEAD`/`OPTIONS`) bypass CSRF header checks, whereas state-changing `POST`/`PUT`/`DELETE` requests require a non-trivial cookie token matching `X-CSRF-Token`.
+
+</TopicSection>
+
+<TopicSection id="m02-p4-sec-f" letter="F" title="Real-World Use Cases">
+
+#### Scenario 1: Cutting Initial Mobile JS Bundle by 60% With Route Splitting
+
+**Problem:** A SaaS app ships a 1.8 MB main JS bundle because heavy Markdown, PDF export, and Admin Analytics libraries are imported eagerly at top level, pushing mobile LCP over 5 seconds.
+
+**Production Solution:** Split every route with `React.lazy(() => import(...))`, wrap each route outlet in `<ErrorBoundary>` + `<Suspense fallback={<PageSkeleton />}>`, and enforce a CI bundle budget failing builds if the entry chunk exceeds 200 KB gzipped.
+
+#### Scenario 2: Hardening a User-Generated Comment & Profile Link Feature
+
+**Problem:** Users submit bio links and formatted comments. Without validation, a user submits `javascript:fetch(...)` as their website URL, executing arbitrary JS when another user clicks their profile link.
+
+**Production Solution:** Validate and allowlist `https:` / relative `/` URLs via `isSafeLinkHref`, render user text through React JSX escaping (or DOMPurify for sanitized HTML), and deploy a strict `Content-Security-Policy` header disabling inline scripts.
+
+</TopicSection>
+
+<TopicSection id="m02-p4-sec-g" letter="G" title="Common Mistakes">
+
+- **Assuming Error Boundaries catch async `fetch` or `onClick` errors:** They only catch errors thrown during React rendering, lifecycle methods, and constructors.
+- **Using `dangerouslySetInnerHTML` or unvalidated `<a href={userUrl}>`:** Opens stored XSS vulnerabilities even in React apps.
+- **Building custom clickable `<div onClick={...}>` elements:** Breaks keyboard navigation (`Enter`/`Space`), screen reader roles, and focus rings compared to native `<button>`.
+- **Testing React internal state or shallow component internals:** Causes brittle unit tests that fail during refactoring while missing real integration bugs.
+- **Exposing secret API keys in `VITE_*` frontend environment variables:** Anything bundled into client JavaScript is public to every user's DevTools.
+
+</TopicSection>
+
+<TopicSection id="m02-p4-sec-h" letter="H" title="Best Practices">
+
+- **Enforce architectural boundaries in CI** (FSD layer rules via Steiger/ESLint) and keep UI primitives (`src/shared/ui`) stateless and props-only.
+- **Measure LCP, INP, and CLS** in Lighthouse/RUM before adding `useMemo`/`React.memo`; fix state placement and list virtualization first.
+- **Test user-visible behavior** with semantic queries (`getByRole`, `getByLabelText`) and MSW network mocks rather than mocking internal hooks.
+- **Keep third-party dependencies minimal and audited**, pair `HttpOnly; SameSite=Lax` cookies with CSRF headers, and ship strict CSP headers.
+
+</TopicSection>
+
+<TopicSection id="m02-p4-sec-i" letter="I" title="Performance & Scalability">
+
+- **Long Lists (1,000+ rows):** Use windowing/virtualization (`@tanstack/react-virtual`) so the browser renders only the 20 visible rows instead of 5,000 DOM nodes.
+- **Asset Caching:** Serve Vite-hashed JS/CSS assets with `Cache-Control: public, max-age=31536000, immutable` while keeping `index.html` at `no-cache` so deployments propagate immediately.
+- **Code Splitting Balance:** Split at route and heavy-widget boundaries (charts, editors) to shrink main-thread parse/compile time on mobile CPUs.
+
+</TopicSection>
+
+<TopicSection id="m02-p4-sec-j" letter="J" title="Security Considerations">
+
+- **XSS Defense:** Never pass unsanitized user strings to `dangerouslySetInnerHTML`, `eval`, or `new Function`, and validate every user-supplied `href`/`src` against `https:` or safe relative `/` paths.
+- **CSRF Defense:** Combine `SameSite=Lax` session cookies with an anti-CSRF token header verified on all `POST`/`PUT`/`PATCH`/`DELETE` routes.
+- **CSP & Secrets:** Ship a strict `Content-Security-Policy` (`script-src 'self'`) and keep all private API credentials strictly on the backend server.
+
+</TopicSection>
+
+<TopicSection id="m02-p4-sec-k" letter="K" title="Comparisons & Decision Tables">
+
+#### 1. Frontend Testing Layers Comparison
+
+| Test Layer | Scope | Speed | Best Tooling | What It Catches |
+| --- | --- | --- | --- | --- |
+| **Unit Test** | Pure functions, reducers, validators | < 1ms each | Vitest / Node assert | Edge cases, boundary bugs, math/logic errors |
+| **Integration Test** | Component tree + Router + Query + MSW | 10–100ms | React Testing Library + MSW | Wiring bugs, form validation + API flow |
+| **E2E Test** | Real browser + real/staged backend | Seconds | Playwright | Auth cookies, CSS layout, cross-page flows |
+
+#### 2. XSS vs. CSRF Quick Reference
+
+| Attack | How It Works | Primary Defenses |
+| --- | --- | --- |
+| **XSS** | Attacker runs JS inside your origin | React JSX escaping, DOMPurify, URL allowlist, CSP, `HttpOnly` cookies |
+| **CSRF** | Attacker site triggers browser to send cookies to your API | `SameSite=Lax/Strict`, `X-CSRF-Token` header, `Origin` check |
+
+#### 3. Component Design Patterns
+
+| Pattern | Example | Best For |
+| --- | --- | --- |
+| **Composition (`children`)** | `<Modal><CheckoutForm /></Modal>` | Avoiding prop drilling & isolating parent re-renders |
+| **Compound Components** | `<Tabs><Tabs.List /><Tabs.Panel /></Tabs>` | Coordinated multi-part UI widgets |
+| **Headless Hook** | `useDialog()` / `useCombobox()` | Reusable keyboard + ARIA behavior with custom styling |
+
+</TopicSection>
+
+<TopicSection id="m02-p4-sec-l" letter="L" title="Tips to Remember (Mnemonics & Mental Models)">
+
+- **"Push state down, split routes lazily, catch crashes at boundaries."**
+- **"Native `<button>` first; ARIA only when HTML cannot say it."**
+- **"XSS = evil script in your origin; CSRF = forged request from another origin."**
+- **"Test behavior by role (`getByRole`), not internal state."**
+
+</TopicSection>
+
+<TopicSection id="m02-p4-sec-mn" letter="M/N" title="Interview Questions & Detailed Answers">
+
+<InterviewSection lessonId="m02-p4" />
+
+</TopicSection>
+
+<TopicSection id="m02-p4-sec-o" letter="O" title="Practical Exercises">
+
+<ExerciseCard
+  title="Exercise 1: Error Boundary State Machine With Reset Key (createBoundaryState)"
+  prompt={
+    <p>
+      Implement <code>createBoundaryState()</code> supporting <code>capture(error)</code>, <code>resetOnKeyChange(nextKey)</code>, and <code>render(childrenFn, fallbackFn)</code> so a route change resets a crashed panel automatically.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function createBoundaryState(initialResetKey = "init") {
+  let hasError = false;
+  let lastError = null;
+  let currentKey = initialResetKey;
+
+  return {
+    capture(err) {
+      hasError = true;
+      lastError = err instanceof Error ? err : new Error(String(err));
+    },
+    resetOnKeyChange(nextKey) {
+      if (!Object.is(currentKey, nextKey)) {
+        currentKey = nextKey;
+        hasError = false;
+        lastError = null;
+      }
+    },
+    render(renderChildren, renderFallback) {
+      if (typeof renderChildren !== "function" || typeof renderFallback !== "function") {
+        throw new TypeError("renderChildren and renderFallback must be functions");
+      }
+      if (hasError) return renderFallback(lastError);
+      try {
+        return renderChildren();
+      } catch (err) {
+        this.capture(err);
+        return renderFallback(lastError);
+      }
+    }
+  };
+}
+
+const boundary = createBoundaryState("tab-a");
+const r1 = boundary.render(() => { throw new Error("Widget boom"); }, (e) => "Fallback: " + e.message);
+boundary.resetOnKeyChange("tab-b");
+const r2 = boundary.render(() => "Healthy Tab B", (e) => "Fallback: " + e.message);
+console.log("R1:", r1, "| R2:", r2);`}
+  />
+</ExerciseCard>
+
+<ExerciseCard
+  title="Exercise 2: Accessible Pagination Helper & Mini Unit Test Suite (paginateItems)"
+  prompt={
+    <p>
+      Implement <code>paginateItems(items, page, pageSize)</code> with strict integer validation and accessible metadata (<code>totalPages</code>, <code>hasPrev</code>, <code>hasNext</code>, <code>slice</code>), then verify it with deterministic unit assertions.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function paginateItems(items, page, pageSize) {
+  if (!Array.isArray(items)) throw new TypeError("items must be an array");
+  if (!Number.isInteger(page) || page < 1) throw new RangeError("page must be an integer >= 1");
+  if (!Number.isInteger(pageSize) || pageSize < 1) throw new RangeError("pageSize must be an integer >= 1");
+
+  const totalItems = items.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const start = (safePage - 1) * pageSize;
+
+  return {
+    page: safePage,
+    totalPages,
+    hasPrev: safePage > 1,
+    hasNext: safePage < totalPages,
+    slice: items.slice(start, start + pageSize)
+  };
+}
+
+const p2 = paginateItems(["a", "b", "c", "d", "e"], 2, 2);
+if (p2.totalPages !== 3 || !p2.hasNext || p2.slice.join(",") !== "c,d") {
+  throw new Error("Pagination unit assertion failed");
+}
+console.log("Page 2:", p2.slice, "| totalPages:", p2.totalPages, "| hasNext:", p2.hasNext);`}
+  />
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m02-p4-sec-p" letter="P" title="Advanced Challenge">
+
+<Callout variant="warn" title="Senior Challenge: Recovering a Slow, Brittle, Vulnerable Enterprise React App">
+  <p>
+    An enterprise React app has a 2.4 MB single JS bundle, 4-second mobile LCP, frequent blank-screen crashes when one chart fails, <code>dangerouslySetInnerHTML</code> rendering user markdown, and tangled cross-folder imports.
+  </p>
+  <p>
+    <strong>Your Task:</strong> Outline your prioritized remediation plan covering (1) ErrorBoundary + route/widget code splitting, (2) XSS/CSRF hardening, (3) Feature-Sliced Design boundaries + Steiger CI enforcement, and (4) MSW integration testing + Core Web Vitals budgets.
+  </p>
+</Callout>
+
+<ExerciseCard
+  title="Reference Architecture Notes"
+  prompt={null}
+  buttonLabel="Reveal Approach"
+  hideLabel="Hide Approach"
+>
+  <ol>
+    <li>Wrap routes and heavy widgets in <code>&lt;ErrorBoundary&gt;</code> + <code>&lt;Suspense&gt;</code> with <code>React.lazy</code> chunks, cutting initial JS parse time and eliminating full-app crashes.</li>
+    <li>Remove unsafe <code>dangerouslySetInnerHTML</code> (or enforce DOMPurify + strict URL allowlist + CSP) and verify <code>SameSite=Lax</code> + <code>X-CSRF-Token</code> on all mutations.</li>
+    <li>Refactor into unidirectional FSD layers enforced by CI checks, pair virtualized tables with React Profiler measurements, and lock critical flows with React Testing Library + MSW integration tests.</li>
+  </ol>
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m02-p4-sec-q" letter="Q" title="Summary & Key Takeaways">
+
+- **Resilience & Speed:** Pair `ErrorBoundary` + `Suspense` + route-level `React.lazy` code splitting, push state down, virtualize huge lists, and bound client caches.
+- **Accessibility & Responsiveness:** Use native semantic HTML (`<button>`, `<label>`), keyboard focus management, `44px` touch targets, and mobile-first fluid layouts.
+- **Security Boundaries:** Escape/sanitize HTML, block `javascript:` URLs, enforce CSP, use `SameSite` + CSRF tokens, and never put secrets in client JS.
+- **Architecture & Testing:** Enforce unidirectional FSD layers, compose clean components, and test user behavior with Unit + RTL/MSW Integration + E2E tests.
+
+</TopicSection>

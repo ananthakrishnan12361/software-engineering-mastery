@@ -237,3 +237,16 @@ For each review, add:
   - React Router (Routes, `<Outlet />`, `useSearchParams`, `<Navigate>`): `https://reactrouter.com/start/library/routing`
   - OWASP Frontend Auth / Token Storage & Open Redirect Prevention: `https://cheatsheetseries.owasp.org/cheatsheets/JSON_Web_Token_for_Java_Cheat_Sheet.html`
 - **Verification Scope:** `npm run quality` + fresh Round 1/2 `research` subagent audit covering `m02-p3.mdx`, `m02-p3.questions.ts`, and `m02-p3.coverage.ts`.
+
+---
+
+### Module 02 Part 4 (M02-P4) Technical Review Log — 2026-11-26
+
+- **Scope:** Error boundaries, Lazy loading, Code splitting, Performance optimization, Rendering optimization, Memoization, Frontend caching, Accessibility, Responsive design, Security, XSS, CSRF, Large frontend architecture, Component design patterns, Testing, Unit testing, Integration testing, Frontend debugging.
+- **Official Documentation Verified (`M3`):**
+  - React Error Boundaries (`getDerivedStateFromError`, `componentDidCatch`), React Compiler (React 19) & `lazy` + `Suspense`: `https://react.dev/reference/react/Component#catching-rendering-errors-with-an-error-boundary`, `https://react.dev/learn/react-compiler`, and `https://react.dev/reference/react/lazy`
+  - Core Web Vitals (`LCP`, `INP`, `CLS`): `https://web.dev/articles/vitals`
+  - WAI-ARIA / WCAG 2.2 Accessibility & Semantic HTML: `https://www.w3.org/WAI/standards-guidelines/wcag/`
+  - OWASP XSS Prevention & CSRF Prevention Cheat Sheets: `https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html` and `https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html`
+  - Feature-Sliced Design (FSD v2.1) & React Testing Library: `https://feature-sliced.design/docs/get-started/overview` and `https://testing-library.com/docs/react-testing-library/intro/`
+- **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m02-p4.mdx`, `m02-p4.questions.ts`, and `m02-p4.coverage.ts`.
