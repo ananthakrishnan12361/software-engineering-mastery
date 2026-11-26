@@ -4,10 +4,10 @@
 Maintain a comfortable, offline-capable React + TypeScript + MDX learning portal built with Feature-Sliced Design v2.1 and bundled into `dist/software_engineering_mastery.html`.
 
 ## Overall status
-**`M01-P1`, `M01-P2`, & `M01-P3` Completed & Independently Audited (`PASS`) — `M01-P4` next**
+**`M01-P1`–`M01-P4` Completed & Independently Audited (`PASS`) — `M01-P5` next**
 
 ## Current phase
-Phase 3 design remains locked in [DESIGN_GUIDE.md](DESIGN_GUIDE.md). Content authoring is active for Module 1 (`M01-P1`, `M01-P2`, and `M01-P3` complete & verified; `M01-P4` next).
+Phase 3 design remains locked in [DESIGN_GUIDE.md](DESIGN_GUIDE.md). Content authoring is active for Module 1 (`M01-P1`–`M01-P4` complete & verified; `M01-P5` completes Module 1).
 
 ## Completed
 - [x] Phase 1 & 2: Legacy v1 archived in `legacy/`, React 19 + TS + Vite 8 + MDX + `vite-plugin-singlefile` + Steiger setup
@@ -19,13 +19,13 @@ Phase 3 design remains locked in [DESIGN_GUIDE.md](DESIGN_GUIDE.md). Content aut
 - [x] Verification: `tsc`, `vite build`, `steiger ./src`, `verify:syllabus`, `verify:parity`, `verify:offline`, and headless Chrome CDP checks at `360`, `390`, `768`, `1024`, `1440` widths across all 3 themes
 
 ## Module progress
-Use `COURSE_OUTLINE.md` and `CONTENT_CHECKLIST.md` to track module and part status. Currently written: `M01-P1`, `M01-P2`, & `M01-P3` (`26` topics available, `919` not written yet; Module 1 interview totals: `8/10` Basic, `8/10` Intermediate, `8/10` Advanced, `4/5` Senior/Architect = `28/35`).
+Use `COURSE_OUTLINE.md` and `CONTENT_CHECKLIST.md` to track module and part status. Currently written: `M01-P1`–`M01-P4` (`42` topics available, `903` not written yet; Module 1 interview totals: `9/10` Basic, `9/10` Intermediate, `9/10` Advanced, `5/5` Senior/Architect = `32/35`).
 
 ## Current task
-`M01-P3` completed, audited (`PASS`), and committed locally on `react-fsd`. Next part: `M01-P4` (`JavaScript internals: ES6+, closures, scope, hoisting, prototype, prototypal inheritance, this, arrow functions, promises, async/await, event loop, microtasks, macrotasks, memory management, garbage collection`).
+`M01-P4` completed, audited (`PASS`), and committed locally on `react-fsd`. Next part: `M01-P5` (`TypeScript fundamentals, Type systems, Generics, Interfaces, Type safety`).
 
 ## Next actions
-1. Proceed to `M01-P4` (`PLAN -> WRITE -> CHECK -> AUDIT -> UPDATE -> COMMIT` on `react-fsd`).
+1. Proceed to `M01-P5` (`PLAN -> WRITE -> CHECK -> AUDIT -> UPDATE -> COMMIT` on `react-fsd`).
 2. User decides when to approve removing `legacy/`.
 
 ## Decisions

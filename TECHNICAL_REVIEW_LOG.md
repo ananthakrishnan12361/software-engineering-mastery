@@ -169,3 +169,28 @@ For each review, add:
    - **Verified Claim:** Although ES2015 specified Proper Tail Calls in strict mode, V8/Node.js does not enable TCO in production; deep graph/tree traversals require explicit heap-allocated stacks/queues to avoid `RangeError: Maximum call stack size exceeded`.
    - **Official Reference:** https://tc39.es/ecma262/#sec-tail-position-calls
    - **Status:** Verified
+
+
+---
+
+## Module 01 Part 4 (`M01-P4`) Technical Review Log — 2026-11-26
+
+1. **Event Loop, Microtasks & `queueMicrotask`**
+   - **Verified Claim:** Microtasks (`Promise.then/.catch/.finally`, `await` continuations, `queueMicrotask`) drain completely after each synchronous task and macrotask before the next macrotask or render.
+   - **Official References:** https://developer.mozilla.org/en-US/docs/Web/API/HTML_DOM_API/Microtask_guide and https://developer.mozilla.org/en-US/docs/Web/API/Window/queueMicrotask
+   - **Status:** Verified
+
+2. **`Promise.allSettled` (ES2020) & `Promise.any` (ES2021)**
+   - **Verified Claim:** `Promise.allSettled` waits for all promises to settle without short-circuiting; `Promise.any` resolves on the first fulfillment or rejects with `AggregateError` if all reject.
+   - **Official References:** https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/allSettled and https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/any
+   - **Status:** Verified
+
+3. **V8 Orinoco Garbage Collector (Reachability & Generational Heaps)**
+   - **Verified Claim:** V8 uses reachability-based Mark-and-Sweep (collecting isolated reference cycles) across Young Generation (Scavenger) and Old Generation (Mark-Sweep-Compact) heaps.
+   - **Official Reference:** https://v8.dev/blog/trash-talk
+   - **Status:** Verified
+
+4. **`AbortSignal.timeout()` & Node.js `perf_hooks.monitorEventLoopDelay()`**
+   - **Verified Claim:** `AbortSignal.timeout(ms)` creates an automatically aborting signal after `ms` milliseconds for bounding outbound I/O; `perf_hooks.monitorEventLoopDelay()` tracks Node.js Event Loop lag percentiles.
+   - **Official References:** https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal/timeout_static and https://nodejs.org/api/perf_hooks.html#perf_hooksmonitoreventloopdelayoptions
+   - **Status:** Verified

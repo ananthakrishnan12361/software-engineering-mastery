@@ -197,22 +197,86 @@ export const SYLLABUS_MODULES: SyllabusModule[] = [
       lessonId: "m01-p3",
       anchorId: "m01-p3-topic-graph-fundamentals"
     },
-    "JavaScript",
-    "ES6+",
-    "Closures",
-    "Scope",
-    "Hoisting",
-    "Prototype",
-    "Prototypal inheritance",
-    "this",
-    "Arrow functions",
-    "Promises",
-    "Async/await",
-    "Event loop",
-    "Microtasks",
-    "Macrotasks",
-    "Memory management",
-    "Garbage collection",
+    {
+      title: "JavaScript",
+      lessonId: "m01-p4",
+      anchorId: "m01-p4-topic-javascript"
+    },
+    {
+      title: "ES6+",
+      lessonId: "m01-p4",
+      anchorId: "m01-p4-topic-es6"
+    },
+    {
+      title: "Closures",
+      lessonId: "m01-p4",
+      anchorId: "m01-p4-topic-closures"
+    },
+    {
+      title: "Scope",
+      lessonId: "m01-p4",
+      anchorId: "m01-p4-topic-scope"
+    },
+    {
+      title: "Hoisting",
+      lessonId: "m01-p4",
+      anchorId: "m01-p4-topic-hoisting"
+    },
+    {
+      title: "Prototype",
+      lessonId: "m01-p4",
+      anchorId: "m01-p4-topic-prototype"
+    },
+    {
+      title: "Prototypal inheritance",
+      lessonId: "m01-p4",
+      anchorId: "m01-p4-topic-prototypal-inheritance"
+    },
+    {
+      title: "this",
+      lessonId: "m01-p4",
+      anchorId: "m01-p4-topic-this"
+    },
+    {
+      title: "Arrow functions",
+      lessonId: "m01-p4",
+      anchorId: "m01-p4-topic-arrow-functions"
+    },
+    {
+      title: "Promises",
+      lessonId: "m01-p4",
+      anchorId: "m01-p4-topic-promises"
+    },
+    {
+      title: "Async/await",
+      lessonId: "m01-p4",
+      anchorId: "m01-p4-topic-async-await"
+    },
+    {
+      title: "Event loop",
+      lessonId: "m01-p4",
+      anchorId: "m01-p4-topic-event-loop"
+    },
+    {
+      title: "Microtasks",
+      lessonId: "m01-p4",
+      anchorId: "m01-p4-topic-microtasks"
+    },
+    {
+      title: "Macrotasks",
+      lessonId: "m01-p4",
+      anchorId: "m01-p4-topic-macrotasks"
+    },
+    {
+      title: "Memory management",
+      lessonId: "m01-p4",
+      anchorId: "m01-p4-topic-memory-management"
+    },
+    {
+      title: "Garbage collection",
+      lessonId: "m01-p4",
+      anchorId: "m01-p4-topic-garbage-collection"
+    },
     "TypeScript fundamentals",
     "Type systems",
     "Generics",

@@ -5,11 +5,22 @@
 
 ## Current Run Status
 - **Branch:** `react-fsd`
-- **Current Part:** `M01-P3` — **DONE** (committed locally on `react-fsd`; next part: `M01-P4`)
+- **Current Part:** `M01-P4` — **DONE** (committed locally on `react-fsd`; next part: `M01-P5`)
 - **Current Step:** `COMMIT`
 - **Parts Limit:** Default 1 part per run (up to 3 if requested, or continuous part-by-part via `/handbook-next all`)
-- **Split Rationale:** `M01-P2 Remediation` (Part 1, `61721dd`) and `M01-P3` (Part 2) completed in this run; stopping at 2 parts cleanly before `M01-P4` (or ready to continue `M01-P4` on next run).
-- **Completed Sections (M01-P3):** All steps (`PLAN`, `WRITE`, `CHECK`, `AUDIT`, `UPDATE`, `COMMIT`) complete for `M01-P3`.
+- **Split Rationale:** `M01-P4` completed as Part 1 of this 3-part run; proceeding next to `M01-P5` (Part 2) and `M02-P1` (Part 3).
+- **Completed Sections (M01-P4):** All steps (`PLAN`, `WRITE`, `CHECK`, `AUDIT`, `UPDATE`, `COMMIT`) complete for `M01-P4`.
+- **Files Changed (M01-P4):**
+  - `content/modules/01-programming/m01-p4.mdx` (16 Sections A–Q, 16 `<TopicAnchor>` subsections, 2 SVGs `Figure 1.7` & `1.8`, 7 runnable blocks, 3 tables, 3 exercises)
+  - `content/interviews/m01-p4.questions.ts` (4 interview Q&As `iq-1`..`iq-4` including 12-step `senior-architect`)
+  - `content/coverage/m01-p4.coverage.ts` (16 mapped topics, 7 `codeTests`, 7 `safetyMutations`)
+  - `content/coverage/index.ts`, `content/syllabus.ts`, `content/registry.ts` (wired `m01-p4`)
+  - `scripts/verify-offline.mjs` (updated Module 1 available topics `42`, advanced IQs `9`)
+  - `TECHNICAL_REVIEW_LOG.md`, `QUALITY_GATE.md`, `CONTENT_CHECKLIST.md`, `PROJECT_STATUS.md`, `PIPELINE_STATE.md`
+- **Step 5/6 Quality & Audit Results (`M01-P4` — 2026-11-26):**
+  - `npm run quality` (after last code/content edit): **PASS** (`typecheck`, `vite build` `817.30 kB`, `steiger ./src` `0` problems, `verify:syllabus` `28/945/42/903`, `verify:parity` `13/13` metrics + `7` demos, `verify:offline` `798.2 KB` `0` CDNs, `verify:quality` `4` lessons, `42` mapped topics, `30` runnable blocks, `42` safety mutation checks, `32` interview Q&As `{"basic":9,"intermediate":9,"advanced":9,"senior-architect":5}`, `30` live Run Demos, `8` SVGs checked with live `getBBox()`, `0` horizontal overflow at `360/390/768/1024/1440`).
+  - **Fresh Audit Round 1 (`5564706c`):** `FAIL` (3 MAJOR: Figure 1.8 `Object.prototype (hasOwn)` error, `promiseAllSettledLite` sparse array `.forEach` hang, weak `promiseAllSettledLite` test; 3 MINOR: `getPrototypeDepth` mutation description, Example 1 TDZ & `Notifier` trim, secondary URLs) — all fixed.
+  - **Fresh Audit Round 2 (`55e7eecb`):** `PASS` (`0 CRITICAL`, `0 MAJOR`).
 - **Files Changed (M01-P3):**
   - `content/modules/01-programming/m01-p3.mdx` (16 Sections A–Q, 13 `<TopicAnchor>` subsections, 2 SVGs `Figure 1.5` & `1.6`, 7 runnable blocks including `nextGreaterElements` Monotonic Stack and `Symbol("root")` `shortestPathBFS`, 3 tables, 3 exercises)
   - `content/interviews/m01-p3.questions.ts` (5 interview Q&As `iq-1`..`iq-5` including 12-step `senior-architect`)
@@ -85,4 +96,4 @@ Remaining approved work before `M01-P3`:
    - **`M01-P3`**: `Algorithms, Data structures, Time complexity, Space complexity, Big O, Recursion, Sorting, Searching, Hash maps, Stacks, Queues, Trees, Graph fundamentals`.
 
 ## Next Action
-On the next run, resume at **Step 1 (`PLAN`)** for **`M01-P4`** (`JavaScript, ES6+, Closures, Scope, Hoisting, Prototype, Prototypal inheritance, this, Arrow functions, Promises, Async/await, Event loop, Microtasks, Macrotasks, Memory management, Garbage collection`).
+Proceed immediately to **Part 2 of this run: `M01-P5`** (`TypeScript fundamentals, Type systems, Generics, Interfaces, Type safety`), which completes Module 1 (`10/10/10/5` interview targets).

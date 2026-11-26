@@ -65,22 +65,22 @@ Split into 5 parts:
 - [x] Graph fundamentals
 
 #### M01-P4 Topics
-- [ ] JavaScript
-- [ ] ES6+
-- [ ] Closures
-- [ ] Scope
-- [ ] Hoisting
-- [ ] Prototype
-- [ ] Prototypal inheritance
-- [ ] `this`
-- [ ] Arrow functions
-- [ ] Promises
-- [ ] Async/await
-- [ ] Event loop
-- [ ] Microtasks
-- [ ] Macrotasks
-- [ ] Memory management
-- [ ] Garbage collection
+- [x] JavaScript
+- [x] ES6+
+- [x] Closures
+- [x] Scope
+- [x] Hoisting
+- [x] Prototype
+- [x] Prototypal inheritance
+- [x] `this`
+- [x] Arrow functions
+- [x] Promises
+- [x] Async/await
+- [x] Event loop
+- [x] Microtasks
+- [x] Macrotasks
+- [x] Memory management
+- [x] Garbage collection
 
 #### M01-P5 Topics
 - [ ] TypeScript fundamentals

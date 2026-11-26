@@ -13,9 +13,12 @@ import M01P2Mdx from "./modules/01-programming/m01-p2.mdx";
 import m01p2Raw from "./modules/01-programming/m01-p2.mdx?raw";
 import M01P3Mdx from "./modules/01-programming/m01-p3.mdx";
 import m01p3Raw from "./modules/01-programming/m01-p3.mdx?raw";
+import M01P4Mdx from "./modules/01-programming/m01-p4.mdx";
+import m01p4Raw from "./modules/01-programming/m01-p4.mdx?raw";
 import { m01p1Questions } from "./interviews/m01-p1.questions";
 import { m01p2Questions } from "./interviews/m01-p2.questions";
 import { m01p3Questions } from "./interviews/m01-p3.questions";
+import { m01p4Questions } from "./interviews/m01-p4.questions";
 import { SYLLABUS_MODULES } from "./syllabus";
 
 export interface HandbookCatalog {
@@ -112,11 +115,11 @@ const modules: ModuleRecord[] = [
     number: 1,
     title: "Programming Fundamentals & JavaScript",
     category: "fundamentals",
-    partSummary: "Parts 1–3 of 5",
+    partSummary: "Parts 1–4 of 5",
     scopeSummary:
-      "Scope (Parts 1–3): Programming Fundamentals, Variables, Data Types, Functions, Objects, Arrays, Classes, OOP, SOLID, Algorithms, Data Structures, Big O, Sorting, Searching, Trees & Graphs",
-    lead: "Build rock-solid engineering mental models from how source code executes in memory to production JavaScript internals, object/array layouts, OOP encapsulation, SOLID boundaries, and core algorithms & data structures.",
-    lessonIds: ["m01-p1", "m01-p2", "m01-p3"]
+      "Scope (Parts 1–4): Programming Fundamentals, Variables, Types, Functions, OOP, SOLID, Algorithms, Data Structures, JS Internals, Event Loop & GC",
+    lead: "Build rock-solid engineering mental models from how source code executes in memory to production JavaScript internals, OOP/SOLID, algorithms, closures, event loop, and garbage collection.",
+    lessonIds: ["m01-p1", "m01-p2", "m01-p3", "m01-p4"]
   }
 ];
 
@@ -312,18 +315,86 @@ const lessons: LessonRecord[] = [
       }
     ],
     prevLessonId: "m01-p2",
-    nextLessonId: null,
+    nextLessonId: "m01-p4",
     Content: M01P3Mdx
+  },
+  {
+    id: "m01-p4",
+    moduleId: "module-1",
+    moduleNumber: 1,
+    moduleTitle: "Programming Fundamentals & JavaScript",
+    partLabel: "Lesson M01-P4",
+    title: "Part 4: JavaScript Internals, Closures, Prototypes, Event Loop & GC",
+    category: "fundamentals",
+    duration: "110 min (50m theory · 40m practice · 20m review)",
+    objectives: [
+      "Trace Lexical Scope, Hoisting, TDZ, and Closures across Call Stack and Heap lifetimes.",
+      "Predict `this` binding across call sites and arrow functions, and trace `[[Prototype]]` delegation chains.",
+      "Schedule concurrent async flows safely with Promises, `async/await`, and Promise combinators without waterfalls or unhandled rejections.",
+      "Predict exact Event Loop turn order across Synchronous Stack, Microtasks, and Macrotasks while preventing microtask starvation.",
+      "Prevent memory leaks in long-lived Node.js and React apps using bounded caches, `WeakMap`, and V8 reachability-based GC awareness."
+    ],
+    sections: [
+      { id: "m01-p4-objectives", title: "Learning Objectives" },
+      { id: "m01-p4-sec-a", letter: "A", title: "Topic Introduction" },
+      { id: "m01-p4-sec-b", letter: "B", title: "Fundamentals (Simple Mental Models)" },
+      { id: "m01-p4-sec-c", letter: "C", title: "Internal Working & Architecture" },
+      { id: "m01-p4-sec-d", letter: "D", title: "Practical Examples (Interactive)" },
+      { id: "m01-p4-sec-e", letter: "E", title: "Step-by-Step Walkthrough" },
+      { id: "m01-p4-sec-f", letter: "F", title: "Real-World Use Cases" },
+      { id: "m01-p4-sec-g", letter: "G", title: "Common Mistakes" },
+      { id: "m01-p4-sec-h", letter: "H", title: "Best Practices" },
+      { id: "m01-p4-sec-i", letter: "I", title: "Performance & Scalability" },
+      { id: "m01-p4-sec-j", letter: "J", title: "Security Considerations" },
+      { id: "m01-p4-sec-k", letter: "K", title: "Comparisons & Decision Tables" },
+      { id: "m01-p4-sec-l", letter: "L", title: "Tips to Remember (Mnemonics & Mental Models)" },
+      { id: "m01-p4-sec-mn", letter: "M/N", title: "Interview Questions & Detailed Answers" },
+      { id: "m01-p4-sec-o", letter: "O", title: "Practical Exercises" },
+      { id: "m01-p4-sec-p", letter: "P", title: "Advanced Challenge" },
+      { id: "m01-p4-sec-q", letter: "Q", title: "Summary & Key Takeaways" },
+      { id: "m01-p4-mastery", title: "Mastery Assessment" }
+    ],
+    masteryItems: [
+      {
+        id: "m01-p4-m1",
+        label: "I can explain lexical scope, hoisting/TDZ, and how closures capture live bindings."
+      },
+      {
+        id: "m01-p4-m2",
+        label: "I can trace `[[Prototype]]` delegation and predict `this` for regular vs. arrow functions."
+      },
+      {
+        id: "m01-p4-m3",
+        label: "I can predict exact Sync -> Microtask -> Macrotask Event Loop ordering."
+      },
+      {
+        id: "m01-p4-m4",
+        label: "I can explain `Promise.all` vs `allSettled` vs `race` vs `any` and prevent memory leaks in V8."
+      },
+      {
+        id: "m01-p4-m5",
+        label: "I completed all 3 M01-P4 exercises and can answer the interview questions without notes."
+      }
+    ],
+    prevLessonId: "m01-p3",
+    nextLessonId: null,
+    Content: M01P4Mdx
   }
 ];
 
 const questionsByLesson: Record<string, InterviewQuestion[]> = {
   "m01-p1": m01p1Questions,
   "m01-p2": m01p2Questions,
-  "m01-p3": m01p3Questions
+  "m01-p3": m01p3Questions,
+  "m01-p4": m01p4Questions
 };
 
-const allQuestions: InterviewQuestion[] = [...m01p1Questions, ...m01p2Questions, ...m01p3Questions];
+const allQuestions: InterviewQuestion[] = [
+  ...m01p1Questions,
+  ...m01p2Questions,
+  ...m01p3Questions,
+  ...m01p4Questions
+];
 
 function mergeGlossaryEntries(...batches: GlossaryEntry[][]): GlossaryEntry[] {
   const byTerm = new Map<string, GlossaryEntry>();
@@ -341,7 +412,8 @@ function mergeGlossaryEntries(...batches: GlossaryEntry[][]): GlossaryEntry[] {
 const glossaryEntries: GlossaryEntry[] = mergeGlossaryEntries(
   extractGlossaryFromMdx(m01p1Raw, "m01-p1"),
   extractGlossaryFromMdx(m01p2Raw, "m01-p2"),
-  extractGlossaryFromMdx(m01p3Raw, "m01-p3")
+  extractGlossaryFromMdx(m01p3Raw, "m01-p3"),
+  extractGlossaryFromMdx(m01p4Raw, "m01-p4")
 );
 
 function buildSearchRecords(): SearchRecord[] {
@@ -363,6 +435,7 @@ function buildSearchRecords(): SearchRecord[] {
   records.push(...extractSearchRecordsFromMdx(m01p1Raw, "m01-p1", lessons[0].title, 1));
   records.push(...extractSearchRecordsFromMdx(m01p2Raw, "m01-p2", lessons[1].title, 1));
   records.push(...extractSearchRecordsFromMdx(m01p3Raw, "m01-p3", lessons[2].title, 1));
+  records.push(...extractSearchRecordsFromMdx(m01p4Raw, "m01-p4", lessons[3].title, 1));
 
   for (const mod of SYLLABUS_MODULES) {
     for (const topic of mod.topics) {
