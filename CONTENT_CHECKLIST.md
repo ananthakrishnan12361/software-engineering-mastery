@@ -50,19 +50,19 @@ Split into 5 parts:
 - [x] SOLID fundamentals
 
 #### M01-P3 Topics
-- [ ] Algorithms
-- [ ] Data structures
-- [ ] Time complexity
-- [ ] Space complexity
-- [ ] Big O
-- [ ] Recursion
-- [ ] Sorting
-- [ ] Searching
-- [ ] Hash maps
-- [ ] Stacks
-- [ ] Queues
-- [ ] Trees
-- [ ] Graph fundamentals
+- [x] Algorithms
+- [x] Data structures
+- [x] Time complexity
+- [x] Space complexity
+- [x] Big O
+- [x] Recursion
+- [x] Sorting
+- [x] Searching
+- [x] Hash maps
+- [x] Stacks
+- [x] Queues
+- [x] Trees
+- [x] Graph fundamentals
 
 #### M01-P4 Topics
 - [ ] JavaScript

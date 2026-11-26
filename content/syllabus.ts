@@ -132,19 +132,71 @@ export const SYLLABUS_MODULES: SyllabusModule[] = [
       lessonId: "m01-p2",
       anchorId: "m01-p2-topic-solid"
     },
-    "Algorithms",
-    "Data structures",
-    "Time complexity",
-    "Space complexity",
-    "Big O",
-    "Recursion",
-    "Sorting",
-    "Searching",
-    "Hash maps",
-    "Stacks",
-    "Queues",
-    "Trees",
-    "Graph fundamentals",
+    {
+      title: "Algorithms",
+      lessonId: "m01-p3",
+      anchorId: "m01-p3-topic-algorithms"
+    },
+    {
+      title: "Data structures",
+      lessonId: "m01-p3",
+      anchorId: "m01-p3-topic-data-structures"
+    },
+    {
+      title: "Time complexity",
+      lessonId: "m01-p3",
+      anchorId: "m01-p3-topic-time-complexity"
+    },
+    {
+      title: "Space complexity",
+      lessonId: "m01-p3",
+      anchorId: "m01-p3-topic-space-complexity"
+    },
+    {
+      title: "Big O",
+      lessonId: "m01-p3",
+      anchorId: "m01-p3-topic-big-o"
+    },
+    {
+      title: "Recursion",
+      lessonId: "m01-p3",
+      anchorId: "m01-p3-topic-recursion"
+    },
+    {
+      title: "Sorting",
+      lessonId: "m01-p3",
+      anchorId: "m01-p3-topic-sorting"
+    },
+    {
+      title: "Searching",
+      lessonId: "m01-p3",
+      anchorId: "m01-p3-topic-searching"
+    },
+    {
+      title: "Hash maps",
+      lessonId: "m01-p3",
+      anchorId: "m01-p3-topic-hash-maps"
+    },
+    {
+      title: "Stacks",
+      lessonId: "m01-p3",
+      anchorId: "m01-p3-topic-stacks"
+    },
+    {
+      title: "Queues",
+      lessonId: "m01-p3",
+      anchorId: "m01-p3-topic-queues"
+    },
+    {
+      title: "Trees",
+      lessonId: "m01-p3",
+      anchorId: "m01-p3-topic-trees"
+    },
+    {
+      title: "Graph fundamentals",
+      lessonId: "m01-p3",
+      anchorId: "m01-p3-topic-graph-fundamentals"
+    },
     "JavaScript",
     "ES6+",
     "Closures",

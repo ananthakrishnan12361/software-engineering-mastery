@@ -5,11 +5,22 @@
 
 ## Current Run Status
 - **Branch:** `react-fsd`
-- **Current Part:** `M01-P2 Remediation` — **DONE** (ready for local commit on `react-fsd`; next part: `M01-P3`)
+- **Current Part:** `M01-P3` — **DONE** (committed locally on `react-fsd`; next part: `M01-P4`)
 - **Current Step:** `COMMIT`
 - **Parts Limit:** Default 1 part per run (up to 3 if requested, or continuous part-by-part via `/handbook-next all`)
-- **Split Rationale:** Completed `M01-P2 Remediation` as Part 1 of this run (`M01-P3` is Part 2).
-- **Completed Sections (current work):** All steps (`PLAN`, `WRITE`, `CHECK`, `AUDIT`, `UPDATE`, `COMMIT`) complete for `M01-P2 Remediation`.
+- **Split Rationale:** `M01-P2 Remediation` (Part 1, `61721dd`) and `M01-P3` (Part 2) completed in this run; stopping at 2 parts cleanly before `M01-P4` (or ready to continue `M01-P4` on next run).
+- **Completed Sections (M01-P3):** All steps (`PLAN`, `WRITE`, `CHECK`, `AUDIT`, `UPDATE`, `COMMIT`) complete for `M01-P3`.
+- **Files Changed (M01-P3):**
+  - `content/modules/01-programming/m01-p3.mdx` (16 Sections A–Q, 13 `<TopicAnchor>` subsections, 2 SVGs `Figure 1.5` & `1.6`, 7 runnable blocks including `nextGreaterElements` Monotonic Stack and `Symbol("root")` `shortestPathBFS`, 3 tables, 3 exercises)
+  - `content/interviews/m01-p3.questions.ts` (5 interview Q&As `iq-1`..`iq-5` including 12-step `senior-architect`)
+  - `content/coverage/m01-p3.coverage.ts` (13 mapped topics, 7 `codeTests`, 8 `safetyMutations`)
+  - `content/coverage/index.ts`, `content/syllabus.ts`, `content/registry.ts` (wired `m01-p3`)
+  - `scripts/verify-offline.mjs` (updated Module 1 available topics `26`, advanced IQs `8`, and `m01-p3` route/search checks)
+  - `TECHNICAL_REVIEW_LOG.md`, `QUALITY_GATE.md`, `CONTENT_CHECKLIST.md`, `PROJECT_STATUS.md`, `PIPELINE_STATE.md`
+- **Step 5/6 Quality & Audit Results (`M01-P3` — 2026-11-26):**
+  - `npm run quality` (after last code/content edit): **PASS** (`typecheck`, `vite build` `710.86 kB`, `steiger ./src` `0` problems, `verify:syllabus` `28/945/26/919`, `verify:parity` `13/13` metrics + `7` demos, `verify:offline` `694.2 KB` `0` CDNs, `verify:quality` `3` lessons, `26` mapped topics, `23` runnable blocks, `35` safety mutation checks, `28` interview Q&As `{"basic":8,"intermediate":8,"advanced":8,"senior-architect":4}`, `23` live Run Demos, `6` SVGs checked with live `getBBox()`, `0` horizontal overflow at `360/390/768/1024/1440`).
+  - **Fresh Audit Round 1 (`50544d2c`):** `FAIL` (1 MAJOR: Example 3 heading mentioned Monotonic Stack without code; 3 MINOR: `shortestPathBFS` `null` sentinel, `toSorted()` URL in `M01-P3` log section, extra edge-case tests) — all fixed.
+  - **Fresh Audit Round 2 (`5b19ff6d`):** `PASS` (`0 CRITICAL`, `0 MAJOR`; 2 tiny non-blocking comment/walkthrough wording nits noted).
 - **Files Changed (M01-P2 Remediation):**
   - `content/modules/01-programming/m01-p2.mdx` (`WeakMap`/`WeakSet` in Sections B, D `Example 6`, I, K; Shallow vs. Deep Copying table in Section K; `SRP` + `ISP` runnable `Example 5`; hardened `safeMerge` `isPlainObject` + inline check and `PriceCalculator.apply` `finalCents <= subtotalCents` postcondition)
   - `content/coverage/m01-p2.coverage.ts` (updated topic mappings, added `Example 5` & `Example 6` `codeTests` + `safetyMutations`, strengthened `safeMerge` & `PriceCalculator` tests -> 9 runnable blocks, 13 safety mutations)
@@ -74,4 +85,4 @@ Remaining approved work before `M01-P3`:
    - **`M01-P3`**: `Algorithms, Data structures, Time complexity, Space complexity, Big O, Recursion, Sorting, Searching, Hash maps, Stacks, Queues, Trees, Graph fundamentals`.
 
 ## Next Action
-On the next run, resume at **Step 1 (`PLAN`)** for **`M01-P2 Remediation`**, followed by `npm run quality`, a fresh subagent audit, log updates, and local commit on `react-fsd` before starting `M01-P3`.
+On the next run, resume at **Step 1 (`PLAN`)** for **`M01-P4`** (`JavaScript, ES6+, Closures, Scope, Hoisting, Prototype, Prototypal inheritance, this, Arrow functions, Promises, Async/await, Event loop, Microtasks, Macrotasks, Memory management, Garbage collection`).

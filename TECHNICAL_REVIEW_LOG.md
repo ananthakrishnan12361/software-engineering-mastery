@@ -149,3 +149,23 @@ For each review, add:
   4. **Interview Question Gaps & M3 URLs:** `m01-p2-iq-4` follow-up was vague about comparator failure (`Infinity - Infinity === NaN`), `iq-7` Step 8 omitted explicit `__proto__`/`constructor`/`prototype` blocklist alongside `Object.hasOwn`, and `Classes` / `Composition vs. Inheritance & LSP` lacked dedicated Basic/Intermediate questions.
 - **Corrections made:** Expanded all 9 topics in `m01-p2.mdx` Section B into standalone subsections, added `Example 4` (`AppError` -> `RateLimitError` with `extends`/`super`/`instanceof`), `Example 5` (SRP + ISP), `Example 6` (`WeakMap`/`WeakSet`), Shallow vs. Deep Copying table, fixed `safeMerge` (`isPlainObject` + inline check) & `PriceCalculator.apply` (`finalCents <= subtotalCents`), added `iq-8` & `iq-9`, tightened `m01-p2.coverage.ts` (9 runnable blocks, 13 safety mutations) + `scripts/verify-quality.mjs`, and added full `https://` official documentation links above.
 - **Status:** Corrected
+
+
+---
+
+## Module 01 Part 3 (`M01-P3`) Technical Review Log — 2026-11-26
+
+1. **ES2019 `Array.prototype.sort()` Stability, ES2023 `toSorted()`, & Timsort in V8**
+   - **Verified Claim:** `Array.prototype.sort()` is guaranteed stable in ECMAScript since ES2019, `Array.prototype.toSorted()` (ES2023) returns a sorted copy without mutating the source array, and V8 implements Timsort (`O(n log n)` worst-case, `O(n)` on nearly sorted runs).
+   - **Official References:** https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/sort, https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/toSorted, and https://v8.dev/blog/array-sort
+   - **Status:** Verified
+
+2. **`Map` & `Set` Insertion-Order & Average `O(1)` Lookup**
+   - **Verified Claim:** ECMAScript `Map` and `Set` preserve insertion order and are specified to run in sublinear time on average (implemented via hash tables such as V8's `OrderedHashTable`).
+   - **Official References:** https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map and https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set
+   - **Status:** Verified
+
+3. **ECMAScript Tail Position Calls vs. V8 Stack Limits**
+   - **Verified Claim:** Although ES2015 specified Proper Tail Calls in strict mode, V8/Node.js does not enable TCO in production; deep graph/tree traversals require explicit heap-allocated stacks/queues to avoid `RangeError: Maximum call stack size exceeded`.
+   - **Official Reference:** https://tc39.es/ecma262/#sec-tail-position-calls
+   - **Status:** Verified

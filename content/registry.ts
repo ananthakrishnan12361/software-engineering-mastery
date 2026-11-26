@@ -11,8 +11,11 @@ import M01P1Mdx from "./modules/01-programming/m01-p1.mdx";
 import m01p1Raw from "./modules/01-programming/m01-p1.mdx?raw";
 import M01P2Mdx from "./modules/01-programming/m01-p2.mdx";
 import m01p2Raw from "./modules/01-programming/m01-p2.mdx?raw";
+import M01P3Mdx from "./modules/01-programming/m01-p3.mdx";
+import m01p3Raw from "./modules/01-programming/m01-p3.mdx?raw";
 import { m01p1Questions } from "./interviews/m01-p1.questions";
 import { m01p2Questions } from "./interviews/m01-p2.questions";
+import { m01p3Questions } from "./interviews/m01-p3.questions";
 import { SYLLABUS_MODULES } from "./syllabus";
 
 export interface HandbookCatalog {
@@ -109,11 +112,11 @@ const modules: ModuleRecord[] = [
     number: 1,
     title: "Programming Fundamentals & JavaScript",
     category: "fundamentals",
-    partSummary: "Parts 1–2 of 5",
+    partSummary: "Parts 1–3 of 5",
     scopeSummary:
-      "Scope (Parts 1–2): Programming Fundamentals, Variables, Data Types, Functions, Objects, Arrays, Classes, OOP & SOLID Fundamentals",
-    lead: "Build rock-solid engineering mental models from how source code executes in memory to production JavaScript internals, object/array layouts, OOP encapsulation, SOLID boundaries, and senior interview trade-offs.",
-    lessonIds: ["m01-p1", "m01-p2"]
+      "Scope (Parts 1–3): Programming Fundamentals, Variables, Data Types, Functions, Objects, Arrays, Classes, OOP, SOLID, Algorithms, Data Structures, Big O, Sorting, Searching, Trees & Graphs",
+    lead: "Build rock-solid engineering mental models from how source code executes in memory to production JavaScript internals, object/array layouts, OOP encapsulation, SOLID boundaries, and core algorithms & data structures.",
+    lessonIds: ["m01-p1", "m01-p2", "m01-p3"]
   }
 ];
 
@@ -247,17 +250,80 @@ const lessons: LessonRecord[] = [
       }
     ],
     prevLessonId: "m01-p1",
-    nextLessonId: null,
+    nextLessonId: "m01-p3",
     Content: M01P2Mdx
+  },
+  {
+    id: "m01-p3",
+    moduleId: "module-1",
+    moduleNumber: 1,
+    moduleTitle: "Programming Fundamentals & JavaScript",
+    partLabel: "Lesson M01-P3",
+    title: "Part 3: Algorithms, Data Structures, Big O, Trees & Graphs",
+    category: "fundamentals",
+    duration: "105 min (45m theory · 40m practice · 20m review)",
+    objectives: [
+      "Analyze algorithm Time and Space Complexity using Big O growth tiers and distinguish worst-case vs. amortized bounds.",
+      "Implement Binary Search (including lower bound) and stable O(n log n) Merge Sort iteratively without call-stack overflow.",
+      "Use Map/Set hash tables, Stacks, and O(1) Ring-Buffer / Two-Stack Queues instead of O(n) Array.shift() bottlenecks.",
+      "Validate Binary Search Tree invariants and traverse Graphs safely with BFS (shortest path) and iterative 3-color DFS (cycle detection).",
+      "Defend backend services against algorithmic complexity DoS (HashDoS, O(n^2) loops) and deep-graph recursion crashes."
+    ],
+    sections: [
+      { id: "m01-p3-objectives", title: "Learning Objectives" },
+      { id: "m01-p3-sec-a", letter: "A", title: "Topic Introduction" },
+      { id: "m01-p3-sec-b", letter: "B", title: "Fundamentals (Simple Mental Models)" },
+      { id: "m01-p3-sec-c", letter: "C", title: "Internal Working & Architecture" },
+      { id: "m01-p3-sec-d", letter: "D", title: "Practical Examples (Interactive)" },
+      { id: "m01-p3-sec-e", letter: "E", title: "Step-by-Step Walkthrough" },
+      { id: "m01-p3-sec-f", letter: "F", title: "Real-World Use Cases" },
+      { id: "m01-p3-sec-g", letter: "G", title: "Common Mistakes" },
+      { id: "m01-p3-sec-h", letter: "H", title: "Best Practices" },
+      { id: "m01-p3-sec-i", letter: "I", title: "Performance & Scalability" },
+      { id: "m01-p3-sec-j", letter: "J", title: "Security Considerations" },
+      { id: "m01-p3-sec-k", letter: "K", title: "Comparisons & Decision Tables" },
+      { id: "m01-p3-sec-l", letter: "L", title: "Tips to Remember (Mnemonics & Mental Models)" },
+      { id: "m01-p3-sec-mn", letter: "M/N", title: "Interview Questions & Detailed Answers" },
+      { id: "m01-p3-sec-o", letter: "O", title: "Practical Exercises" },
+      { id: "m01-p3-sec-p", letter: "P", title: "Advanced Challenge" },
+      { id: "m01-p3-sec-q", letter: "Q", title: "Summary & Key Takeaways" },
+      { id: "m01-p3-mastery", title: "Mastery Assessment" }
+    ],
+    masteryItems: [
+      {
+        id: "m01-p3-m1",
+        label: "I can compare O(1), O(log n), O(n), O(n log n), and O(n^2) time and auxiliary space complexity."
+      },
+      {
+        id: "m01-p3-m2",
+        label: "I can write Binary Search (including lowerBound) and explain why Array.shift() degrades queues to O(n)."
+      },
+      {
+        id: "m01-p3-m3",
+        label: "I can implement O(1) Ring-Buffer / Two-Stack Queues and O(n) Hash Map lookups."
+      },
+      {
+        id: "m01-p3-m4",
+        label: "I can validate BST invariants and implement iterative Graph BFS shortest path & 3-color cycle detection."
+      },
+      {
+        id: "m01-p3-m5",
+        label: "I completed all 3 M01-P3 coding exercises and can answer Basic, Intermediate, Advanced, and Senior/Architect interview questions without notes."
+      }
+    ],
+    prevLessonId: "m01-p2",
+    nextLessonId: null,
+    Content: M01P3Mdx
   }
 ];
 
 const questionsByLesson: Record<string, InterviewQuestion[]> = {
   "m01-p1": m01p1Questions,
-  "m01-p2": m01p2Questions
+  "m01-p2": m01p2Questions,
+  "m01-p3": m01p3Questions
 };
 
-const allQuestions: InterviewQuestion[] = [...m01p1Questions, ...m01p2Questions];
+const allQuestions: InterviewQuestion[] = [...m01p1Questions, ...m01p2Questions, ...m01p3Questions];
 
 function mergeGlossaryEntries(...batches: GlossaryEntry[][]): GlossaryEntry[] {
   const byTerm = new Map<string, GlossaryEntry>();
@@ -274,7 +340,8 @@ function mergeGlossaryEntries(...batches: GlossaryEntry[][]): GlossaryEntry[] {
 
 const glossaryEntries: GlossaryEntry[] = mergeGlossaryEntries(
   extractGlossaryFromMdx(m01p1Raw, "m01-p1"),
-  extractGlossaryFromMdx(m01p2Raw, "m01-p2")
+  extractGlossaryFromMdx(m01p2Raw, "m01-p2"),
+  extractGlossaryFromMdx(m01p3Raw, "m01-p3")
 );
 
 function buildSearchRecords(): SearchRecord[] {
@@ -295,6 +362,7 @@ function buildSearchRecords(): SearchRecord[] {
 
   records.push(...extractSearchRecordsFromMdx(m01p1Raw, "m01-p1", lessons[0].title, 1));
   records.push(...extractSearchRecordsFromMdx(m01p2Raw, "m01-p2", lessons[1].title, 1));
+  records.push(...extractSearchRecordsFromMdx(m01p3Raw, "m01-p3", lessons[2].title, 1));
 
   for (const mod of SYLLABUS_MODULES) {
     for (const topic of mod.topics) {
