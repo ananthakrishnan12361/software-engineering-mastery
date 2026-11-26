@@ -39,15 +39,15 @@ Split into 5 parts:
 - [x] Functions
 
 #### M01-P2 Topics
-- [ ] Objects
-- [ ] Arrays
-- [ ] Classes
-- [ ] OOP
-- [ ] Encapsulation
-- [ ] Inheritance
-- [ ] Polymorphism
-- [ ] Abstraction
-- [ ] SOLID fundamentals
+- [x] Objects
+- [x] Arrays
+- [x] Classes
+- [x] OOP
+- [x] Encapsulation
+- [x] Inheritance
+- [x] Polymorphism
+- [x] Abstraction
+- [x] SOLID fundamentals
 
 #### M01-P3 Topics
 - [ ] Algorithms

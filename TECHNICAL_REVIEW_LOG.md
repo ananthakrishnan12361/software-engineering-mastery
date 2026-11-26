@@ -90,3 +90,33 @@ For each review, add:
 - **Unresolved questions:** None blocking; manual mouse/keyboard feel across physical mobile devices remains for user inspection.
 - **Sources checked:** `COURSE_modeule_in_detiles.md`, headless Chrome screenshots across 360/390/768/1024/1440px in Light/Dark/Sepia.
 - **Status:** Corrected
+
+
+---
+
+## Module 01 Part 2 (`M01-P2`) Technical Review Log — 2026-11-26
+
+1. **ES2022 `#private` Class Fields & Methods**
+   - **Verified Claim:** JavaScript native `#private` class fields/methods are strictly scoped to the declaring class body (`SyntaxError` if accessed outside or from subclasses), providing hard runtime encapsulation rather than TypeScript compile-time-only `private`.
+   - **Official Reference:** MDN Web Docs — Private properties (`developer.mozilla.org`).
+   - **Status:** Verified
+
+2. **`Object.hasOwn()` (ES2022) vs. `Object.prototype.hasOwnProperty()`**
+   - **Verified Claim:** `Object.hasOwn(obj, prop)` works safely on `Object.create(null)` dictionaries (which lack `Object.prototype`) and objects with shadowed `hasOwnProperty` properties.
+   - **Official Reference:** MDN Web Docs — `Object.hasOwn()` (`developer.mozilla.org`).
+   - **Status:** Verified
+
+3. **`Array.prototype.toSorted()` & `toReversed()` (ES2023) + Array `sort()` Stability (ES2019)**
+   - **Verified Claim:** ES2023 `toSorted()` and `toReversed()` return new copies without mutating the source array; `Array.prototype.sort()` is guaranteed stable since ES2019 (ECMA-262).
+   - **Official Reference:** MDN Web Docs — `Array.prototype.toSorted()`, `Array.prototype.toReversed()`, `Array.prototype.sort()` (`developer.mozilla.org`).
+   - **Status:** Verified
+
+4. **`structuredClone()` Deep Cloning**
+   - **Verified Claim:** Standardized global `structuredClone()` is available in Node.js since `v17.0.0` and modern browsers; preserves cycles/Dates/Maps/Sets while throwing `DataCloneError` for functions/symbols/DOM nodes.
+   - **Official Reference:** Node.js Globals Documentation (`nodejs.org`) & MDN (`developer.mozilla.org`).
+   - **Status:** Verified
+
+5. **V8 Hidden Classes (Maps) & Elements Kinds**
+   - **Verified Claim:** V8 optimizes objects via shared Hidden Classes (property insertion order) and transitions array elements kinds along a one-way lattice (`PACKED_SMI_ELEMENTS` -> `PACKED_DOUBLE_ELEMENTS` -> `PACKED_ELEMENTS` and `HOLEY_*` variants); holey arrays incur prototype chain checks on `undefined`/missing slots. Explicitly documented in `M01-P2` as V8 engine behavior rather than ECMAScript language semantics.
+   - **Official Reference:** V8 Blog — Elements kinds in V8 (`v8.dev`).
+   - **Status:** Verified

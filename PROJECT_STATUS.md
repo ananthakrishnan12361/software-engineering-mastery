@@ -4,10 +4,10 @@
 Maintain a comfortable, offline-capable React + TypeScript + MDX learning portal built with Feature-Sliced Design v2.1 and bundled into `dist/software_engineering_mastery.html`.
 
 ## Overall status
-**Phase 3 (Reading-Comfort Redesign, 28-Module Syllabus & Multi-Page Hash Portal) complete — awaiting user verification**
+**M01-P2 Completed & Verified — awaiting user review before `M01-P3`**
 
 ## Current phase
-Phase 3 complete: Implemented Light / Soft Dark / Sepia themes (`--border-control`, `color-scheme`, `16–20px` font control, `1.7` line-height, `72ch` column), compact Lesson & Home layouts, All Topics page (28 modules, 945 topics), grouped `Ctrl+K` / mobile full-screen Search, combined URL-persisted Filters, and 7 hash-routed pages.
+Phase 3 design remains locked in [DESIGN_GUIDE.md](DESIGN_GUIDE.md). Content authoring is active for Module 1 (`M01-P1` and `M01-P2` complete; `M01-P3` next).
 
 ## Completed
 - [x] Phase 1 & 2: Legacy v1 archived in `legacy/`, React 19 + TS + Vite 8 + MDX + `vite-plugin-singlefile` + Steiger setup
@@ -19,20 +19,21 @@ Phase 3 complete: Implemented Light / Soft Dark / Sepia themes (`--border-contro
 - [x] Verification: `tsc`, `vite build`, `steiger ./src`, `verify:syllabus`, `verify:parity`, `verify:offline`, and headless Chrome CDP checks at `360`, `390`, `768`, `1024`, `1440` widths across all 3 themes
 
 ## Module progress
-Use `COURSE_OUTLINE.md` and `CONTENT_CHECKLIST.md` to track module and part status. Currently written: `M01-P1` (`4` topics available, `941` not written yet).
+Use `COURSE_OUTLINE.md` and `CONTENT_CHECKLIST.md` to track module and part status. Currently written: `M01-P1` & `M01-P2` (`13` topics available, `932` not written yet; Module 1 interview totals: `6/10` Basic, `6/10` Intermediate, `6/10` Advanced, `3/5` Senior/Architect = `21/35`).
 
 ## Current task
-STOP after Phase 3 verification and await user review before removing `legacy/` or writing `M01-P2`.
+STOP after `M01-P2` completion and verification; await user review before writing `M01-P3` (`Algorithms, Big O, Sorting, Searching, Recursion, Data Structures, Stacks, Queues, Linked Lists, Hash Tables`).
 
 ## Next actions
-1. User inspects `dist/software_engineering_mastery.html` across themes/devices and approves removing `legacy/`.
-2. Upon approval, begin authoring `M01-P2` (`content/modules/01-programming/m01-p2.mdx` + `content/interviews/m01-p2.questions.ts`) and mapping its `TopicAnchor`s in `content/syllabus.ts`.
+1. User reviews `M01-P2` (`Objects, Arrays, Classes, OOP, Encapsulation, Inheritance, Polymorphism, Abstraction, SOLID fundamentals`) in `dist/software_engineering_mastery.html` and approves proceeding to `M01-P3`.
+2. User also decides when to approve removing `legacy/`.
 
 ## Decisions
-1. **Three Reading Themes**: Soft Light (`#F7F6F2`), Soft Dark (`#15181E`), and Sepia (`#F3EAD8`) with dedicated `--border-control` (`#767064`, `#737D8D`, `#7D6E52`) and zero pure `#000`/`#fff`.
-2. **FSD v2.1 Layout**: `AppShell` and `SearchOverlay` live in `src/app/` (no `app/ui` segment), 7 route pages live in `src/pages/`, shared domain models & `InterviewQuestionCard` live in `src/entities/handbook/`, persistence lives in `src/entities/progress/`, and stateless props-only primitives live in `src/shared/`. Enforced via `steiger ./src` with zero disabled rules.
-3. **Topic Anchors & Inherited Status**: Every written topic has an explicit `<TopicAnchor id="..." />` mapped in `content/syllabus.ts`. Topic completion/bookmark status is explicitly labeled as inherited from its parent lesson; unwritten topics never show completed or bookmarked.
-4. **Filter Compatibility**: Old saved `sem_handbook_v1` filters never hide Lesson page content; invalid URL filter params fall back to `"all"`.
+1. **Approved UI & Design Lock**: The Phase 3 UI design is approved and documented in `DESIGN_GUIDE.md` (themes, tokens, typography, spacing, reusable components, responsive breakpoints, and filter rules). Do not alter the design in future lesson work without user approval.
+2. **Three Reading Themes**: Soft Light (`#F7F6F2`), Soft Dark (`#15181E`), and Sepia (`#F3EAD8`) with dedicated `--border-control` (`#767064`, `#737D8D`, `#7D6E52`) and zero pure `#000`/`#fff`.
+3. **FSD v2.1 Layout**: `AppShell` and `SearchOverlay` live in `src/app/` (no `app/ui` segment), 7 route pages live in `src/pages/`, shared domain models & `InterviewQuestionCard` live in `src/entities/handbook/`, persistence lives in `src/entities/progress/`, and stateless props-only primitives live in `src/shared/`. Enforced via `steiger ./src` with zero disabled rules.
+4. **Topic Anchors & Inherited Status**: Every written topic has an explicit `<TopicAnchor id="..." />` mapped in `content/syllabus.ts`. Topic completion/bookmark status is explicitly labeled as inherited from its parent lesson; unwritten topics never show completed or bookmarked.
+5. **Filter Compatibility**: Old saved `sem_handbook_v1` filters never hide Lesson page content; invalid URL filter params fall back to `"all"`.
 
 ## Known issues / blockers
 - Legacy v1 files remain in `legacy/` pending user approval to delete.

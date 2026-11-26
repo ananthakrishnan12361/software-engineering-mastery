@@ -8,7 +8,7 @@ Each module's prose lives as MDX parts under `content/modules/<module>/` with ty
 
 | # | Module | Source Content Directory | Parts | Status | Notes |
 |---|---|---|---|---|---|
-| 01 | Programming Fundamentals & JavaScript | `content/modules/01-programming/` | 5 parts (`M01-P1`..`P5`) | In progress (`M01-P1` migrated to MDX & verified, `M01-P2` next) | Covers fundamentals, OOP/SOLID, DSA, JS internals, TypeScript |
+| 01 | Programming Fundamentals & JavaScript | `content/modules/01-programming/` | 5 parts (`M01-P1`..`P5`) | In progress (`M01-P1` & `M01-P2` completed & verified; `M01-P3` next) | Covers fundamentals, OOP/SOLID, DSA, JS internals, TypeScript |
 | 02 | React & Frontend Engineering | `content/modules/02-react/` | 4 parts (`M02-P1`..`P4`) | Not started | Includes hooks, state management, optimization, security, testing |
 | 03 | Node.js & Backend Engineering | `content/modules/03-nodejs/` | 4 parts (`M03-P1`..`P4`) | Not started | Covers V8/libuv, Express, auth/RBAC/OAuth, queues, patterns, testing |
 | 04 | Database Fundamentals & Database Architecture | `content/modules/04-database-fundamentals/` | 3 parts (`M04-P1`..`P3`) | Not started | Data modeling, normalization, ACID, isolation, locks, MVCC, backups |

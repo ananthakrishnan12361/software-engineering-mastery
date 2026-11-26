@@ -87,15 +87,51 @@ export const SYLLABUS_MODULES: SyllabusModule[] = [
       lessonId: "m01-p1",
       anchorId: "m01-p1-topic-functions"
     },
-    "Objects",
-    "Arrays",
-    "Classes",
-    "OOP",
-    "Encapsulation",
-    "Inheritance",
-    "Polymorphism",
-    "Abstraction",
-    "SOLID fundamentals",
+    {
+      title: "Objects",
+      lessonId: "m01-p2",
+      anchorId: "m01-p2-topic-objects"
+    },
+    {
+      title: "Arrays",
+      lessonId: "m01-p2",
+      anchorId: "m01-p2-topic-arrays"
+    },
+    {
+      title: "Classes",
+      lessonId: "m01-p2",
+      anchorId: "m01-p2-topic-classes"
+    },
+    {
+      title: "OOP",
+      lessonId: "m01-p2",
+      anchorId: "m01-p2-topic-oop"
+    },
+    {
+      title: "Encapsulation",
+      lessonId: "m01-p2",
+      anchorId: "m01-p2-topic-encapsulation"
+    },
+    {
+      title: "Inheritance",
+      lessonId: "m01-p2",
+      anchorId: "m01-p2-topic-inheritance"
+    },
+    {
+      title: "Polymorphism",
+      lessonId: "m01-p2",
+      anchorId: "m01-p2-topic-polymorphism"
+    },
+    {
+      title: "Abstraction",
+      lessonId: "m01-p2",
+      anchorId: "m01-p2-topic-abstraction"
+    },
+    {
+      title: "SOLID fundamentals",
+      lessonId: "m01-p2",
+      anchorId: "m01-p2-topic-solid"
+    },
     "Algorithms",
     "Data structures",
     "Time complexity",

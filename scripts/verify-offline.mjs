@@ -98,13 +98,22 @@ try {
   assert.equal(r2.lessonId, "m01-p1");
   assert.equal(r2.sectionId, "m01-p1-topic-variables");
 
+  const r3 = routerMod.parseHashRoute("#/lesson/m01-p2?section=m01-p2-topic-solid");
+  assert.equal(r3.page, "lesson");
+  assert.equal(r3.lessonId, "m01-p2");
+  assert.equal(r3.sectionId, "m01-p2-topic-solid");
+
   // Search index generated from real content covers syllabus, lesson prose, code, IQs, glossary
   const records = catalogMod.handbookCatalog.searchRecords;
   assert(records.some((r) => r.type === "Syllabus Topic" && !r.available && r.title.includes("Kafka")));
   assert(records.some((r) => r.type === "Syllabus Topic" && r.available && r.sectionId === "m01-p1-topic-variables"));
+  assert(records.some((r) => r.type === "Syllabus Topic" && r.available && r.sectionId === "m01-p2-topic-solid"));
   assert(records.some((r) => r.type === "Code" && r.text.includes("calculateLineTotalCents")));
+  assert(records.some((r) => r.type === "Code" && r.lessonId === "m01-p2" && r.text.includes("LedgerAccount")));
   assert(records.some((r) => r.type === "Interview Q&A" && r.text.includes("Snowflake")));
+  assert(records.some((r) => r.type === "Interview Q&A" && r.lessonId === "m01-p2" && r.text.includes("Liskov")));
   assert(records.some((r) => r.type === "Glossary" && r.title === "TDZ"));
+  assert(records.some((r) => r.type === "Glossary" && r.title === "Hidden Classes"));
 
   // Combined filter logic tests across Topics & Interviews
   const { syllabusModules, allQuestions } = catalogMod.handbookCatalog;
@@ -113,6 +122,12 @@ try {
     .flatMap((m) => m.topics)
     .filter((t) => t.status === "available" && Boolean(t.lessonId && parsed.completedLessons[t.lessonId]));
   assert.equal(comboTopics.length, 4);
+
+  const availMod1Topics = syllabusModules
+    .filter((m) => m.category === "fundamentals")
+    .flatMap((m) => m.topics)
+    .filter((t) => t.status === "available");
+  assert.equal(availMod1Topics.length, 13);
 
   const emptyComboTopics = syllabusModules
     .filter((m) => m.category === "databases")
@@ -123,7 +138,7 @@ try {
   const iqAdvMod1 = allQuestions.filter(
     (q) => handbookMod.matchesDifficultyFilter(q.difficulty, "advanced") && q.moduleNumber === 1
   );
-  assert.equal(iqAdvMod1.length, 4);
+  assert.equal(iqAdvMod1.length, 6);
 
   const iqMod2 = allQuestions.filter((q) => q.moduleNumber === 2);
   assert.equal(iqMod2.length, 0);

@@ -9,7 +9,10 @@ import type {
 
 import M01P1Mdx from "./modules/01-programming/m01-p1.mdx";
 import m01p1Raw from "./modules/01-programming/m01-p1.mdx?raw";
+import M01P2Mdx from "./modules/01-programming/m01-p2.mdx";
+import m01p2Raw from "./modules/01-programming/m01-p2.mdx?raw";
 import { m01p1Questions } from "./interviews/m01-p1.questions";
+import { m01p2Questions } from "./interviews/m01-p2.questions";
 import { SYLLABUS_MODULES } from "./syllabus";
 
 export interface HandbookCatalog {
@@ -106,10 +109,11 @@ const modules: ModuleRecord[] = [
     number: 1,
     title: "Programming Fundamentals & JavaScript",
     category: "fundamentals",
-    partSummary: "Part 1 of 5",
-    scopeSummary: "Scope (Part 1): Programming Fundamentals, Variables, Data Types, Functions",
-    lead: "Build rock-solid engineering mental models from how source code executes in memory to production JavaScript internals, precision hazards, type coercion traps, function call stacks, and senior interview trade-offs.",
-    lessonIds: ["m01-p1"]
+    partSummary: "Parts 1–2 of 5",
+    scopeSummary:
+      "Scope (Parts 1–2): Programming Fundamentals, Variables, Data Types, Functions, Objects, Arrays, Classes, OOP & SOLID Fundamentals",
+    lead: "Build rock-solid engineering mental models from how source code executes in memory to production JavaScript internals, object/array layouts, OOP encapsulation, SOLID boundaries, and senior interview trade-offs.",
+    lessonIds: ["m01-p1", "m01-p2"]
   }
 ];
 
@@ -177,19 +181,100 @@ const lessons: LessonRecord[] = [
       }
     ],
     prevLessonId: null,
-    nextLessonId: null,
+    nextLessonId: "m01-p2",
     Content: M01P1Mdx
+  },
+  {
+    id: "m01-p2",
+    moduleId: "module-1",
+    moduleNumber: 1,
+    moduleTitle: "Programming Fundamentals & JavaScript",
+    partLabel: "Lesson M01-P2",
+    title: "Part 2: Objects, Arrays, Classes, OOP & SOLID Fundamentals",
+    category: "fundamentals",
+    duration: "90 min (40m theory · 30m practice · 20m review)",
+    objectives: [
+      "Model entities safely with JavaScript Objects, property descriptors, prototype lookup vs. Map/Set, and null-prototype dictionaries.",
+      "Explain how dense vs. holey Arrays behave at the spec and V8 engine level (`PACKED_SMI`, `DOUBLE`, `HOLEY`) and avoid accidental `O(n)` shifts or mutations.",
+      "Write encapsulated ES2022+ Classes using native `#private` fields and methods, avoiding accidental shared mutable state across instances.",
+      "Apply the four OOP pillars (`Abstraction`, `Polymorphism`, `Inheritance`, `Encapsulation`) and decide cleanly between composition and inheritance.",
+      "Design extensible modules using the five `SOLID` principles pragmatically without overengineering simple business logic."
+    ],
+    sections: [
+      { id: "m01-p2-objectives", title: "Learning Objectives" },
+      { id: "m01-p2-sec-a", letter: "A", title: "Topic Introduction" },
+      { id: "m01-p2-sec-b", letter: "B", title: "Fundamentals (Simple Mental Models)" },
+      { id: "m01-p2-sec-c", letter: "C", title: "Internal Working & Architecture" },
+      { id: "m01-p2-sec-d", letter: "D", title: "Practical Examples (Interactive)" },
+      { id: "m01-p2-sec-e", letter: "E", title: "Step-by-Step Walkthrough" },
+      { id: "m01-p2-sec-f", letter: "F", title: "Real-World Use Cases" },
+      { id: "m01-p2-sec-g", letter: "G", title: "Common Mistakes" },
+      { id: "m01-p2-sec-h", letter: "H", title: "Best Practices" },
+      { id: "m01-p2-sec-i", letter: "I", title: "Performance & Scalability" },
+      { id: "m01-p2-sec-j", letter: "J", title: "Security Considerations" },
+      { id: "m01-p2-sec-k", letter: "K", title: "Comparisons & Decision Tables" },
+      { id: "m01-p2-sec-l", letter: "L", title: "Tips to Remember (Mnemonics & Mental Models)" },
+      { id: "m01-p2-sec-mn", letter: "M/N", title: "Interview Questions & Detailed Answers" },
+      { id: "m01-p2-sec-o", letter: "O", title: "Practical Exercises" },
+      { id: "m01-p2-sec-p", letter: "P", title: "Advanced Challenge" },
+      { id: "m01-p2-sec-q", letter: "Q", title: "Summary & Key Takeaways" },
+      { id: "m01-p2-mastery", title: "Mastery Assessment" }
+    ],
+    masteryItems: [
+      {
+        id: "m01-p2-m1",
+        label: "I can explain shallow vs. deep cloning, `Object.hasOwn()`, and prototype pollution defenses."
+      },
+      {
+        id: "m01-p2-m2",
+        label: "I can compare `Array`, `Map`, and `Set`, including non-mutating ES2023 transforms and V8 element kind transitions."
+      },
+      {
+        id: "m01-p2-m3",
+        label: "I can implement ES2022 `#private` fields and explain Hidden Class stability on object creation."
+      },
+      {
+        id: "m01-p2-m4",
+        label: "I can apply Abstraction, Polymorphism, Inheritance, and Encapsulation and choose composition over deep inheritance."
+      },
+      {
+        id: "m01-p2-m5",
+        label: "I can apply all 5 SOLID principles cleanly without overengineering."
+      },
+      {
+        id: "m01-p2-m6",
+        label: "I completed all 3 M01-P2 coding exercises and can answer Basic, Intermediate, Advanced, and Senior/Architect interview questions without notes."
+      }
+    ],
+    prevLessonId: "m01-p1",
+    nextLessonId: null,
+    Content: M01P2Mdx
   }
 ];
 
 const questionsByLesson: Record<string, InterviewQuestion[]> = {
-  "m01-p1": m01p1Questions
+  "m01-p1": m01p1Questions,
+  "m01-p2": m01p2Questions
 };
 
-const allQuestions: InterviewQuestion[] = [...m01p1Questions];
+const allQuestions: InterviewQuestion[] = [...m01p1Questions, ...m01p2Questions];
 
-const glossaryEntries: GlossaryEntry[] = extractGlossaryFromMdx(m01p1Raw, "m01-p1").sort((a, b) =>
-  a.term.localeCompare(b.term)
+function mergeGlossaryEntries(...batches: GlossaryEntry[][]): GlossaryEntry[] {
+  const byTerm = new Map<string, GlossaryEntry>();
+  for (const batch of batches) {
+    for (const entry of batch) {
+      const key = entry.term.toLowerCase();
+      if (!byTerm.has(key)) {
+        byTerm.set(key, entry);
+      }
+    }
+  }
+  return [...byTerm.values()].sort((a, b) => a.term.localeCompare(b.term));
+}
+
+const glossaryEntries: GlossaryEntry[] = mergeGlossaryEntries(
+  extractGlossaryFromMdx(m01p1Raw, "m01-p1"),
+  extractGlossaryFromMdx(m01p2Raw, "m01-p2")
 );
 
 function buildSearchRecords(): SearchRecord[] {
@@ -209,6 +294,7 @@ function buildSearchRecords(): SearchRecord[] {
   }
 
   records.push(...extractSearchRecordsFromMdx(m01p1Raw, "m01-p1", lessons[0].title, 1));
+  records.push(...extractSearchRecordsFromMdx(m01p2Raw, "m01-p2", lessons[1].title, 1));
 
   for (const mod of SYLLABUS_MODULES) {
     for (const topic of mod.topics) {

@@ -5,16 +5,32 @@ import { createServer } from "vite";
 
 const ROOT = process.cwd();
 const MASTER_PROMPT = path.join(ROOT, "COURSE_modeule_in_detiles.md");
-const MDX_MOD1 = path.join(ROOT, "content", "modules", "01-programming", "m01-p1.mdx");
+const MODULES_DIR = path.join(ROOT, "content", "modules");
+
+function collectMdxFiles(dir) {
+  const results = [];
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      results.push(...collectMdxFiles(full));
+    } else if (entry.isFile() && entry.name.endsWith(".mdx")) {
+      results.push(full);
+    }
+  }
+  return results;
+}
 
 const promptText = fs.readFileSync(MASTER_PROMPT, "utf8");
-const mdxText = fs.readFileSync(MDX_MOD1, "utf8");
-
-// Extract TopicAnchor and TopicSection IDs from actual written MDX files
-const existingAnchors = new Set([
-  ...[...mdxText.matchAll(/<TopicAnchor\s+id="([^"]+)"/g)].map((m) => m[1]),
-  ...[...mdxText.matchAll(/<TopicSection\s+id="([^"]+)"/g)].map((m) => m[1])
-]);
+const existingAnchors = new Set();
+for (const mdxFile of collectMdxFiles(MODULES_DIR)) {
+  const mdxText = fs.readFileSync(mdxFile, "utf8");
+  for (const m of mdxText.matchAll(/<TopicAnchor\s+id="([^"]+)"/g)) {
+    existingAnchors.add(m[1]);
+  }
+  for (const m of mdxText.matchAll(/<TopicSection\s+id="([^"]+)"/g)) {
+    existingAnchors.add(m[1]);
+  }
+}
 
 const vite = await createServer({
   server: { middlewareMode: true },

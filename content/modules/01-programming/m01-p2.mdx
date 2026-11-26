@@ -1,0 +1,560 @@
+<Callout variant="info" title="Topics Covered in Part 2 (M01-P2)">
+  <p>
+    This lesson covers 9 core topics from Module 1: <strong>Objects</strong>, <strong>Arrays</strong>, <strong>Classes</strong>, <strong>OOP</strong>, <strong>Encapsulation</strong>, <strong>Inheritance</strong>, <strong>Polymorphism</strong>, <strong>Abstraction</strong>, and <strong>SOLID fundamentals</strong>.
+  </p>
+</Callout>
+
+<TopicSection id="m01-p2-sec-a" letter="A" title="Topic Introduction">
+
+#### What is this?
+
+Once you know how single variables and functions work, real software needs ways to group related data and behavior together. <GlossaryTerm definition="An unordered collection of key-value pairs (properties and methods) stored on the heap.">Objects</GlossaryTerm> model structured entities (a user, an invoice, an HTTP request), while <GlossaryTerm definition="An ordered, zero-indexed list structure optimized for sequential storage and iteration.">Arrays</GlossaryTerm> model ordered collections of items.
+
+<GlossaryTerm definition="A blueprint syntax in ES2015+ for creating objects with shared methods, constructors, and optional private fields.">Classes</GlossaryTerm> and <GlossaryTerm definition="Object-Oriented Programming: a paradigm organizing software around objects that bundle state and behavior using Encapsulation, Inheritance, Polymorphism, and Abstraction.">OOP</GlossaryTerm> give teams a structured way to protect internal invariants (**Encapsulation**), hide noisy implementation details (**Abstraction**), share contracts (**Inheritance**), and swap behaviors cleanly (**Polymorphism**). **SOLID fundamentals** are five practical design guidelines that keep object-oriented codebases modular, testable, and resilient to change.
+
+#### Why does it exist & what problem does it solve?
+
+Without objects, arrays, and modular boundaries, large codebases turn into hundreds of loosely related global variables and giant `if/else` chains where any change breaks unrelated features:
+
+- **Objects & Arrays** replace dozens of disconnected variables (`user1Name`, `user1Email`) with cohesive data structures.
+- **Encapsulation & Abstraction** prevent external callers from corrupting internal state (for example, setting `invoice.total = -500` directly).
+- **Polymorphism & SOLID** let you add new payment providers, storage backends, or notification channels without rewriting tested core workflows.
+
+#### Where is it used in real-world software?
+
+Every production layer uses these concepts daily: React props and Redux state are immutable object/array trees; Express request/response objects and middleware chains use object composition; ORMs (Prisma, TypeORM), domain models, and backend service layers rely on classes, interfaces, dependency inversion, and polymorphism to keep business logic decoupled from databases and third-party APIs.
+
+</TopicSection>
+
+<TopicSection id="m01-p2-sec-b" letter="B" title="Fundamentals (Simple Mental Models)">
+
+<TopicAnchor id="m01-p2-topic-objects" />
+
+#### 1. Objects: Key-Value Records & Property Descriptors
+
+An **object** in JavaScript is a mutable dictionary mapping string (or `Symbol`) keys to values. Values can be data (**properties**) or functions (**methods**).
+
+- **Own vs. Inherited properties:** Every plain object `{}` delegates missing property lookups to `Object.prototype`. Always use `Object.hasOwn(obj, key)` (ES2022) to check whether a key belongs to the object itself rather than its prototype chain.
+- **Shallow vs. Deep Copy:** Spread syntax `{ ...user }` copies only the top level. Any nested object (`user.address`) is still shared by reference unless cloned deeply (e.g., via `structuredClone(user)`).
+
+<TopicAnchor id="m01-p2-topic-arrays" />
+
+#### 2. Arrays: Ordered Lists & Immutable Transformations
+
+An **array** is a specialized object optimized for integer indices `0, 1, 2, ...` and an auto-updating `.length` property.
+
+- **Mutating vs. Non-mutating methods:** Methods like `.push()`, `.pop()`, `.splice()`, `.sort()`, and `.reverse()` mutate the array in place. Methods like `.map()`, `.filter()`, `.slice()`, `.concat()`, and ES2023's `.toSorted()`, `.toReversed()`, `.toSpliced()`, and `.with()` return a **new** array, leaving the original untouched.
+
+<TopicAnchor id="m01-p2-topic-classes" />
+
+#### 3. Classes: Blueprints for State & Behavior
+
+Introduced in ES2015, a **`class`** packages a `constructor` (runs when `new ClassName(...)` creates an instance), instance methods (stored once on the class prototype), static methods (attached to the class itself), and ES2022 `#private` fields.
+
+<TopicAnchor id="m01-p2-topic-oop" />
+
+#### 4. OOP (Object-Oriented Programming) & Its Four Pillars
+
+**OOP** models a domain as collaborating objects, each responsible for its own data integrity and behavior, built on four pillars:
+
+<TopicAnchor id="m01-p2-topic-encapsulation" />
+
+- **Encapsulation:** Wrapping state and behavior together while restricting direct external mutation. In modern JS (ES2022+), prefixing a field or method with `#` (e.g., `#balanceCents`) makes it genuinely inaccessible outside the class body—attempting `account.#balanceCents` outside throws a `SyntaxError`.
+
+<TopicAnchor id="m01-p2-topic-abstraction" />
+
+- **Abstraction:** Hiding complex internal mechanics behind a clean, minimal public interface. When you call `mailer.send(email)`, you do not care whether it opens an SMTP socket, calls AWS SES, or writes to an in-memory test queue.
+
+<TopicAnchor id="m01-p2-topic-inheritance" />
+
+- **Inheritance:** Defining a child class (`class AdminUser extends User`) that inherits properties and methods from a parent class and uses `super(...)` to initialize parent state. Use inheritance sparingly for genuine *"is-a"* hierarchies; prefer **composition** (*"has-a"*) for sharing behavior.
+
+<TopicAnchor id="m01-p2-topic-polymorphism" />
+
+- **Polymorphism:** *"Many forms"*—different classes or objects implement the same method signature (e.g., `gateway.charge(amountCents)`) so calling code works uniformly across Stripe, PayPal, or a mock test double without `if (type === "stripe")` branches.
+
+<TopicAnchor id="m01-p2-topic-solid" />
+
+#### 5. SOLID Fundamentals
+
+Coined and popularized by Robert C. Martin, **SOLID** is five design principles for maintainable OOP/modular code:
+
+1. **S — Single Responsibility Principle (SRP):** A class or module should have one clear reason to change (e.g., separate invoice tax calculation from PDF rendering and database persistence).
+2. **O — Open/Closed Principle (OCP):** Open for extension, closed for modification—add new behaviors (like a new discount type or webhook sender) by adding a new implementation rather than editing existing `switch` statements.
+3. **L — Liskov Substitution Principle (LSP):** Any subtype must honor the expectations (inputs, outputs, error contracts) of its parent/interface so callers never get surprised when swapping implementations.
+4. **I — Interface Segregation Principle (ISP):** Prefer small, focused interfaces (`Readable`, `Writable`) over one bloated interface (`RepositoryWith20Methods`) so consumers only depend on methods they use.
+5. **D — Dependency Inversion Principle (DIP):** High-level business logic should depend on abstractions (interfaces/contracts), not concrete low-level details (MySQL driver, Stripe SDK). Inject dependencies from the outside.
+
+</TopicSection>
+
+<TopicSection id="m01-p2-sec-c" letter="C" title="Internal Working & Architecture">
+
+#### 1. V8 Hidden Classes (Maps) & Inline Caches for Objects
+
+In static languages like C++ or Java, the compiler knows the exact byte offset of `user.email` at compile time. In JavaScript, objects can gain or lose keys at runtime. To avoid slow hash-table lookups on every property access, V8 builds internal <GlossaryTerm definition="Internal V8 metadata (also called Shapes or Maps) describing an object's property names and byte offsets.">Hidden Classes</GlossaryTerm>:
+
+- When you create `{ id: 1, name: "A" }`, V8 creates Hidden Class `C0` &rarr; `C1 (id @ offset 0)` &rarr; `C2 (name @ offset 1)`.
+- If another object initializes keys in the **same order** (`{ id: 2, name: "B" }`), it shares `C2`. V8's **Inline Cache (IC)** remembers `C2` and reads `obj.name` in one pointer offset check.
+- If a third object initializes keys in a **different order** (`{ name: "C", id: 3 }`) or dynamically adds `obj.role = "admin"` later, it branches into a different Hidden Class tree, turning fast monomorphic reads into slower polymorphic or dictionary lookups.
+
+#### 2. V8 Array Elements Kinds (Packed vs. Holey Transitions)
+
+Standard JS arrays are objects under the hood, but V8 optimizes numeric and dense arrays into contiguous C-style backing stores categorized by **Elements Kinds** *(V8 implementation detail, not an ECMA-262 rule)*:
+
+- `PACKED_SMI_ELEMENTS`: Dense array of small 31-bit integers (`[1, 2, 3]`) — fastest, unboxed.
+- `PACKED_DOUBLE_ELEMENTS`: Adding a float (`arr.push(1.5)`) downgrades the backing store to unboxed 64-bit floats.
+- `PACKED_ELEMENTS`: Adding a string or object (`arr.push("ok")`) downgrades to generic tagged pointers.
+- `HOLEY_*`: Leaving gaps (`[1, , 3]`, `arr[500] = 9`, or `delete arr[1]`) marks the array **holey**. Whenever you read a hole, V8 must check `Array.prototype` up the prototype chain in case someone defined a property at that index!
+- **Crucial rule:** Elements Kind transitions are strictly **one-way** (specific &rarr; generic, packed &rarr; holey). Even if you later remove the string or fill the gap, V8 never upgrades that array back.
+
+<DiagramCard caption="Figure 1.3 — V8 Array Elements Kinds transition only downward (one-way) from unboxed packed storage toward generic holey storage.">
+  <svg viewBox="0 0 820 220" role="img" aria-label="V8 array elements kinds one-way transition lattice">
+    <rect x="10" y="10" width="800" height="200" rx="10" fill="var(--bg-subtle)" stroke="var(--border)" />
+    <text x="28" y="36" fill="var(--text-primary)" fontSize="13.5" fontWeight="700" fontFamily="sans-serif">V8 Array Elements Kinds (Strictly One-Way Transitions)</text>
+
+    <rect x="30" y="56" width="220" height="48" rx="6" fill="var(--success-soft)" stroke="var(--success)" />
+    <text x="140" y="77" textAnchor="middle" fill="var(--success)" fontSize="12" fontWeight="700" fontFamily="monospace">PACKED_SMI_ELEMENTS</text>
+    <text x="140" y="94" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="monospace">[1, 2, 3] (fastest)</text>
+
+    <line x1="250" y1="80" x2="296" y2="80" stroke="var(--accent)" strokeWidth="2" />
+    <polygon points="296,80 286,75 286,85" fill="var(--accent)" />
+
+    <rect x="300" y="56" width="230" height="48" rx="6" fill="var(--accent-soft)" stroke="var(--accent)" />
+    <text x="415" y="77" textAnchor="middle" fill="var(--accent-strong)" fontSize="12" fontWeight="700" fontFamily="monospace">PACKED_DOUBLE_ELEMENTS</text>
+    <text x="415" y="94" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="monospace">push(1.5) -> unboxed floats</text>
+
+    <line x1="530" y1="80" x2="576" y2="80" stroke="var(--accent)" strokeWidth="2" />
+    <polygon points="576,80 566,75 566,85" fill="var(--accent)" />
+
+    <rect x="580" y="56" width="210" height="48" rx="6" fill="var(--warning-soft)" stroke="var(--warning)" />
+    <text x="685" y="77" textAnchor="middle" fill="var(--warning)" fontSize="12" fontWeight="700" fontFamily="monospace">PACKED_ELEMENTS</text>
+    <text x="685" y="94" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="monospace">push("a") -> tagged ptrs</text>
+
+    <line x1="140" y1="104" x2="140" y2="136" stroke="var(--danger)" strokeWidth="2" />
+    <polygon points="140,136 135,126 145,126" fill="var(--danger)" />
+    <line x1="415" y1="104" x2="415" y2="136" stroke="var(--danger)" strokeWidth="2" />
+    <polygon points="415,136 410,126 420,126" fill="var(--danger)" />
+    <line x1="685" y1="104" x2="685" y2="136" stroke="var(--danger)" strokeWidth="2" />
+    <polygon points="685,136 680,126 690,126" fill="var(--danger)" />
+
+    <rect x="30" y="140" width="220" height="48" rx="6" fill="var(--danger-soft)" stroke="var(--danger)" />
+    <text x="140" y="161" textAnchor="middle" fill="var(--danger)" fontSize="12" fontWeight="700" fontFamily="monospace">HOLEY_SMI_ELEMENTS</text>
+    <text x="140" y="178" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="monospace">delete arr[1] / sparse gaps</text>
+
+    <rect x="300" y="140" width="230" height="48" rx="6" fill="var(--danger-soft)" stroke="var(--danger)" />
+    <text x="415" y="161" textAnchor="middle" fill="var(--danger)" fontSize="12" fontWeight="700" fontFamily="monospace">HOLEY_DOUBLE_ELEMENTS</text>
+    <text x="415" y="178" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="monospace">prototype lookup on holes</text>
+
+    <rect x="580" y="140" width="210" height="48" rx="6" fill="var(--danger-soft)" stroke="var(--danger)" />
+    <text x="685" y="161" textAnchor="middle" fill="var(--danger)" fontSize="12" fontWeight="700" fontFamily="monospace">HOLEY_ELEMENTS</text>
+    <text x="685" y="178" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="monospace">slowest standard array</text>
+  </svg>
+</DiagramCard>
+
+#### 3. How ES2015+ Classes & ES2022 `#private` Fields Work
+
+Under the hood, an ES2015 `class` still creates a constructor function and places instance methods on `ClassName.prototype` (covered deeply in M01-P4). However, `class` adds critical runtime safeguards over old constructor functions:
+
+- Class bodies run in **strict mode** automatically and cannot be called without `new` (throws `TypeError`).
+- **ES2022 `#private` fields** are stored in internal per-instance private slots keyed by the class's lexical brand—not as string keys on the object! They do not appear in `Object.keys()`, `JSON.stringify()`, or `for..in`, and subclasses cannot access a parent's `#private` fields directly.
+
+#### 4. Dependency Inversion & Composition Flow
+
+Instead of high-level business logic instantiating concrete SDKs directly, Dependency Inversion reverses the compile-time/import arrow: both high-level policy and low-level adapters depend on a shared minimal contract.
+
+<DiagramCard caption="Figure 1.4 — Dependency Inversion + Strategy composition keeps core business logic independent of concrete transport or payment SDKs.">
+  <svg viewBox="0 0 820 210" role="img" aria-label="Dependency Inversion and Strategy composition diagram">
+    <rect x="10" y="10" width="800" height="190" rx="10" fill="var(--bg-subtle)" stroke="var(--border)" />
+
+    <rect x="30" y="55" width="230" height="90" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" />
+    <text x="145" y="84" textAnchor="middle" fill="var(--accent-strong)" fontSize="13.5" fontWeight="700" fontFamily="sans-serif">CheckoutService (Policy)</text>
+    <text x="145" y="106" textAnchor="middle" fill="var(--text-secondary)" fontSize="12" fontFamily="monospace">constructor(gateway)</text>
+    <text x="145" y="126" textAnchor="middle" fill="var(--text-secondary)" fontSize="11.5" fontFamily="sans-serif">Zero Stripe/PayPal imports</text>
+
+    <line x1="260" y1="100" x2="316" y2="100" stroke="var(--accent)" strokeWidth="2" />
+    <polygon points="316,100 306,95 306,105" fill="var(--accent)" />
+
+    <rect x="320" y="55" width="195" height="90" rx="8" fill="var(--bg-surface)" stroke="var(--border-control)" />
+    <text x="417" y="84" textAnchor="middle" fill="var(--text-primary)" fontSize="13" fontWeight="700" fontFamily="monospace">PaymentGateway</text>
+    <text x="417" y="104" textAnchor="middle" fill="var(--text-muted)" fontSize="11.5" fontFamily="sans-serif">(Abstraction / Contract)</text>
+    <text x="417" y="126" textAnchor="middle" fill="var(--text-secondary)" fontSize="12" fontFamily="monospace">charge(cents) -&gt; Receipt</text>
+
+    <line x1="575" y1="62" x2="515" y2="85" stroke="var(--success)" strokeWidth="2" strokeDasharray="4,3" />
+    <polygon points="515,85 526,87 522,77" fill="var(--success)" />
+    <line x1="575" y1="138" x2="515" y2="115" stroke="var(--success)" strokeWidth="2" strokeDasharray="4,3" />
+    <polygon points="515,115 522,123 526,113" fill="var(--success)" />
+
+    <rect x="575" y="32" width="210" height="54" rx="6" fill="var(--success-soft)" stroke="var(--success)" />
+    <text x="680" y="55" textAnchor="middle" fill="var(--success)" fontSize="12.5" fontWeight="700" fontFamily="monospace">StripeGateway</text>
+    <text x="680" y="73" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Implements PaymentGateway</text>
+
+    <rect x="575" y="114" width="210" height="54" rx="6" fill="var(--success-soft)" stroke="var(--success)" />
+    <text x="680" y="137" textAnchor="middle" fill="var(--success)" fontSize="12.5" fontWeight="700" fontFamily="monospace">InMemoryTestGateway</text>
+    <text x="680" y="155" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Polymorphic test double</text>
+  </svg>
+</DiagramCard>
+
+</TopicSection>
+
+<TopicSection id="m01-p2-sec-d" letter="D" title="Practical Examples (Interactive)">
+
+#### Example 1: Objects, `Object.hasOwn`, Shallow Spread vs. `structuredClone`
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// 1. Safe own-property checks with Object.hasOwn (ES2022)
+const dict = Object.create(null); // No Object.prototype!
+dict.role = "editor";
+console.log("Object.hasOwn on null-proto:", Object.hasOwn(dict, "role"));
+console.log("toString in plain {}:", "toString" in {}, "| Object.hasOwn:", Object.hasOwn({}, "toString"));
+
+// 2. Shallow spread shares nested objects vs structuredClone (Node 17+ / modern browsers)
+const original = { id: "u_1", prefs: { theme: "sepia" } };
+const shallow = { ...original };
+shallow.prefs.theme = "dark";
+console.log("Original affected by shallow copy:", original.prefs.theme); // "dark"
+
+const deep = structuredClone(original);
+deep.prefs.theme = "light";
+console.log("Original isolated after structuredClone:", original.prefs.theme, "| Deep:", deep.prefs.theme);`}
+/>
+
+#### Example 2: Arrays — Default `.sort()` Trap, `toSorted()` (ES2023), and Avoiding Holes
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// 1. Numeric sort trap vs ES2023 non-mutating toSorted()
+const scores = [10, 2, 25, 4];
+const brokenLex = [...scores].sort(); // Converts to UTF-16 strings!
+const cleanSorted = scores.toSorted((a, b) => a - b); // Original unchanged!
+
+console.log("Lexicographic bug:", brokenLex);
+console.log("Numeric toSorted:", cleanSorted);
+console.log("Original scores intact:", scores);
+
+// 2. delete creates sparse holes; splice/filter keeps array dense
+const queue = ["job1", "job2", "job3"];
+delete queue[1]; // Bad: creates <1 empty item> hole, length stays 3
+console.log("After delete (holey):", queue, "length:", queue.length, "1 in?", 1 in queue);
+
+const dense = ["job1", "job2", "job3"].filter((_, idx) => idx !== 1);
+console.log("Dense filtered:", dense, "length:", dense.length);`}
+/>
+
+#### Example 3: Classes, `#private` Encapsulation, Polymorphism & SOLID in Action
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// Encapsulation + Abstraction: LedgerAccount enforces non-negative invariants with #private fields
+class LedgerAccount {
+  #balanceCents;
+  #entries = [];
+
+  constructor(owner, initialCents = 0) {
+    if (!Number.isSafeInteger(initialCents) || initialCents < 0) {
+      throw new RangeError("initialCents must be a non-negative safe integer");
+    }
+    this.owner = owner;
+    this.#balanceCents = initialCents;
+  }
+
+  deposit(cents) {
+    if (!Number.isSafeInteger(cents) || cents <= 0) {
+      throw new RangeError("Deposit must be positive integer cents");
+    }
+    this.#balanceCents += cents;
+    this.#entries.push({ type: "CREDIT", cents });
+  }
+
+  get balanceCents() {
+    return this.#balanceCents;
+  }
+
+  toJSON() {
+    return { owner: this.owner, balanceCents: this.#balanceCents, count: this.#entries.length };
+  }
+}
+
+// Polymorphism + OCP + DIP: CheckoutService depends only on a charge(cents) strategy
+class StripeGateway {
+  charge(cents) {
+    return { provider: "stripe", ok: true, chargedCents: cents };
+  }
+}
+
+class MockGateway {
+  charge(cents) {
+    return { provider: "mock", ok: true, chargedCents: cents };
+  }
+}
+
+class CheckoutService {
+  #gateway;
+  constructor(gateway) {
+    this.#gateway = gateway; // Dependency Inversion: injected abstraction
+  }
+  pay(account, amountCents) {
+    const receipt = this.#gateway.charge(amountCents);
+    if (receipt.ok) account.deposit(amountCents);
+    return receipt;
+  }
+}
+
+const acct = new LedgerAccount("Maya", 500);
+const checkout = new CheckoutService(new MockGateway());
+console.log("Receipt:", checkout.pay(acct, 1200));
+console.log("JSON view (no #private leak):", JSON.stringify(acct));`}
+/>
+
+</TopicSection>
+
+<TopicSection id="m01-p2-sec-e" letter="E" title="Step-by-Step Walkthrough">
+
+Trace every step of **Example 3** (`LedgerAccount` + `CheckoutService`):
+
+1. **Instantiation (`new LedgerAccount("Maya", 500)`):** V8 allocates a `LedgerAccount` instance on the heap, runs `constructor`, validates `initialCents`, sets public `this.owner = "Maya"`, and initializes private internal slots `#balanceCents = 500` and `#entries = []`.
+2. **Encapsulation Guarantee:** External code cannot execute `acct.#balanceCents = 999999` (syntax error) or mutate `acct.#entries.push(...)`. Only `deposit()` can change `#balanceCents`, ensuring validation never gets skipped.
+3. **Dependency Injection (`new CheckoutService(new MockGateway())`):** `CheckoutService` stores the injected gateway inside its `#gateway` private field. It does not import or `new` a concrete Stripe SDK internally (**DIP**).
+4. **Polymorphic Dispatch (`this.#gateway.charge(1200)`):** `CheckoutService.pay` calls `.charge(1200)` without checking whether `#gateway` is `StripeGateway`, `MockGateway`, or a future `AdyenGateway` (**Polymorphism** & **OCP**).
+5. **Safe Serialization (`JSON.stringify(acct)`):** Because `toJSON()` is defined explicitly and `#private` slots are hidden from enumeration, only the safe public summary `{ owner, balanceCents, count }` is serialized.
+
+</TopicSection>
+
+<TopicSection id="m01-p2-sec-f" letter="F" title="Real-World Use Cases">
+
+#### Scenario 1: Multi-Gateway Billing Service (Abstraction, Polymorphism, OCP & DIP)
+
+**Problem:** An e-commerce backend starts with Stripe inside `processOrder()`. Six months later, adding PayPal and local bank transfers turns `processOrder()` into a 400-line `switch` statement where testing requires hitting real Stripe sandboxes.
+
+**Production Solution:** Extract a minimal `PaymentProvider` interface (`charge`, `refund`) and inject implementations via a `Map<string, PaymentProvider>` registry. Core `OrderService` logic stays unchanged when adding providers (**OCP**), and unit tests inject an in-memory double (**DIP**).
+
+#### Scenario 2: Immutable State Trees in React & Node.js Config Mergers
+
+**Problem:** A React dashboard filters and sorts a user's `orders` prop using `orders.sort(...)`. Because `.sort()` mutates in place, React's shallow reference check (`prevOrders === nextOrders`) thinks nothing changed, skipping re-renders while silently scrambling parent state.
+
+**Production Solution:** Use non-mutating transformations (`orders.toSorted(...)` or `[...orders].sort(...)`) and immutable object updates (`{ ...state, user: { ...state.user, name } }`) so references change cleanly along modified paths.
+
+</TopicSection>
+
+<TopicSection id="m01-p2-sec-g" letter="G" title="Common Mistakes">
+
+- **Mutating arrays with `.sort()`, `.reverse()`, or `.splice()`** on props/state or omitting numeric comparators (`[10, 2].sort()` sorting as strings).
+- **Using `delete arr[index]`**: Leaves sparse empty slots (`HOLEY_ELEMENTS`) while keeping `arr.length` unchanged. Use `.splice()` or `.filter()` instead.
+- **Confusing shallow spread (`{ ...obj }`) with deep cloning**: Mutating nested properties still mutates the original object.
+- **Overusing deep inheritance (`class Manager extends Employee extends Person extends Entity`)**: Tightly couples subclasses to parent internals (Fragile Base Class problem) and often violates **Liskov Substitution** (e.g., `Square extends Rectangle` breaking independent `setWidth`/`setHeight` assumptions).
+- **Using plain `{}` as a dynamic dictionary for arbitrary keys**: User-supplied keys like `"constructor"` or `"toString"` collide with `Object.prototype` methods. Prefer `new Map()`.
+- **Treating SOLID as a mandate for excessive boilerplate**: Wrapping a 10-line helper in five interfaces and abstract factories violates YAGNI.
+
+</TopicSection>
+
+<TopicSection id="m01-p2-sec-h" letter="H" title="Best Practices">
+
+- **Favor composition ("has-a") over inheritance ("is-a"):** Compose small behaviors (`retryPolicy`, `logger`, `gateway`) via constructor injection instead of multi-level `extends` chains.
+- **Use `#private` class fields for genuine invariants** (account balances, state machines, secret clients) and expose clean getters/methods.
+- **Use `Object.hasOwn(obj, key)`** for own-property checks and **`Map` / `Set`** for dynamic collections with frequent additions/deletions.
+- **Keep object shapes consistent** (initialize all fields in the same order, set optional fields to `null`/`undefined` upfront rather than adding them conditionally later).
+- **Prefer non-mutating array operations** (`map`, `filter`, `toSorted`, `toReversed`, `toSpliced`) at application state boundaries.
+- **Apply SOLID where change happens:** Split responsibilities when modules serve different actors (**SRP**), and introduce interfaces (**OCP/DIP**) at external I/O or multi-variant boundaries.
+
+</TopicSection>
+
+<TopicSection id="m01-p2-sec-i" letter="I" title="Performance & Scalability">
+
+- **`Object` vs. `Map` at Scale:** Plain objects with static shapes optimize well for fixed-schema records (V8 Hidden Classes). `Map` is optimized for dynamic dictionaries with frequent key insertions/deletions and avoids prototype chain checks.
+- **Array Operation Complexity:** `.push()` and `.pop()` at the tail are amortized `O(1)`. `.shift()` and `.unshift()` at index `0` re-index every element (`O(n)`), becoming a bottleneck on queues of 50,000+ items (use a ring buffer or head-index pointer instead).
+- **Keep Hot Arrays Dense & Homogeneous:** Avoid mixing integers, floats, and strings or leaving sparse holes in tight numeric loops so V8 stays in `PACKED_SMI` / `PACKED_DOUBLE` storage.
+- **`structuredClone` Cost:** Deep cloning huge nested payloads on every request allocates significant heap memory. Clone only at untrusted boundaries or use structural sharing for incremental updates.
+
+</TopicSection>
+
+<TopicSection id="m01-p2-sec-j" letter="J" title="Security Considerations">
+
+- **Prototype Pollution (`__proto__`, `constructor`, `prototype`):** Never merge untrusted objects recursively without blocking `"__proto__"`, `"constructor"`, and `"prototype"` keys and checking `Object.hasOwn(src, key)`. Polluting `Object.prototype` affects every object in a Node.js server!
+- **Dynamic Property Lookup Injection:** Avoid `handlers[userInput]()` on a plain object—if `userInput === "toString"`, it invokes `Object.prototype.toString` or throws unexpectedly. Use `handlersMap.get(userInput)` with a `Map`.
+- **Accidental Secret Leakage in Serialization:** Plain public properties like `user._passwordHash` are included by `JSON.stringify(user)`. Keep sensitive fields `#private` or return explicit DTOs / `toJSON()` outputs.
+- **Freezing Shared Configuration:** Call `Object.freeze()` (or recursive deep freeze) on startup configuration objects so buggy plugins cannot mutate shared runtime settings.
+
+</TopicSection>
+
+<TopicSection id="m01-p2-sec-k" letter="K" title="Comparisons & Decision Tables">
+
+#### 1. Plain `Object` vs. `Map` vs. `Set`
+
+| Criterion | Plain `Object` | `Map` | `Set` |
+| --- | --- | --- | --- |
+| Key types | `string` and `Symbol` only | Any value (objects, functions, primitives) | Unique values only (no key-value pair) |
+| Prototype collisions | Inherits `Object.prototype` (use `Object.hasOwn`) | None (clean key space) | None |
+| Size lookup | `Object.keys(o).length` (`O(n)`) | `map.size` (`O(1)`) | `set.size` (`O(1)`) |
+| JSON serialization | Native `JSON.stringify` support | Requires `[...map]` conversion | Requires `[...set]` conversion |
+| Best fit | Fixed-shape records, DTOs, JSON payloads | Dynamic dictionaries, caches, frequent add/delete | Deduplication, `O(1)` membership tests |
+
+#### 2. Composition vs. Inheritance
+
+| Dimension | Composition (*Has-A*) | Inheritance (*Is-A*) |
+| --- | --- | --- |
+| Coupling | Loose (depends on small public contract) | Tight (coupled to parent internals/lifecycle) |
+| Runtime flexibility | Swap behaviors dynamically via constructor/props | Fixed class hierarchy at definition time |
+| Multiple capabilities | Combine any number of collaborators cleanly | JS supports single `extends` only |
+| Best fit | Services, plugins, UI patterns, retry/auth policies | Shallow taxonomies (e.g., custom `AppError extends Error`) |
+
+#### 3. SOLID Principles Quick Decision Guide
+
+| Principle | Core Question | Warning Sign of Violation |
+| --- | --- | --- |
+| **S**RP | Does this module change for one reason/actor? | A class mixes SQL queries, pricing math, and HTML formatting |
+| **O**CP | Can we add a variant without editing core code? | A 10-branch `switch (provider)` duplicated across files |
+| **L**SP | Can any subtype replace the base seamlessly? | Subclass throws `NotImplementedError` or changes return shape |
+| **I**SP | Are callers forced to depend on unused methods? | A mock needs 15 dummy methods just to test 1 read call |
+| **D**IP | Does domain logic depend on abstractions, not SDKs? | Business logic directly imports `mysql2` or `stripe` |
+
+</TopicSection>
+
+<TopicSection id="m01-p2-sec-l" letter="L" title="Tips to Remember (Mnemonics & Mental Models)">
+
+- **OOP Pillars — `A-P-I-E`:** **A**bstraction (hide complexity), **P**olymorphism (one interface, many forms), **I**nheritance (is-a specialization), **E**ncapsulation (protect invariants with `#private`).
+- **`SOLID` 5-Word Summary:** **S**ingle reason, **O**pen to extend, **L**iskov substitutable, **I**nterfaces small, **D**epend on abstractions.
+- **Array Safety Rule:** *"Sort mutates & stringifies; `toSorted((a, b) => a - b)` stays pure & numeric."*
+- **Prototype Pollution Shield:** *"Plain `{}` shares a family tree; `Map` and `Object.hasOwn` keep strangers out."*
+- **V8 Speed Rule:** *"Same key order on objects, no holes in arrays."*
+
+</TopicSection>
+
+<TopicSection id="m01-p2-sec-mn" letter="M/N" title="Interview Questions & Detailed Answers">
+  <InterviewSection />
+</TopicSection>
+
+<TopicSection id="m01-p2-sec-o" letter="O" title="Practical Exercises">
+
+<ExerciseCard
+  title="Exercise 1: Prototype-Pollution-Safe Config Merger"
+  prompt={
+    <p>
+      Write <code>safeMerge(base, override)</code> that creates a shallow-isolated copy merging own properties of <code>override</code> onto <code>base</code> while explicitly blocking <code>__proto__</code>, <code>constructor</code>, and <code>prototype</code> keys and ignoring inherited keys.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`const FORBIDDEN_KEYS = new Set(["__proto__", "constructor", "prototype"]);
+
+function safeMerge(base, override) {
+  const result = { ...base };
+  for (const key of Object.keys(override)) {
+    if (FORBIDDEN_KEYS.has(key)) continue;
+    if (!Object.hasOwn(override, key)) continue;
+    result[key] = override[key];
+  }
+  return result;
+}
+
+const malicious = JSON.parse('{"theme":"dark","__proto__":{"isAdmin":true}}');
+const merged = safeMerge({ theme: "light", timeoutMs: 3000 }, malicious);
+console.log("Merged:", merged);
+console.log("Object.prototype polluted?", ({}).isAdmin === true); // false`}
+  />
+</ExerciseCard>
+
+<ExerciseCard
+  title="Exercise 2: Non-Mutating Array Analytics Pipeline"
+  prompt={
+    <p>
+      Given an array of order objects <code>{`{ id, amountCents, status }`}</code>, write a pure function <code>topPaidOrders(orders, limit)</code> that filters <code>"PAID"</code> orders, sorts descending by <code>amountCents</code> without mutating the input array, and returns the top <code>limit</code> items.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function topPaidOrders(orders, limit = 3) {
+  return orders
+    .filter((o) => o.status === "PAID")
+    .toSorted((a, b) => b.amountCents - a.amountCents)
+    .slice(0, limit);
+}
+
+const orders = [
+  { id: "o1", amountCents: 1200, status: "PAID" },
+  { id: "o2", amountCents: 9900, status: "PENDING" },
+  { id: "o3", amountCents: 4500, status: "PAID" },
+  { id: "o4", amountCents: 2100, status: "PAID" }
+];
+console.log("Top 2 paid:", topPaidOrders(orders, 2));
+console.log("Original first item untouched:", orders[0].id);`}
+  />
+</ExerciseCard>
+
+<ExerciseCard
+  title="Exercise 3: Refactoring Switch Logic to SOLID (OCP + DIP)"
+  prompt={
+    <p>
+      Refactor a hardcoded <code>if/else</code> discount calculator into a <code>Map</code>-based strategy registry where new discount rules register without modifying <code>PriceCalculator</code>.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`class PriceCalculator {
+  #strategies = new Map();
+
+  register(code, fn) {
+    this.#strategies.set(code, fn);
+  }
+
+  apply(code, subtotalCents) {
+    const strategy = this.#strategies.get(code);
+    if (!strategy) throw new Error(\`Unknown discount code: \${code}\`);
+    return strategy(subtotalCents);
+  }
+}
+
+const calc = new PriceCalculator();
+calc.register("FLAT500", (cents) => Math.max(0, cents - 500));
+calc.register("PCT10", (cents) => Math.round(cents * 0.9));
+
+console.log("FLAT500 on 3000:", calc.apply("FLAT500", 3000));
+console.log("PCT10 on 3000:", calc.apply("PCT10", 3000));`}
+  />
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m01-p2-sec-p" letter="P" title="Advanced Challenge">
+
+<Callout variant="warn" title="Senior Challenge: Plugin-Safe Extensible Rules Engine">
+  <p>
+    You are building a multi-tenant Node.js webhook engine where tenants define custom filter rules in JSON and plugins register custom transformation steps.
+  </p>
+  <p>
+    <strong>Your Task:</strong> Explain how you combine (1) <strong>Encapsulation</strong> (<code>#private</code> state) to isolate tenant execution contexts, (2) <strong>OCP + DIP</strong> via a <code>Map</code>-backed plugin registry, (3) <strong>Liskov Substitution</strong> on plugin return contracts, and (4) defense against <strong>Prototype Pollution</strong> and accidental mutation of shared event payloads across plugins.
+  </p>
+</Callout>
+
+<ExerciseCard
+  title="Reference Architecture Notes"
+  prompt={null}
+  buttonLabel="Reveal Approach"
+  hideLabel="Hide Approach"
+>
+  <ol>
+    <li>Isolate per-tenant execution inside an encapsulated <code>TenantPipeline</code> class storing secrets/quotas in <code>#private</code> fields and exposing only <code>execute(event)</code>.</li>
+    <li>Store registered plugin handlers in a <code>new Map()</code> (never a plain object) so tenant rule names like <code>"constructor"</code> cannot invoke prototype properties.</li>
+    <li>Clone or freeze incoming event objects (<code>Object.freeze</code> / <code>structuredClone</code> per plugin step) so one buggy plugin cannot mutate payloads read by subsequent plugins.</li>
+    <li>Enforce a uniform Liskov-compliant plugin contract (<code>&#123; status: "ok", payload &#125; | &#123; status: "skip", reason &#125;</code>) and block <code>__proto__</code>/<code>constructor</code>/<code>prototype</code> keys at JSON ingestion.</li>
+  </ol>
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m01-p2-sec-q" letter="Q" title="Summary & Key Takeaways">
+
+- **Objects & Arrays** are heap-allocated reference types: prefer `Object.hasOwn()`, `structuredClone()` for deep isolation, `Map`/`Set` for dynamic keys, and non-mutating array transforms (`toSorted`, `filter`, `map`).
+- **V8 Performance Mental Model:** Keep object property initialization orders consistent (Hidden Classes) and keep arrays dense and type-homogeneous (avoiding one-way `HOLEY` downgrades).
+- **OOP Pillars (`A-P-I-E`):** Use ES2022 `#private` fields for true encapsulation, clean interfaces for abstraction and polymorphism, and **composition over inheritance** for flexibility.
+- **SOLID Pragmatically:** Separate unrelated actors (**SRP**), extend via registries/strategies (**OCP**), keep subtypes contract-compatible (**LSP**), keep interfaces small (**ISP**), and inject low-level dependencies (**DIP**).
+
+</TopicSection>
