@@ -398,31 +398,31 @@ Split into 3 parts:
 
 ### Module 8: Database Indexing — Deep Dive (`modules/08-indexing.html`)
 Split into 4 parts:
-- **M08-P1**: Index foundations & data structures (why/how indexes work, B-Tree, B+ Tree, Hash indexes, clustered vs non-clustered, unique)
-- **M08-P2**: Specialized index types (composite, covering, partial, filtered, functional, expression, full-text, spatial) & selectivity, cardinality, statistics
+- **M08-P1** (done, audited `PASS`, committed): Index foundations & data structures (why/how indexes work, B-Tree, B+ Tree, Hash indexes, clustered vs non-clustered, unique)
+- **M08-P2** (done, audited `PASS` in round 3, committed): Specialized index types (composite, covering, partial, filtered, functional, expression, full-text, spatial) & selectivity, cardinality, statistics
 - **M08-P3**: Query access patterns & optimization (index scans, seeks, lookups, table scans, sequential scans, composite column order, leftmost-prefix principle, sorting/filtering/JOIN/GROUP BY/ORDER BY optimization, index-only scans)
 - **M08-P4**: Maintenance, trade-offs & cross-DB strategy (fragmentation, write/storage overhead, over-indexing, under-indexing, index selection for millions of rows, PostgreSQL vs MySQL vs MSSQL vs MongoDB comparison, realistic slow query -> wrong index -> better index -> plan -> benchmark comparison -> production strategy)
 
 #### Topics
-- [ ] Why indexes exist
-- [ ] How indexes work
-- [ ] B-Tree
-- [ ] B+ Tree
-- [ ] Hash indexes
-- [ ] Clustered indexes
-- [ ] Non-clustered indexes
-- [ ] Composite indexes
-- [ ] Covering indexes
-- [ ] Unique indexes
-- [ ] Partial indexes
-- [ ] Filtered indexes
-- [ ] Functional indexes
-- [ ] Expression indexes
-- [ ] Full-text indexes
-- [ ] Spatial indexes
-- [ ] Index selectivity
-- [ ] Cardinality
-- [ ] Index statistics
+- [x] Why indexes exist
+- [x] How indexes work
+- [x] B-Tree
+- [x] B+ Tree
+- [x] Hash indexes
+- [x] Clustered indexes
+- [x] Non-clustered indexes
+- [x] Composite indexes
+- [x] Covering indexes
+- [x] Unique indexes
+- [x] Partial indexes
+- [x] Filtered indexes
+- [x] Functional indexes
+- [x] Expression indexes
+- [x] Full-text indexes
+- [x] Spatial indexes
+- [x] Index selectivity
+- [x] Cardinality
+- [x] Index statistics
 - [ ] Index scans
 - [ ] Index seeks
 - [ ] Index lookups

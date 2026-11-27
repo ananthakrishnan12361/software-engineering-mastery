@@ -59,6 +59,8 @@ import M07P3Mdx from "./modules/07-mssql/m07-p3.mdx";
 import m07p3Raw from "./modules/07-mssql/m07-p3.mdx?raw";
 import M08P1Mdx from "./modules/08-indexing/m08-p1.mdx";
 import m08p1Raw from "./modules/08-indexing/m08-p1.mdx?raw";
+import M08P2Mdx from "./modules/08-indexing/m08-p2.mdx";
+import m08p2Raw from "./modules/08-indexing/m08-p2.mdx?raw";
 import { m01p1Questions } from "./interviews/m01-p1.questions";
 import { m01p2Questions } from "./interviews/m01-p2.questions";
 import { m01p3Questions } from "./interviews/m01-p3.questions";
@@ -85,6 +87,7 @@ import { m07p1Questions } from "./interviews/m07-p1.questions";
 import { m07p2Questions } from "./interviews/m07-p2.questions";
 import { m07p3Questions } from "./interviews/m07-p3.questions";
 import { m08p1Questions } from "./interviews/m08-p1.questions";
+import { m08p2Questions } from "./interviews/m08-p2.questions";
 import { SYLLABUS_MODULES } from "./syllabus";
 
 export interface HandbookCatalog {
@@ -258,11 +261,11 @@ const modules: ModuleRecord[] = [
     number: 8,
     title: "Database Indexing — Deep Dive",
     category: "databases",
-    partSummary: "Parts 1–4 of 4 (Part 1 Complete)",
+    partSummary: "Parts 1–4 of 4 (Parts 1–2 Complete)",
     scopeSummary:
       "Scope (Parts 1–4): Database Indexing — Why Indexes Exist, B-Tree, B+ Tree, Hash, Clustered, Non-Clustered, Unique, Composite, Covering, Partial, Filtered, Functional, Full-Text, Spatial, Selectivity, Access Patterns, Maintenance & Cross-Database Strategy",
     lead: "Master database indexing from first principles: B+ Tree internals, hash indexes, clustered versus non-clustered lookups, unique constraints, and the cost model behind every index decision.",
-    lessonIds: ["m08-p1"]
+    lessonIds: ["m08-p1", "m08-p2"]
   }
 ];
 
@@ -1771,8 +1774,66 @@ const lessons: LessonRecord[] = [
       }
     ],
     prevLessonId: "m07-p3",
-    nextLessonId: null,
+    nextLessonId: "m08-p2",
     Content: M08P1Mdx
+  },
+  {
+    id: "m08-p2",
+    moduleId: "module-8",
+    moduleNumber: 8,
+    moduleTitle: "Database Indexing — Deep Dive",
+    partLabel: "Lesson M08-P2",
+    title: "Part 2: Composite, Covering, Partial, Filtered, Functional, Expression, Full-Text & Spatial Indexes, Selectivity, Cardinality & Statistics",
+    category: "databases",
+    duration: "100 min (42m theory · 38m practice · 20m review)",
+    objectives: [
+      "Design composite indexes by column order and count the index entries each query shape must scan, including the effect of a gap in the equality prefix.",
+      "Build covering indexes with INCLUDE columns or extra key columns, and verify index-only scans, key lookups and visibility-map effects across engines.",
+      "Apply partial (PostgreSQL), filtered (SQL Server), functional and expression indexes, including soft-delete uniqueness and the rule that the query must prove the predicate or repeat the expression.",
+      "Explain how full-text inverted indexes and spatial R-Tree, GiST, grid and S2 indexes work, and choose the right engine-specific type.",
+      "Use selectivity, cardinality and statistics (MCVs, histograms, extended statistics) to estimate row counts, diagnose bad plans and keep statistics fresh."
+    ],
+    sections: [
+      { id: "m08-p2-objectives", title: "Learning Objectives" },
+      { id: "m08-p2-sec-a", letter: "A", title: "Topic Introduction" },
+      { id: "m08-p2-sec-b", letter: "B", title: "Fundamentals (Simple Mental Models)" },
+      { id: "m08-p2-sec-c", letter: "C", title: "Internal Working & Architecture" },
+      { id: "m08-p2-sec-d", letter: "D", title: "Practical Examples (Interactive)" },
+      { id: "m08-p2-sec-e", letter: "E", title: "Step-by-Step Walkthrough" },
+      { id: "m08-p2-sec-f", letter: "F", title: "Real-World Use Cases" },
+      { id: "m08-p2-sec-g", letter: "G", title: "Common Mistakes" },
+      { id: "m08-p2-sec-h", letter: "H", title: "Best Practices" },
+      { id: "m08-p2-sec-i", letter: "I", title: "Performance & Scalability" },
+      { id: "m08-p2-sec-j", letter: "J", title: "Security Considerations" },
+      { id: "m08-p2-sec-k", letter: "K", title: "Comparisons & Decision Tables" },
+      { id: "m08-p2-sec-l", letter: "L", title: "Tips to Remember (Mnemonics & Mental Models)" },
+      { id: "m08-p2-sec-mn", letter: "M/N", title: "Interview Questions & Detailed Answers" },
+      { id: "m08-p2-sec-o", letter: "O", title: "Practical Exercises" },
+      { id: "m08-p2-sec-p", letter: "P", title: "Advanced Challenge" },
+      { id: "m08-p2-sec-q", letter: "Q", title: "Summary & Key Takeaways" },
+      { id: "m08-p2-mastery", title: "Mastery Assessment" }
+    ],
+    masteryItems: [
+      {
+        id: "m08-p2-m1",
+        label: "I can order composite index columns, explain which query shapes can seek, and decide when an index should cover a query."
+      },
+      {
+        id: "m08-p2-m2",
+        label: "I can choose between partial, filtered, functional and expression indexes and explain why parameters or different expressions defeat them."
+      },
+      {
+        id: "m08-p2-m3",
+        label: "I can explain inverted full-text indexes and spatial index types and map them to PostgreSQL, MySQL, SQL Server and MongoDB."
+      },
+      {
+        id: "m08-p2-m4",
+        label: "I completed the M08-P2 exercises and can estimate row counts from MCVs and histograms and diagnose stale or correlated statistics."
+      }
+    ],
+    prevLessonId: "m08-p1",
+    nextLessonId: null,
+    Content: M08P2Mdx
   }
 ];
 
@@ -1802,7 +1863,8 @@ const questionsByLesson: Record<string, InterviewQuestion[]> = {
   "m07-p1": m07p1Questions,
   "m07-p2": m07p2Questions,
   "m07-p3": m07p3Questions,
-  "m08-p1": m08p1Questions
+  "m08-p1": m08p1Questions,
+  "m08-p2": m08p2Questions
 };
 
 const allQuestions: InterviewQuestion[] = [
@@ -1831,7 +1893,8 @@ const allQuestions: InterviewQuestion[] = [
   ...m07p1Questions,
   ...m07p2Questions,
   ...m07p3Questions,
-  ...m08p1Questions
+  ...m08p1Questions,
+  ...m08p2Questions
 ];
 
 function mergeGlossaryEntries(...batches: GlossaryEntry[][]): GlossaryEntry[] {
@@ -1873,7 +1936,8 @@ const glossaryEntries: GlossaryEntry[] = mergeGlossaryEntries(
   extractGlossaryFromMdx(m07p1Raw, "m07-p1"),
   extractGlossaryFromMdx(m07p2Raw, "m07-p2"),
   extractGlossaryFromMdx(m07p3Raw, "m07-p3"),
-  extractGlossaryFromMdx(m08p1Raw, "m08-p1")
+  extractGlossaryFromMdx(m08p1Raw, "m08-p1"),
+  extractGlossaryFromMdx(m08p2Raw, "m08-p2")
 );
 
 function buildSearchRecords(): SearchRecord[] {
@@ -1918,6 +1982,7 @@ function buildSearchRecords(): SearchRecord[] {
   records.push(...extractSearchRecordsFromMdx(m07p2Raw, "m07-p2", lessons[23].title, 7));
   records.push(...extractSearchRecordsFromMdx(m07p3Raw, "m07-p3", lessons[24].title, 7));
   records.push(...extractSearchRecordsFromMdx(m08p1Raw, "m08-p1", lessons[25].title, 8));
+  records.push(...extractSearchRecordsFromMdx(m08p2Raw, "m08-p2", lessons[26].title, 8));
 
   for (const mod of SYLLABUS_MODULES) {
     for (const topic of mod.topics) {

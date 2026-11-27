@@ -8,7 +8,7 @@ software-engineering-mastery/
 ├── .gitignore                           # Excludes node_modules/, dist/, caches
 │
 ├── content/                             # Course data only (type-only imports from public APIs)
-│   ├── syllabus.ts                      # Typed 28-module syllabus (945 topics, explicit anchor map)
+│   ├── syllabus.ts                      # Typed 28-module syllabus (951 topics, explicit anchor map)
 │   ├── registry.ts                      # Generated search index, glossary extraction, lesson manifest (loaded only by src/app/)
 │   ├── modules/
 │   │   └── 01-programming/
@@ -24,7 +24,7 @@ software-engineering-mastery/
 │   │   └── SearchOverlay.tsx            # Ctrl+K / full-screen mobile grouped search with keyboard nav
 │   ├── pages/
 │   │   ├── home/                        # Continue learning, stats, quick navigation
-│   │   ├── topics/                      # All 28 modules & 945 topics with URL-persisted filters & status badges
+│   │   ├── topics/                      # All 28 modules & 951 topics with URL-persisted filters & status badges
 │   │   ├── lesson/                      # Compact lesson header, collapsible A-Q, Prev/Next, RightToc + drawer
 │   │   ├── interviews/                  # Cross-course interviews with URL-persisted difficulty & module filters
 │   │   ├── glossary/                    # Searchable glossary with jump-to-section links
