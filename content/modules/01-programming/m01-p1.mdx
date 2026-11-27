@@ -83,7 +83,7 @@ When a function runs, the engine pushes a new **Stack Frame** onto the <Glossary
 <DiagramCard caption="Figure 1.1 — Stack frames store primitives and reference pointers; heap objects are shared when references are copied.">
   <svg viewBox="0 0 820 310" role="img" aria-label="Call Stack frames, variable bindings, and Heap memory references">
     <rect x="10" y="10" width="800" height="290" rx="10" fill="var(--bg-subtle)" stroke="var(--border)" />
-    <rect x="30" y="32" width="330" height="246" rx="8" fill="var(--bg-surface)" stroke="var(--border-strong)" />
+    <rect x="30" y="32" width="330" height="246" rx="8" fill="var(--bg-surface)" stroke="var(--border-control)" />
     <text x="50" y="58" fill="var(--accent-strong)" fontSize="14" fontWeight="700" fontFamily="sans-serif">CALL STACK (LIFO Frames)</text>
 
     <rect x="48" y="76" width="294" height="86" rx="6" fill="var(--accent-soft)" stroke="var(--accent)" />
@@ -91,7 +91,7 @@ When a function runs, the engine pushes a new **Stack Frame** onto the <Glossary
     <text x="62" y="120" fill="var(--text-secondary)" fontSize="12" fontFamily="monospace">rate  = 0.1      (primitive value)</text>
     <text x="62" y="140" fill="var(--text-secondary)" fontSize="12" fontFamily="monospace">cart  = 0x7F10   (reference ptr)</text>
 
-    <rect x="48" y="176" width="294" height="84" rx="6" fill="var(--bg-elevated)" stroke="var(--border-strong)" />
+    <rect x="48" y="176" width="294" height="84" rx="6" fill="var(--bg-elevated)" stroke="var(--border-control)" />
     <text x="62" y="198" fill="var(--text-primary)" fontSize="13" fontWeight="700" fontFamily="monospace">Global / Module Frame</text>
     <text x="62" y="220" fill="var(--text-secondary)" fontSize="12" fontFamily="monospace">taxCents = 150   (primitive value)</text>
     <text x="62" y="240" fill="var(--text-secondary)" fontSize="12" fontFamily="monospace">order    = 0x7F10 (reference ptr)</text>
@@ -101,7 +101,7 @@ When a function runs, the engine pushes a new **Stack Frame** onto the <Glossary
     <line x1="342" y1="236" x2="465" y2="132" stroke="var(--warning)" strokeWidth="2" strokeDasharray="5,4" />
     <polygon points="465,132 454,132 460,141" fill="var(--warning)" />
 
-    <rect x="440" y="32" width="350" height="246" rx="8" fill="var(--bg-surface)" stroke="var(--border-strong)" />
+    <rect x="440" y="32" width="350" height="246" rx="8" fill="var(--bg-surface)" stroke="var(--border-control)" />
     <text x="460" y="58" fill="var(--success)" fontSize="14" fontWeight="700" fontFamily="sans-serif">HEAP (Dynamic Objects &amp; Closures)</text>
 
     <rect x="465" y="80" width="300" height="106" rx="6" fill="var(--success-soft)" stroke="var(--success)" />

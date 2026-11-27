@@ -98,46 +98,46 @@ Every node of the tree is one page. The root and upper internal pages are touche
 <svg viewBox="0 0 820 190" xmlns="http://www.w3.org/2000/svg" aria-label="B+ Tree diagram with a root node, two internal nodes and four linked leaf nodes, plus a rules panel">
   <defs>
     <style>{`
-      .m8-label { font: 600 11px/1.3 system-ui, sans-serif; fill: var(--token-text-primary); }
-      .m8-sub   { font: 400 9.5px/1.3 system-ui, sans-serif; fill: var(--token-text-secondary); }
-      .m8-hdr   { font: 700 10px system-ui, sans-serif; fill: var(--token-text-inverse); }
+      .m8-label { font: 600 11px/1.3 system-ui, sans-serif; fill: var(--text-primary); }
+      .m8-sub   { font: 400 9.5px/1.3 system-ui, sans-serif; fill: var(--text-secondary); }
+      .m8-hdr   { font: 700 10px system-ui, sans-serif; fill: var(--accent-contrast); }
       .m8-box   { rx: 6; ry: 6; }
     `}</style>
-    <marker id="arr8" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--token-brand-default)"/></marker>
+    <marker id="arr8" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--accent)"/></marker>
   </defs>
 
-  <path d="M270 38 L155 62" stroke="var(--token-border-default)" stroke-width="1.4" fill="none"/>
-  <path d="M270 38 L385 62" stroke="var(--token-border-default)" stroke-width="1.4" fill="none"/>
-  <path d="M155 92 L80 118" stroke="var(--token-border-default)" stroke-width="1.4" fill="none"/>
-  <path d="M155 92 L200 118" stroke="var(--token-border-default)" stroke-width="1.4" fill="none"/>
-  <path d="M385 92 L320 118" stroke="var(--token-border-default)" stroke-width="1.4" fill="none"/>
-  <path d="M385 92 L440 118" stroke="var(--token-border-default)" stroke-width="1.4" fill="none"/>
+  <path d="M270 38 L155 62" stroke="var(--border)" stroke-width="1.4" fill="none"/>
+  <path d="M270 38 L385 62" stroke="var(--border)" stroke-width="1.4" fill="none"/>
+  <path d="M155 92 L80 118" stroke="var(--border)" stroke-width="1.4" fill="none"/>
+  <path d="M155 92 L200 118" stroke="var(--border)" stroke-width="1.4" fill="none"/>
+  <path d="M385 92 L320 118" stroke="var(--border)" stroke-width="1.4" fill="none"/>
+  <path d="M385 92 L440 118" stroke="var(--border)" stroke-width="1.4" fill="none"/>
 
-  <rect class="m8-box" x="215" y="8" width="110" height="30" fill="var(--token-brand-muted)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m8-box" x="215" y="8" width="110" height="30" fill="var(--accent-soft)" stroke="var(--border)" stroke-width="1"/>
   <text x="270" y="27" text-anchor="middle" class="m8-label">Root: 40</text>
 
-  <rect class="m8-box" x="100" y="62" width="110" height="30" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m8-box" x="100" y="62" width="110" height="30" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1"/>
   <text x="155" y="81" text-anchor="middle" class="m8-label">Internal: 20</text>
-  <rect class="m8-box" x="330" y="62" width="110" height="30" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m8-box" x="330" y="62" width="110" height="30" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1"/>
   <text x="385" y="81" text-anchor="middle" class="m8-label">Internal: 60</text>
 
-  <rect class="m8-box" x="30" y="118" width="100" height="34" fill="var(--token-success-muted)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m8-box" x="30" y="118" width="100" height="34" fill="var(--success-soft)" stroke="var(--border)" stroke-width="1"/>
   <text x="80" y="139" text-anchor="middle" class="m8-label">5 · 12</text>
-  <rect class="m8-box" x="150" y="118" width="100" height="34" fill="var(--token-success-muted)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m8-box" x="150" y="118" width="100" height="34" fill="var(--success-soft)" stroke="var(--border)" stroke-width="1"/>
   <text x="200" y="139" text-anchor="middle" class="m8-label">20 · 31</text>
-  <rect class="m8-box" x="270" y="118" width="100" height="34" fill="var(--token-success-muted)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m8-box" x="270" y="118" width="100" height="34" fill="var(--success-soft)" stroke="var(--border)" stroke-width="1"/>
   <text x="320" y="139" text-anchor="middle" class="m8-label">40 · 48</text>
-  <rect class="m8-box" x="390" y="118" width="100" height="34" fill="var(--token-success-muted)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m8-box" x="390" y="118" width="100" height="34" fill="var(--success-soft)" stroke="var(--border)" stroke-width="1"/>
   <text x="440" y="139" text-anchor="middle" class="m8-label">60 · 77</text>
 
-  <path d="M131 135 L148 135" stroke="var(--token-brand-default)" stroke-width="2" marker-end="url(#arr8)"/>
-  <path d="M251 135 L268 135" stroke="var(--token-brand-default)" stroke-width="2" marker-end="url(#arr8)"/>
-  <path d="M371 135 L388 135" stroke="var(--token-brand-default)" stroke-width="2" marker-end="url(#arr8)"/>
+  <path d="M131 135 L148 135" stroke="var(--accent)" stroke-width="2" marker-end="url(#arr8)"/>
+  <path d="M251 135 L268 135" stroke="var(--accent)" stroke-width="2" marker-end="url(#arr8)"/>
+  <path d="M371 135 L388 135" stroke="var(--accent)" stroke-width="2" marker-end="url(#arr8)"/>
 
   <text x="260" y="172" text-anchor="middle" class="m8-sub">Leaf chain: sibling pointers make range scans sequential</text>
 
-  <rect class="m8-box" x="560" y="8" width="252" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2"/>
-  <rect x="560" y="8" width="252" height="20" rx="6" ry="6" fill="var(--token-brand-default)"/>
+  <rect class="m8-box" x="560" y="8" width="252" height="174" fill="var(--bg-subtle)" stroke="var(--border)" stroke-width="1.2"/>
+  <rect x="560" y="8" width="252" height="20" rx="6" ry="6" fill="var(--accent)"/>
   <text x="686" y="22" text-anchor="middle" class="m8-hdr">B+ Tree Rules</text>
   <text x="572" y="52" class="m8-sub">Internal nodes: routing keys only</text>
   <text x="572" y="76" class="m8-sub">Leaves: every key + row locator</text>
@@ -835,48 +835,48 @@ try { createUniqueIndex({ columns: [] }); } catch (e) { console.log("Error:", e.
 <svg viewBox="0 0 820 190" xmlns="http://www.w3.org/2000/svg" aria-label="Lookup paths for clustered and heap storage and a cost summary panel">
   <defs>
     <style>{`
-      .m8q-label { font: 600 11px system-ui, sans-serif; fill: var(--token-text-primary); }
-      .m8q-sub   { font: 400 9.5px system-ui, sans-serif; fill: var(--token-text-secondary); }
-      .m8q-hdr   { font: 700 10px system-ui, sans-serif; fill: var(--token-text-inverse); }
+      .m8q-label { font: 600 11px system-ui, sans-serif; fill: var(--text-primary); }
+      .m8q-sub   { font: 400 9.5px system-ui, sans-serif; fill: var(--text-secondary); }
+      .m8q-hdr   { font: 700 10px system-ui, sans-serif; fill: var(--accent-contrast); }
       .m8q-box   { rx: 5; ry: 5; }
     `}</style>
-    <marker id="arr8q" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--token-brand-default)"/></marker>
+    <marker id="arr8q" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--accent)"/></marker>
   </defs>
 
-  <rect class="m8q-box" x="4" y="6" width="260" height="176" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2"/>
-  <rect x="4" y="6" width="260" height="20" rx="5" ry="5" fill="var(--token-brand-default)"/>
+  <rect class="m8q-box" x="4" y="6" width="260" height="176" fill="var(--bg-subtle)" stroke="var(--border)" stroke-width="1.2"/>
+  <rect x="4" y="6" width="260" height="20" rx="5" ry="5" fill="var(--accent)"/>
   <text x="134" y="19" text-anchor="middle" class="m8q-hdr">Clustered (InnoDB / SQL Server)</text>
-  <rect class="m8q-box" x="14" y="38" width="112" height="46" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m8q-box" x="14" y="38" width="112" height="46" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1"/>
   <text x="70" y="58" text-anchor="middle" class="m8q-label">Secondary leaf</text>
   <text x="70" y="72" text-anchor="middle" class="m8q-sub">email → PK 42</text>
-  <path d="M128 61 L150 61" stroke="var(--token-brand-default)" stroke-width="2" marker-end="url(#arr8q)"/>
-  <rect class="m8q-box" x="152" y="38" width="104" height="46" fill="var(--token-success-muted)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <path d="M128 61 L150 61" stroke="var(--accent)" stroke-width="2" marker-end="url(#arr8q)"/>
+  <rect class="m8q-box" x="152" y="38" width="104" height="46" fill="var(--success-soft)" stroke="var(--border)" stroke-width="1"/>
   <text x="204" y="58" text-anchor="middle" class="m8q-label">Clustered leaf</text>
   <text x="204" y="72" text-anchor="middle" class="m8q-sub">PK 42 → full row</text>
   <text x="134" y="108" text-anchor="middle" class="m8q-sub">reads = secondary height</text>
   <text x="134" y="122" text-anchor="middle" class="m8q-sub">+ clustered height per match</text>
-  <rect class="m8q-box" x="14" y="138" width="242" height="34" fill="var(--token-warning-muted)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m8q-box" x="14" y="138" width="242" height="34" fill="var(--warning-soft)" stroke="var(--border)" stroke-width="1"/>
   <text x="135" y="153" text-anchor="middle" class="m8q-label">Covering index</text>
   <text x="135" y="165" text-anchor="middle" class="m8q-sub">skips the clustered hop</text>
 
-  <rect class="m8q-box" x="280" y="6" width="260" height="176" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2"/>
-  <rect x="280" y="6" width="260" height="20" rx="5" ry="5" fill="var(--token-brand-default)"/>
+  <rect class="m8q-box" x="280" y="6" width="260" height="176" fill="var(--bg-subtle)" stroke="var(--border)" stroke-width="1.2"/>
+  <rect x="280" y="6" width="260" height="20" rx="5" ry="5" fill="var(--accent)"/>
   <text x="410" y="19" text-anchor="middle" class="m8q-hdr">Heap (PostgreSQL / SQL Server heap)</text>
-  <rect class="m8q-box" x="290" y="38" width="112" height="46" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m8q-box" x="290" y="38" width="112" height="46" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1"/>
   <text x="346" y="58" text-anchor="middle" class="m8q-label">Index leaf</text>
   <text x="346" y="72" text-anchor="middle" class="m8q-sub">email → TID</text>
-  <path d="M404 61 L426 61" stroke="var(--token-brand-default)" stroke-width="2" marker-end="url(#arr8q)"/>
-  <rect class="m8q-box" x="428" y="38" width="104" height="46" fill="var(--token-success-muted)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <path d="M404 61 L426 61" stroke="var(--accent)" stroke-width="2" marker-end="url(#arr8q)"/>
+  <rect class="m8q-box" x="428" y="38" width="104" height="46" fill="var(--success-soft)" stroke="var(--border)" stroke-width="1"/>
   <text x="480" y="58" text-anchor="middle" class="m8q-label">Heap page</text>
   <text x="480" y="72" text-anchor="middle" class="m8q-sub">row at slot n</text>
   <text x="410" y="108" text-anchor="middle" class="m8q-sub">reads = index height</text>
   <text x="410" y="122" text-anchor="middle" class="m8q-sub">+ 1 heap read per match</text>
-  <rect class="m8q-box" x="290" y="138" width="242" height="34" fill="var(--token-warning-muted)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m8q-box" x="290" y="138" width="242" height="34" fill="var(--warning-soft)" stroke="var(--border)" stroke-width="1"/>
   <text x="411" y="153" text-anchor="middle" class="m8q-label">Index-only scan</text>
   <text x="411" y="165" text-anchor="middle" class="m8q-sub">needs a covering index</text>
 
-  <rect class="m8q-box" x="556" y="6" width="260" height="176" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2"/>
-  <rect x="556" y="6" width="260" height="20" rx="5" ry="5" fill="var(--token-success-default)"/>
+  <rect class="m8q-box" x="556" y="6" width="260" height="176" fill="var(--bg-subtle)" stroke="var(--border)" stroke-width="1.2"/>
+  <rect x="556" y="6" width="260" height="20" rx="5" ry="5" fill="var(--success)"/>
   <text x="686" y="19" text-anchor="middle" class="m8q-hdr">Cost Rules of Thumb</text>
   <text x="568" y="50" class="m8q-sub">PK lookup (clustered): height reads</text>
   <text x="568" y="74" class="m8q-sub">Secondary lookup: + 1 hop per match</text>

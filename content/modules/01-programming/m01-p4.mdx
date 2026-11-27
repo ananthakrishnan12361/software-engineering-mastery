@@ -198,14 +198,14 @@ When `user.toString()` runs, the engine checks `Object.hasOwn(user, "toString")`
   <svg viewBox="0 0 820 205" role="img" aria-label="Prototype chain delegation and Garbage Collector reachability">
     <rect x="10" y="10" width="800" height="185" rx="10" fill="var(--bg-subtle)" stroke="var(--border)" />
 
-    <rect x="28" y="28" width="365" height="148" rx="8" fill="var(--bg-surface)" stroke="var(--border-strong)" />
+    <rect x="28" y="28" width="365" height="148" rx="8" fill="var(--bg-surface)" stroke="var(--border-control)" />
     <text x="46" y="54" fill="var(--accent-strong)" fontSize="13" fontWeight="700" fontFamily="sans-serif">[[Prototype]] Chain Delegation</text>
     <text x="46" y="84" fill="var(--text-primary)" fontSize="12" fontFamily="monospace">admin (own: role="admin")</text>
     <text x="46" y="108" fill="var(--text-secondary)" fontSize="12" fontFamily="monospace">  |--&gt; User.prototype (canLogin)</text>
     <text x="46" y="132" fill="var(--text-secondary)" fontSize="12" fontFamily="monospace">        |--&gt; Object.prototype (toString)</text>
     <text x="46" y="156" fill="var(--text-muted)" fontSize="12" fontFamily="monospace">              |--&gt; null (end)</text>
 
-    <rect x="415" y="28" width="377" height="148" rx="8" fill="var(--bg-surface)" stroke="var(--border-strong)" />
+    <rect x="415" y="28" width="377" height="148" rx="8" fill="var(--bg-surface)" stroke="var(--border-control)" />
     <text x="433" y="54" fill="var(--success)" fontSize="13" fontWeight="700" fontFamily="sans-serif">GC Mark-and-Sweep Reachability</text>
     <text x="433" y="84" fill="var(--success)" fontSize="12" fontFamily="monospace">GC Roots (Stack / Global / Closures)</text>
     <text x="433" y="108" fill="var(--text-primary)" fontSize="12" fontFamily="monospace">  |--&gt; Live Cache &amp; Active Objects (KEPT)</text>

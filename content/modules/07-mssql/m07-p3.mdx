@@ -130,69 +130,69 @@ When a parameterized procedure executes for the first time, the optimizer reads 
 <svg viewBox="0 0 820 190" xmlns="http://www.w3.org/2000/svg" aria-label="SQL Server execution plan pipeline showing plan cache lookup, statistics histogram, parameter sniffing, and Query Store feedback">
   <defs>
     <style>{`
-      .m75-lbl { font: 600 11px system-ui, sans-serif; fill: var(--token-text-primary); }
-      .m75-sub { font: 400 9.5px system-ui, sans-serif; fill: var(--token-text-secondary); }
-      .m75-hdr { font: 700 10px system-ui, sans-serif; fill: var(--token-text-inverse); }
+      .m75-lbl { font: 600 11px system-ui, sans-serif; fill: var(--text-primary); }
+      .m75-sub { font: 400 9.5px system-ui, sans-serif; fill: var(--text-secondary); }
+      .m75-hdr { font: 700 10px system-ui, sans-serif; fill: var(--accent-contrast); }
       .m75-box { rx: 6; ry: 6; }
     `}</style>
     <marker id="arr75" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-      <path d="M0,0 L6,3 L0,6 Z" fill="var(--token-brand-default)" />
+      <path d="M0,0 L6,3 L0,6 Z" fill="var(--accent)" />
     </marker>
   </defs>
 
-  <rect class="m75-box" x="6" y="8" width="178" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
-  <rect x="6" y="8" width="178" height="22" rx="6" ry="6" fill="var(--token-brand-muted)" />
+  <rect class="m75-box" x="6" y="8" width="178" height="174" fill="var(--bg-subtle)" stroke="var(--border)" stroke-width="1.2" />
+  <rect x="6" y="8" width="178" height="22" rx="6" ry="6" fill="var(--accent-soft)" />
   <text x="95" y="22" text-anchor="middle" class="m75-hdr">1. Parameterized Call</text>
-  <rect class="m75-box" x="16" y="40" width="158" height="52" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m75-box" x="16" y="40" width="158" height="52" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="95" y="57" text-anchor="middle" class="m75-lbl">EXEC dbo.GetOrders</text>
   <text x="95" y="71" text-anchor="middle" class="m75-sub">@TenantId = 99 (5 rows)</text>
   <text x="95" y="84" text-anchor="middle" class="m75-sub">Cache miss → compile</text>
-  <rect class="m75-box" x="16" y="102" width="158" height="70" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m75-box" x="16" y="102" width="158" height="70" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="95" y="119" text-anchor="middle" class="m75-lbl">Statistics (200 Steps)</text>
   <text x="95" y="134" text-anchor="middle" class="m75-sub">Histogram + Density Vector</text>
   <text x="95" y="148" text-anchor="middle" class="m75-sub">Auto-update ~SQRT(1000*N)</text>
   <text x="95" y="162" text-anchor="middle" class="m75-sub">Drives Join + Memory Grant</text>
 
-  <path d="M184 66 L202 66" stroke="var(--token-brand-default)" stroke-width="2" marker-end="url(#arr75)" />
+  <path d="M184 66 L202 66" stroke="var(--accent)" stroke-width="2" marker-end="url(#arr75)" />
 
-  <rect class="m75-box" x="204" y="8" width="204" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
-  <rect x="204" y="8" width="204" height="22" rx="6" ry="6" fill="var(--token-warning-muted)" />
+  <rect class="m75-box" x="204" y="8" width="204" height="174" fill="var(--bg-subtle)" stroke="var(--border)" stroke-width="1.2" />
+  <rect x="204" y="8" width="204" height="22" rx="6" ry="6" fill="var(--warning-soft)" />
   <text x="306" y="22" text-anchor="middle" class="m75-hdr">2. Sniffed Plan Cached</text>
-  <rect class="m75-box" x="214" y="40" width="184" height="56" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m75-box" x="214" y="40" width="184" height="56" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="306" y="57" text-anchor="middle" class="m75-lbl">Plan A: Nested Loops</text>
   <text x="306" y="71" text-anchor="middle" class="m75-sub">Index Seek + Key Lookup</text>
   <text x="306" y="84" text-anchor="middle" class="m75-sub">Small memory grant (1 MB)</text>
-  <rect class="m75-box" x="214" y="104" width="184" height="68" fill="var(--token-surface-raised)" stroke="var(--token-error-default)" stroke-width="1.2" />
+  <rect class="m75-box" x="214" y="104" width="184" height="68" fill="var(--bg-elevated)" stroke="var(--danger)" stroke-width="1.2" />
   <text x="306" y="121" text-anchor="middle" class="m75-lbl">Skewed Call: @TenantId=1</text>
   <text x="306" y="135" text-anchor="middle" class="m75-sub">Actual: 2,000,000 rows!</text>
   <text x="306" y="149" text-anchor="middle" class="m75-sub">Est=5 → 2M Key Lookups +</text>
   <text x="306" y="163" text-anchor="middle" class="m75-sub">tempdb Sort/Hash spill!</text>
 
-  <path d="M408 95 L426 95" stroke="var(--token-brand-default)" stroke-width="2" marker-end="url(#arr75)" />
+  <path d="M408 95 L426 95" stroke="var(--accent)" stroke-width="2" marker-end="url(#arr75)" />
 
-  <rect class="m75-box" x="428" y="8" width="192" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
-  <rect x="428" y="8" width="192" height="22" rx="6" ry="6" fill="var(--token-success-muted)" />
+  <rect class="m75-box" x="428" y="8" width="192" height="174" fill="var(--bg-subtle)" stroke="var(--border)" stroke-width="1.2" />
+  <rect x="428" y="8" width="192" height="22" rx="6" ry="6" fill="var(--success-soft)" />
   <text x="524" y="22" text-anchor="middle" class="m75-hdr">3. Sniffing Mitigations</text>
-  <rect class="m75-box" x="438" y="40" width="172" height="40" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m75-box" x="438" y="40" width="172" height="40" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="524" y="56" text-anchor="middle" class="m75-lbl">Covering INCLUDE Index</text>
   <text x="524" y="69" text-anchor="middle" class="m75-sub">Fixes root Key Lookup cost</text>
-  <rect class="m75-box" x="438" y="86" width="172" height="40" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m75-box" x="438" y="86" width="172" height="40" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="524" y="102" text-anchor="middle" class="m75-lbl">OPTION (RECOMPILE)</text>
   <text x="524" y="115" text-anchor="middle" class="m75-sub">Or OPTIMIZE FOR UNKNOWN</text>
-  <rect class="m75-box" x="438" y="132" width="172" height="40" fill="var(--token-surface-raised)" stroke="var(--token-success-default)" stroke-width="1.2" />
+  <rect class="m75-box" x="438" y="132" width="172" height="40" fill="var(--bg-elevated)" stroke="var(--success)" stroke-width="1.2" />
   <text x="524" y="148" text-anchor="middle" class="m75-lbl">SQL 2022 PSP + Query Store</text>
   <text x="524" y="161" text-anchor="middle" class="m75-sub">Multi-plan per skew variant</text>
 
-  <rect class="m75-box" x="630" y="8" width="184" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
-  <rect x="630" y="8" width="184" height="22" rx="6" ry="6" fill="var(--token-error-muted)" />
+  <rect class="m75-box" x="630" y="8" width="184" height="174" fill="var(--bg-subtle)" stroke="var(--border)" stroke-width="1.2" />
+  <rect x="630" y="8" width="184" height="22" rx="6" ry="6" fill="var(--danger-soft)" />
   <text x="722" y="22" text-anchor="middle" class="m75-hdr">4. Waits &amp; DMVs</text>
-  <rect class="m75-box" x="640" y="40" width="164" height="40" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m75-box" x="640" y="40" width="164" height="40" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="722" y="56" text-anchor="middle" class="m75-lbl">PAGEIOLATCH / WRITELOG</text>
   <text x="722" y="69" text-anchor="middle" class="m75-sub">Disk I/O &amp; .ldf bottlenecks</text>
-  <rect class="m75-box" x="640" y="86" width="164" height="40" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m75-box" x="640" y="86" width="164" height="40" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="722" y="102" text-anchor="middle" class="m75-lbl">LCK_M_* / SOS_SCHEDULER</text>
   <text x="722" y="115" text-anchor="middle" class="m75-sub">Blocking &amp; CPU saturation</text>
-  <rect class="m75-box" x="640" y="132" width="164" height="40" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m75-box" x="640" y="132" width="164" height="40" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="722" y="148" text-anchor="middle" class="m75-lbl">Query Store + XEvents</text>
   <text x="722" y="161" text-anchor="middle" class="m75-sub">Persistent plan history</text>
 </svg>
@@ -553,54 +553,54 @@ console.log("High QPS pre-2022:", JSON.stringify(selectSniffingFix({ callsPerSec
 <svg viewBox="0 0 820 190" xmlns="http://www.w3.org/2000/svg" aria-label="SQL Server Index Maintenance 5/30 rule, Partition SWITCH metadata swap, and Full/Diff/Log PITR restore chain">
   <defs>
     <style>{`
-      .m76-lbl { font: 600 11px system-ui, sans-serif; fill: var(--token-text-primary); }
-      .m76-sub { font: 400 9.5px system-ui, sans-serif; fill: var(--token-text-secondary); }
-      .m76-hdr { font: 700 10px system-ui, sans-serif; fill: var(--token-text-inverse); }
+      .m76-lbl { font: 600 11px system-ui, sans-serif; fill: var(--text-primary); }
+      .m76-sub { font: 400 9.5px system-ui, sans-serif; fill: var(--text-secondary); }
+      .m76-hdr { font: 700 10px system-ui, sans-serif; fill: var(--accent-contrast); }
       .m76-box { rx: 6; ry: 6; }
     `}</style>
     <marker id="arr76" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-      <path d="M0,0 L6,3 L0,6 Z" fill="var(--token-brand-default)" />
+      <path d="M0,0 L6,3 L0,6 Z" fill="var(--accent)" />
     </marker>
   </defs>
 
-  <rect class="m76-box" x="6" y="8" width="248" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
-  <rect x="6" y="8" width="248" height="22" rx="6" ry="6" fill="var(--token-brand-muted)" />
+  <rect class="m76-box" x="6" y="8" width="248" height="174" fill="var(--bg-subtle)" stroke="var(--border)" stroke-width="1.2" />
+  <rect x="6" y="8" width="248" height="22" rx="6" ry="6" fill="var(--accent-soft)" />
   <text x="130" y="22" text-anchor="middle" class="m76-hdr">Index Maintenance (5 / 30 Rule)</text>
-  <rect class="m76-box" x="16" y="38" width="228" height="38" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m76-box" x="16" y="38" width="228" height="38" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="130" y="54" text-anchor="middle" class="m76-lbl">&lt; 5% or &lt; 1,000 pages → Skip</text>
   <text x="130" y="68" text-anchor="middle" class="m76-sub">Avoid unnecessary log churn</text>
-  <rect class="m76-box" x="16" y="84" width="228" height="40" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m76-box" x="16" y="84" width="228" height="40" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="130" y="100" text-anchor="middle" class="m76-lbl">5%–30% → REORGANIZE</text>
   <text x="130" y="114" text-anchor="middle" class="m76-sub">Online · follow with UPDATE STATS</text>
-  <rect class="m76-box" x="16" y="132" width="228" height="40" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m76-box" x="16" y="132" width="228" height="40" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="130" y="148" text-anchor="middle" class="m76-lbl">&gt; 30% → REBUILD (ONLINE = ON)</text>
   <text x="130" y="162" text-anchor="middle" class="m76-sub">Auto-updates stats · SORT_IN_TEMPDB</text>
 
-  <rect class="m76-box" x="266" y="8" width="248" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
-  <rect x="266" y="8" width="248" height="22" rx="6" ry="6" fill="var(--token-warning-muted)" />
+  <rect class="m76-box" x="266" y="8" width="248" height="174" fill="var(--bg-subtle)" stroke="var(--border)" stroke-width="1.2" />
+  <rect x="266" y="8" width="248" height="22" rx="6" ry="6" fill="var(--warning-soft)" />
   <text x="390" y="22" text-anchor="middle" class="m76-hdr">Partition SWITCH &amp; Agent</text>
-  <rect class="m76-box" x="276" y="38" width="228" height="44" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m76-box" x="276" y="38" width="228" height="44" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="390" y="55" text-anchor="middle" class="m76-lbl">RANGE RIGHT Boundaries</text>
   <text x="390" y="69" text-anchor="middle" class="m76-sub">Exact boundary starts next partition</text>
-  <rect class="m76-box" x="276" y="88" width="228" height="40" fill="var(--token-surface-raised)" stroke="var(--token-brand-default)" stroke-width="1.2" />
+  <rect class="m76-box" x="276" y="88" width="228" height="40" fill="var(--bg-elevated)" stroke="var(--accent)" stroke-width="1.2" />
   <text x="390" y="104" text-anchor="middle" class="m76-lbl">ALTER TABLE ... SWITCH (ms)</text>
   <text x="390" y="118" text-anchor="middle" class="m76-sub">Metadata swap · 0 DELETE log storm</text>
-  <rect class="m76-box" x="276" y="134" width="228" height="38" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m76-box" x="276" y="134" width="228" height="38" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="390" y="150" text-anchor="middle" class="m76-lbl">SQL Server Agent Jobs</text>
   <text x="390" y="163" text-anchor="middle" class="m76-sub">Maintenance · CHECKDB · Alerts</text>
 
-  <rect class="m76-box" x="526" y="8" width="288" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
-  <rect x="526" y="8" width="288" height="22" rx="6" ry="6" fill="var(--token-success-muted)" />
+  <rect class="m76-box" x="526" y="8" width="288" height="174" fill="var(--bg-subtle)" stroke="var(--border)" stroke-width="1.2" />
+  <rect x="526" y="8" width="288" height="22" rx="6" ry="6" fill="var(--success-soft)" />
   <text x="670" y="22" text-anchor="middle" class="m76-hdr">PITR Restore Chain (FULL Model)</text>
-  <rect class="m76-box" x="536" y="38" width="268" height="38" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m76-box" x="536" y="38" width="268" height="38" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="670" y="54" text-anchor="middle" class="m76-lbl">1. Full (.bak) WITH NORECOVERY</text>
   <text x="670" y="67" text-anchor="middle" class="m76-sub">Latest baseline snapshot</text>
-  <path d="M670 76 L670 84" stroke="var(--token-brand-default)" stroke-width="1.5" marker-end="url(#arr76)" />
-  <rect class="m76-box" x="536" y="86" width="268" height="38" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <path d="M670 76 L670 84" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr76)" />
+  <rect class="m76-box" x="536" y="86" width="268" height="38" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="670" y="102" text-anchor="middle" class="m76-lbl">2. Diff (.bak) WITH NORECOVERY</text>
   <text x="670" y="115" text-anchor="middle" class="m76-sub">Extents changed since Full</text>
-  <path d="M670 124 L670 132" stroke="var(--token-brand-default)" stroke-width="1.5" marker-end="url(#arr76)" />
-  <rect class="m76-box" x="536" y="134" width="268" height="38" fill="var(--token-surface-raised)" stroke="var(--token-success-default)" stroke-width="1.2" />
+  <path d="M670 124 L670 132" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr76)" />
+  <rect class="m76-box" x="536" y="134" width="268" height="38" fill="var(--bg-elevated)" stroke="var(--success)" stroke-width="1.2" />
   <text x="670" y="150" text-anchor="middle" class="m76-lbl">3. Logs (.trn) → Final RECOVERY</text>
   <text x="670" y="163" text-anchor="middle" class="m76-sub">STOPAT = exact second before error</text>
 </svg>

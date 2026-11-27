@@ -132,79 +132,79 @@ The **Buffer Pool** is segmented into blocks of 16 KB. InnoDB uses a **midpoint-
 <svg viewBox="0 0 820 190" xmlns="http://www.w3.org/2000/svg" aria-label="MySQL InnoDB architecture diagram showing connection layer, server layer, and InnoDB storage engine subsystems">
   <defs>
     <style>{`
-      .m6-label { font: 600 11px/1.3 system-ui, sans-serif; fill: var(--token-text-primary); }
-      .m6-sub   { font: 400 9.5px/1.3 system-ui, sans-serif; fill: var(--token-text-secondary); }
+      .m6-label { font: 600 11px/1.3 system-ui, sans-serif; fill: var(--text-primary); }
+      .m6-sub   { font: 400 9.5px/1.3 system-ui, sans-serif; fill: var(--text-secondary); }
       .m6-box   { rx: 6; ry: 6; }
-      .m6-hdr   { font: 700 10px system-ui, sans-serif; fill: var(--token-text-inverse); }
+      .m6-hdr   { font: 700 10px system-ui, sans-serif; fill: var(--accent-contrast); }
     `}</style>
   </defs>
-  <rect class="m6-box" x="4" y="6" width="118" height="176" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2"/>
-  <rect x="4" y="6" width="118" height="20" rx="6" ry="6" fill="var(--token-brand-muted)"/>
+  <rect class="m6-box" x="4" y="6" width="118" height="176" fill="var(--bg-subtle)" stroke="var(--border)" stroke-width="1.2"/>
+  <rect x="4" y="6" width="118" height="20" rx="6" ry="6" fill="var(--accent-soft)"/>
   <text x="63" y="19" text-anchor="middle" class="m6-hdr">Server Layer</text>
-  <rect class="m6-box" x="12" y="32" width="102" height="22" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m6-box" x="12" y="32" width="102" height="22" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1"/>
   <text x="63" y="46" text-anchor="middle" class="m6-label">Thread Cache</text>
-  <rect class="m6-box" x="12" y="58" width="102" height="22" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m6-box" x="12" y="58" width="102" height="22" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1"/>
   <text x="63" y="72" text-anchor="middle" class="m6-label">Auth &amp; ACL</text>
-  <rect class="m6-box" x="12" y="84" width="102" height="22" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m6-box" x="12" y="84" width="102" height="22" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1"/>
   <text x="63" y="98" text-anchor="middle" class="m6-label">Parser</text>
-  <rect class="m6-box" x="12" y="110" width="102" height="22" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m6-box" x="12" y="110" width="102" height="22" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1"/>
   <text x="63" y="124" text-anchor="middle" class="m6-label">Optimizer</text>
-  <rect class="m6-box" x="12" y="136" width="102" height="32" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m6-box" x="12" y="136" width="102" height="32" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1"/>
   <text x="63" y="150" text-anchor="middle" class="m6-label">Binary Log</text>
   <text x="63" y="162" text-anchor="middle" class="m6-sub">(server layer)</text>
-  <path d="M122 93 L136 93" stroke="var(--token-brand-default)" stroke-width="2" marker-end="url(#arr6)"/>
-  <defs><marker id="arr6" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--token-brand-default)"/></marker></defs>
-  <rect class="m6-box" x="136" y="6" width="390" height="176" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2"/>
-  <rect x="136" y="6" width="390" height="20" rx="6" ry="6" fill="var(--token-success-muted)"/>
+  <path d="M122 93 L136 93" stroke="var(--accent)" stroke-width="2" marker-end="url(#arr6)"/>
+  <defs><marker id="arr6" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--accent)"/></marker></defs>
+  <rect class="m6-box" x="136" y="6" width="390" height="176" fill="var(--bg-subtle)" stroke="var(--border)" stroke-width="1.2"/>
+  <rect x="136" y="6" width="390" height="20" rx="6" ry="6" fill="var(--success-soft)"/>
   <text x="331" y="19" text-anchor="middle" class="m6-hdr">InnoDB Storage Engine</text>
-  <rect class="m6-box" x="144" y="32" width="156" height="62" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m6-box" x="144" y="32" width="156" height="62" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1"/>
   <text x="222" y="46" text-anchor="middle" class="m6-label">Buffer Pool</text>
   <text x="222" y="59" text-anchor="middle" class="m6-sub">16 KB data pages</text>
   <text x="222" y="71" text-anchor="middle" class="m6-sub">Midpoint LRU · dirty list</text>
   <text x="222" y="83" text-anchor="middle" class="m6-sub">target ≥70% RAM</text>
-  <rect class="m6-box" x="144" y="100" width="156" height="40" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m6-box" x="144" y="100" width="156" height="40" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1"/>
   <text x="222" y="115" text-anchor="middle" class="m6-label">Change Buffer</text>
   <text x="222" y="128" text-anchor="middle" class="m6-sub">Secondary index merges</text>
-  <rect class="m6-box" x="308" y="32" width="130" height="40" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m6-box" x="308" y="32" width="130" height="40" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1"/>
   <text x="373" y="47" text-anchor="middle" class="m6-label">Redo Log</text>
   <text x="373" y="60" text-anchor="middle" class="m6-sub">#ib_redo* (WAL, circular)</text>
-  <rect class="m6-box" x="308" y="78" width="130" height="40" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m6-box" x="308" y="78" width="130" height="40" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1"/>
   <text x="373" y="93" text-anchor="middle" class="m6-label">Undo Log Segments</text>
   <text x="373" y="106" text-anchor="middle" class="m6-sub">MVCC + rollback</text>
-  <rect class="m6-box" x="308" y="124" width="130" height="40" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m6-box" x="308" y="124" width="130" height="40" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1"/>
   <text x="373" y="139" text-anchor="middle" class="m6-label">Doublewrite Buffer</text>
   <text x="373" y="152" text-anchor="middle" class="m6-sub">Partial-write protection</text>
-  <rect class="m6-box" x="144" y="146" width="156" height="30" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m6-box" x="144" y="146" width="156" height="30" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1"/>
   <text x="222" y="163" text-anchor="middle" class="m6-label">Lock Mgr · Read Views</text>
-  <path d="M526 93 L540 93" stroke="var(--token-brand-default)" stroke-width="2" marker-end="url(#arr6)"/>
-  <rect class="m6-box" x="540" y="6" width="140" height="176" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2"/>
-  <rect x="540" y="6" width="140" height="20" rx="6" ry="6" fill="var(--token-warning-muted)"/>
+  <path d="M526 93 L540 93" stroke="var(--accent)" stroke-width="2" marker-end="url(#arr6)"/>
+  <rect class="m6-box" x="540" y="6" width="140" height="176" fill="var(--bg-subtle)" stroke="var(--border)" stroke-width="1.2"/>
+  <rect x="540" y="6" width="140" height="20" rx="6" ry="6" fill="var(--warning-soft)"/>
   <text x="610" y="19" text-anchor="middle" class="m6-hdr">Disk / Tablespace</text>
-  <rect class="m6-box" x="548" y="32" width="124" height="22" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m6-box" x="548" y="32" width="124" height="22" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1"/>
   <text x="610" y="46" text-anchor="middle" class="m6-label">*.ibd (data pages)</text>
-  <rect class="m6-box" x="548" y="58" width="124" height="22" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m6-box" x="548" y="58" width="124" height="22" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1"/>
   <text x="610" y="72" text-anchor="middle" class="m6-label">ibdata1 system ts</text>
-  <rect class="m6-box" x="548" y="84" width="124" height="22" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m6-box" x="548" y="84" width="124" height="22" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1"/>
   <text x="610" y="98" text-anchor="middle" class="m6-label">#innodb_redo files</text>
-  <rect class="m6-box" x="548" y="110" width="124" height="22" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m6-box" x="548" y="110" width="124" height="22" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1"/>
   <text x="610" y="124" text-anchor="middle" class="m6-label">binlog-*.000001</text>
-  <rect class="m6-box" x="548" y="136" width="124" height="22" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m6-box" x="548" y="136" width="124" height="22" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1"/>
   <text x="610" y="150" text-anchor="middle" class="m6-label">undo_001..002</text>
-  <rect class="m6-box" x="548" y="162" width="124" height="14" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m6-box" x="548" y="162" width="124" height="14" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1"/>
   <text x="610" y="172" text-anchor="middle" class="m6-sub">relay log (replica)</text>
-  <rect class="m6-box" x="688" y="6" width="128" height="176" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2"/>
-  <rect x="688" y="6" width="128" height="20" rx="6" ry="6" fill="var(--token-error-muted)"/>
+  <rect class="m6-box" x="688" y="6" width="128" height="176" fill="var(--bg-subtle)" stroke="var(--border)" stroke-width="1.2"/>
+  <rect x="688" y="6" width="128" height="20" rx="6" ry="6" fill="var(--danger-soft)"/>
   <text x="752" y="19" text-anchor="middle" class="m6-hdr">HA / Proxy</text>
-  <rect class="m6-box" x="696" y="32" width="112" height="30" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m6-box" x="696" y="32" width="112" height="30" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1"/>
   <text x="752" y="47" text-anchor="middle" class="m6-label">ProxySQL</text>
   <text x="752" y="59" text-anchor="middle" class="m6-sub">R/W split · pooling</text>
-  <rect class="m6-box" x="696" y="68" width="112" height="30" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m6-box" x="696" y="68" width="112" height="30" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1"/>
   <text x="752" y="83" text-anchor="middle" class="m6-label">Group Replication</text>
   <text x="752" y="95" text-anchor="middle" class="m6-sub">Paxos-based HA</text>
-  <rect class="m6-box" x="696" y="104" width="112" height="30" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m6-box" x="696" y="104" width="112" height="30" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1"/>
   <text x="752" y="119" text-anchor="middle" class="m6-label">InnoDB Cluster</text>
   <text x="752" y="131" text-anchor="middle" class="m6-sub">MySQL Shell managed</text>
-  <rect class="m6-box" x="696" y="140" width="112" height="30" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m6-box" x="696" y="140" width="112" height="30" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1"/>
   <text x="752" y="155" text-anchor="middle" class="m6-label">XtraBackup</text>
   <text x="752" y="167" text-anchor="middle" class="m6-sub">Hot backup / PITR</text>
 </svg>
@@ -831,75 +831,75 @@ try { lm.acquireLock(5, "row:1", "INVALID"); } catch(e) { console.log("Error:", 
 <svg viewBox="0 0 820 190" xmlns="http://www.w3.org/2000/svg" aria-label="InnoDB MVCC read-view chain and isolation level lock interactions">
   <defs>
     <style>{`
-      .m6q-label { font: 600 11px system-ui, sans-serif; fill: var(--token-text-primary); }
-      .m6q-sub   { font: 400 9.5px system-ui, sans-serif; fill: var(--token-text-secondary); }
-      .m6q-hdr   { font: 700 10px system-ui, sans-serif; fill: var(--token-text-inverse); }
+      .m6q-label { font: 600 11px system-ui, sans-serif; fill: var(--text-primary); }
+      .m6q-sub   { font: 400 9.5px system-ui, sans-serif; fill: var(--text-secondary); }
+      .m6q-hdr   { font: 700 10px system-ui, sans-serif; fill: var(--accent-contrast); }
       .m6q-box   { rx: 5; ry: 5; }
     `}</style>
-    <marker id="arr6q" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--token-brand-default)"/></marker>
+    <marker id="arr6q" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--accent)"/></marker>
   </defs>
 
-  <rect class="m6q-box" x="4" y="6" width="230" height="176" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2"/>
-  <rect x="4" y="6" width="230" height="20" rx="5" ry="5" fill="var(--token-brand-muted)"/>
+  <rect class="m6q-box" x="4" y="6" width="230" height="176" fill="var(--bg-subtle)" stroke="var(--border)" stroke-width="1.2"/>
+  <rect x="4" y="6" width="230" height="20" rx="5" ry="5" fill="var(--accent-soft)"/>
   <text x="119" y="19" text-anchor="middle" class="m6q-hdr">MVCC Undo Log Chain</text>
-  <rect class="m6q-box" x="12" y="32" width="98" height="36" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m6q-box" x="12" y="32" width="98" height="36" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1"/>
   <text x="61" y="46" text-anchor="middle" class="m6q-label">Row (current)</text>
   <text x="61" y="58" text-anchor="middle" class="m6q-sub">DB_TRX_ID=42</text>
-  <path d="M110 50 L128 50" stroke="var(--token-brand-default)" stroke-width="1.5" marker-end="url(#arr6q)"/>
-  <rect class="m6q-box" x="128" y="32" width="98" height="36" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <path d="M110 50 L128 50" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr6q)"/>
+  <rect class="m6q-box" x="128" y="32" width="98" height="36" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1"/>
   <text x="177" y="46" text-anchor="middle" class="m6q-label">Undo version</text>
   <text x="177" y="58" text-anchor="middle" class="m6q-sub">DB_TRX_ID=38</text>
   <text x="119" y="82" text-anchor="middle" class="m6q-sub">DB_ROLL_PTR chain (old versions)</text>
-  <rect class="m6q-box" x="12" y="90" width="210" height="30" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m6q-box" x="12" y="90" width="210" height="30" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1"/>
   <text x="117" y="105" text-anchor="middle" class="m6q-label">Read View: active_trx = [40, 41]</text>
   <text x="117" y="117" text-anchor="middle" class="m6q-sub">TRX 42 &gt; snapshot → walk undo chain</text>
-  <rect class="m6q-box" x="12" y="126" width="210" height="30" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m6q-box" x="12" y="126" width="210" height="30" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1"/>
   <text x="117" y="141" text-anchor="middle" class="m6q-label">Purge Thread</text>
   <text x="117" y="153" text-anchor="middle" class="m6q-sub">Removes old undo when no read view needs it</text>
-  <rect class="m6q-box" x="12" y="160" width="210" height="18" fill="var(--token-warning-muted)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m6q-box" x="12" y="160" width="210" height="18" fill="var(--warning-soft)" stroke="var(--border)" stroke-width="1"/>
   <text x="117" y="172" text-anchor="middle" class="m6q-sub">Long txn → undo bloat → slow queries</text>
 
-  <rect class="m6q-box" x="242" y="6" width="250" height="176" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2"/>
-  <rect x="242" y="6" width="250" height="20" rx="5" ry="5" fill="var(--token-success-muted)"/>
+  <rect class="m6q-box" x="242" y="6" width="250" height="176" fill="var(--bg-subtle)" stroke="var(--border)" stroke-width="1.2"/>
+  <rect x="242" y="6" width="250" height="20" rx="5" ry="5" fill="var(--success-soft)"/>
   <text x="367" y="19" text-anchor="middle" class="m6q-hdr">Isolation Levels (MySQL InnoDB)</text>
-  <rect class="m6q-box" x="250" y="32" width="234" height="28" fill="var(--token-error-muted)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m6q-box" x="250" y="32" width="234" height="28" fill="var(--danger-soft)" stroke="var(--border)" stroke-width="1"/>
   <text x="367" y="46" text-anchor="middle" class="m6q-label">READ UNCOMMITTED — dirty reads ✗</text>
   <text x="367" y="57" text-anchor="middle" class="m6q-sub">Highest throughput; never use in production</text>
-  <rect class="m6q-box" x="250" y="66" width="234" height="28" fill="var(--token-warning-muted)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m6q-box" x="250" y="66" width="234" height="28" fill="var(--warning-soft)" stroke="var(--border)" stroke-width="1"/>
   <text x="367" y="80" text-anchor="middle" class="m6q-label">READ COMMITTED — fresh stmt snapshot</text>
   <text x="367" y="91" text-anchor="middle" class="m6q-sub">No dirty reads; non-repeatable &amp; phantom OK</text>
-  <rect class="m6q-box" x="250" y="100" width="234" height="28" fill="var(--token-brand-muted)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m6q-box" x="250" y="100" width="234" height="28" fill="var(--accent-soft)" stroke="var(--border)" stroke-width="1"/>
   <text x="367" y="114" text-anchor="middle" class="m6q-label">REPEATABLE READ (default) ★</text>
   <text x="367" y="125" text-anchor="middle" class="m6q-sub">Snapshot reads; next-key locks for locking reads</text>
-  <rect class="m6q-box" x="250" y="134" width="234" height="28" fill="var(--token-success-muted)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m6q-box" x="250" y="134" width="234" height="28" fill="var(--success-soft)" stroke="var(--border)" stroke-width="1"/>
   <text x="367" y="148" text-anchor="middle" class="m6q-label">SERIALIZABLE — all SELECTs lock</text>
   <text x="367" y="159" text-anchor="middle" class="m6q-sub">Max safety; reads lock (autocommit off)</text>
   <text x="367" y="178" text-anchor="middle" class="m6q-sub">★ = MySQL default isolation level</text>
 
-  <rect class="m6q-box" x="500" y="6" width="316" height="176" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2"/>
-  <rect x="500" y="6" width="316" height="20" rx="5" ry="5" fill="var(--token-error-muted)"/>
+  <rect class="m6q-box" x="500" y="6" width="316" height="176" fill="var(--bg-subtle)" stroke="var(--border)" stroke-width="1.2"/>
+  <rect x="500" y="6" width="316" height="20" rx="5" ry="5" fill="var(--danger-soft)"/>
   <text x="658" y="19" text-anchor="middle" class="m6q-hdr">InnoDB Lock Types &amp; ACID</text>
-  <rect class="m6q-box" x="508" y="32" width="140" height="30" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m6q-box" x="508" y="32" width="140" height="30" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1"/>
   <text x="578" y="46" text-anchor="middle" class="m6q-label">Record Lock</text>
   <text x="578" y="58" text-anchor="middle" class="m6q-sub">Exact index record</text>
-  <rect class="m6q-box" x="508" y="68" width="140" height="30" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m6q-box" x="508" y="68" width="140" height="30" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1"/>
   <text x="578" y="82" text-anchor="middle" class="m6q-label">Gap Lock</text>
   <text x="578" y="94" text-anchor="middle" class="m6q-sub">Prevents INSERT in range</text>
-  <rect class="m6q-box" x="508" y="104" width="140" height="30" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m6q-box" x="508" y="104" width="140" height="30" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1"/>
   <text x="578" y="118" text-anchor="middle" class="m6q-label">Next-Key Lock</text>
   <text x="578" y="130" text-anchor="middle" class="m6q-sub">Record + gap (locking reads)</text>
-  <rect class="m6q-box" x="508" y="140" width="140" height="30" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m6q-box" x="508" y="140" width="140" height="30" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1"/>
   <text x="578" y="154" text-anchor="middle" class="m6q-label">IS / IX (Intention)</text>
   <text x="578" y="166" text-anchor="middle" class="m6q-sub">Table-level intent signals</text>
-  <rect class="m6q-box" x="656" y="32" width="152" height="58" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m6q-box" x="656" y="32" width="152" height="58" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1"/>
   <text x="732" y="46" text-anchor="middle" class="m6q-label">ACID in InnoDB</text>
   <text x="732" y="58" text-anchor="middle" class="m6q-sub">A: undo log rollback</text>
   <text x="732" y="70" text-anchor="middle" class="m6q-sub">C: constraints + triggers</text>
   <text x="732" y="80" text-anchor="middle" class="m6q-sub">I: MVCC + row locks</text>
-  <rect class="m6q-box" x="656" y="96" width="152" height="40" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m6q-box" x="656" y="96" width="152" height="40" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1"/>
   <text x="732" y="110" text-anchor="middle" class="m6q-label">D: Durability</text>
   <text x="732" y="122" text-anchor="middle" class="m6q-sub">innodb_flush_log=1 + fsync</text>
-  <rect class="m6q-box" x="656" y="142" width="152" height="36" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <rect class="m6q-box" x="656" y="142" width="152" height="36" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1"/>
   <text x="732" y="156" text-anchor="middle" class="m6q-label">2PC: Binlog ↔ Redo</text>
   <text x="732" y="168" text-anchor="middle" class="m6q-sub">XID cross-reference on crash</text>
 </svg>
