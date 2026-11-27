@@ -1010,13 +1010,41 @@ export const SYLLABUS_MODULES: SyllabusModule[] = [
   ]),
 
   defineModule(5, "PostgreSQL", "databases", [
-    "PostgreSQL architecture",
-    "PostgreSQL internals",
-    "Database storage",
-    "Pages and tuples",
-    "MVCC",
-    "WAL",
-    "Transactions",
+    {
+      title: "PostgreSQL architecture",
+      lessonId: "m05-p1",
+      anchorId: "m05-p1-topic-postgresql-architecture"
+    },
+    {
+      title: "PostgreSQL internals",
+      lessonId: "m05-p1",
+      anchorId: "m05-p1-topic-postgresql-internals"
+    },
+    {
+      title: "Database storage",
+      lessonId: "m05-p1",
+      anchorId: "m05-p1-topic-database-storage"
+    },
+    {
+      title: "Pages and tuples",
+      lessonId: "m05-p1",
+      anchorId: "m05-p1-topic-pages-and-tuples"
+    },
+    {
+      title: "MVCC",
+      lessonId: "m05-p1",
+      anchorId: "m05-p1-topic-mvcc"
+    },
+    {
+      title: "WAL",
+      lessonId: "m05-p1",
+      anchorId: "m05-p1-topic-wal"
+    },
+    {
+      title: "Transactions",
+      lessonId: "m05-p1",
+      anchorId: "m05-p1-topic-transactions"
+    },
     "SQL",
     "SELECT",
     "INSERT",

@@ -39,6 +39,8 @@ import M04P2Mdx from "./modules/04-database-fundamentals/m04-p2.mdx";
 import m04p2Raw from "./modules/04-database-fundamentals/m04-p2.mdx?raw";
 import M04P3Mdx from "./modules/04-database-fundamentals/m04-p3.mdx";
 import m04p3Raw from "./modules/04-database-fundamentals/m04-p3.mdx?raw";
+import M05P1Mdx from "./modules/05-postgresql/m05-p1.mdx";
+import m05p1Raw from "./modules/05-postgresql/m05-p1.mdx?raw";
 import { m01p1Questions } from "./interviews/m01-p1.questions";
 import { m01p2Questions } from "./interviews/m01-p2.questions";
 import { m01p3Questions } from "./interviews/m01-p3.questions";
@@ -55,6 +57,7 @@ import { m03p4Questions } from "./interviews/m03-p4.questions";
 import { m04p1Questions } from "./interviews/m04-p1.questions";
 import { m04p2Questions } from "./interviews/m04-p2.questions";
 import { m04p3Questions } from "./interviews/m04-p3.questions";
+import { m05p1Questions } from "./interviews/m05-p1.questions";
 import { SYLLABUS_MODULES } from "./syllabus";
 
 export interface HandbookCatalog {
@@ -189,6 +192,17 @@ const modules: ModuleRecord[] = [
       "Scope (Parts 1–3): Complete Database Fundamentals — Engines, ER Modeling, Normalization (1NF–BCNF), ACID Transactions, Isolation, MVCC, Locks, Migrations, Pooling & PITR",
     lead: "Master database internals (Buffer Pool, WAL, B-Tree vs. LSM), ER modeling, 1NF–BCNF normalization, ACID transactions, MVCC, locks, zero-downtime migrations, pooling, and PITR.",
     lessonIds: ["m04-p1", "m04-p2", "m04-p3"]
+  },
+  {
+    id: "module-5",
+    number: 5,
+    title: "PostgreSQL",
+    category: "databases",
+    partSummary: "Part 1 of 4",
+    scopeSummary:
+      "Scope (Part 1): PostgreSQL Architecture, Process Model, 8 KB Slotted Pages, Relation Forks (_fsm/_vm), TOAST, MVCC, HOT Updates, WAL & XID Wraparound",
+    lead: "Master PostgreSQL process and memory internals, 8 KB page layout, HOT updates, WAL full-page writes, and XID freeze mechanics.",
+    lessonIds: ["m05-p1"]
   }
 ];
 
@@ -1125,8 +1139,65 @@ const lessons: LessonRecord[] = [
       }
     ],
     prevLessonId: "m04-p2",
-    nextLessonId: null,
+    nextLessonId: "m05-p1",
     Content: M04P3Mdx
+  },
+  {
+    id: "m05-p1",
+    moduleId: "module-5",
+    moduleNumber: 5,
+    moduleTitle: "PostgreSQL",
+    partLabel: "Lesson M05-P1",
+    title: "Part 1: PostgreSQL Architecture, Storage, 8 KB Pages, MVCC, WAL & XID Wraparound",
+    category: "databases",
+    duration: "80 min (35m theory · 25m practice · 20m review)",
+    objectives: [
+      "Explain PostgreSQL's multi-process architecture (postmaster, per-client backends, shared_buffers, wal_buffers, and background workers).",
+      "Trace SQL execution through the Parser, Analyzer/Rewriter, Cost-Based Planner, and Volcano Executor.",
+      "Inspect 8 KB slotted pages (line pointers, heap tuples, ctid), relation forks (_fsm, _vm, _init), and TOAST strategies.",
+      "Apply HOT updates (fillfactor), WAL full_page_writes, and VACUUM FREEZE to prevent bloat, torn pages, and XID wraparound."
+    ],
+    sections: [
+      { id: "m05-p1-objectives", title: "Learning Objectives" },
+      { id: "m05-p1-sec-a", letter: "A", title: "Topic Introduction" },
+      { id: "m05-p1-sec-b", letter: "B", title: "Fundamentals (Simple Mental Models)" },
+      { id: "m05-p1-sec-c", letter: "C", title: "Internal Working & Architecture" },
+      { id: "m05-p1-sec-d", letter: "D", title: "Practical Examples (Interactive)" },
+      { id: "m05-p1-sec-e", letter: "E", title: "Step-by-Step Walkthrough" },
+      { id: "m05-p1-sec-f", letter: "F", title: "Real-World Use Cases" },
+      { id: "m05-p1-sec-g", letter: "G", title: "Common Mistakes" },
+      { id: "m05-p1-sec-h", letter: "H", title: "Best Practices" },
+      { id: "m05-p1-sec-i", letter: "I", title: "Performance & Scalability" },
+      { id: "m05-p1-sec-j", letter: "J", title: "Security Considerations" },
+      { id: "m05-p1-sec-k", letter: "K", title: "Comparisons & Decision Tables" },
+      { id: "m05-p1-sec-l", letter: "L", title: "Tips to Remember (Mnemonics & Mental Models)" },
+      { id: "m05-p1-sec-mn", letter: "M/N", title: "Interview Questions & Detailed Answers" },
+      { id: "m05-p1-sec-o", letter: "O", title: "Practical Exercises" },
+      { id: "m05-p1-sec-p", letter: "P", title: "Advanced Challenge" },
+      { id: "m05-p1-sec-q", letter: "Q", title: "Summary & Key Takeaways" },
+      { id: "m05-p1-mastery", title: "Mastery Assessment" }
+    ],
+    masteryItems: [
+      {
+        id: "m05-p1-m1",
+        label: "I can size shared_buffers vs. work_mem and trace PostgreSQL's four-stage query pipeline."
+      },
+      {
+        id: "m05-p1-m2",
+        label: "I can explain 8 KB slotted pages, relation forks (_fsm, _vm), HOT updates, and TOAST storage."
+      },
+      {
+        id: "m05-p1-m3",
+        label: "I can explain WAL full_page_writes, checkpoints, and VACUUM FREEZE for 32-bit XID wraparound."
+      },
+      {
+        id: "m05-p1-m4",
+        label: "I completed the M05-P1 exercises and can answer the interview questions without notes."
+      }
+    ],
+    prevLessonId: "m04-p3",
+    nextLessonId: null,
+    Content: M05P1Mdx
   }
 ];
 
@@ -1146,7 +1217,8 @@ const questionsByLesson: Record<string, InterviewQuestion[]> = {
   "m03-p4": m03p4Questions,
   "m04-p1": m04p1Questions,
   "m04-p2": m04p2Questions,
-  "m04-p3": m04p3Questions
+  "m04-p3": m04p3Questions,
+  "m05-p1": m05p1Questions
 };
 
 const allQuestions: InterviewQuestion[] = [
@@ -1165,7 +1237,8 @@ const allQuestions: InterviewQuestion[] = [
   ...m03p4Questions,
   ...m04p1Questions,
   ...m04p2Questions,
-  ...m04p3Questions
+  ...m04p3Questions,
+  ...m05p1Questions
 ];
 
 function mergeGlossaryEntries(...batches: GlossaryEntry[][]): GlossaryEntry[] {
@@ -1197,7 +1270,8 @@ const glossaryEntries: GlossaryEntry[] = mergeGlossaryEntries(
   extractGlossaryFromMdx(m03p4Raw, "m03-p4"),
   extractGlossaryFromMdx(m04p1Raw, "m04-p1"),
   extractGlossaryFromMdx(m04p2Raw, "m04-p2"),
-  extractGlossaryFromMdx(m04p3Raw, "m04-p3")
+  extractGlossaryFromMdx(m04p3Raw, "m04-p3"),
+  extractGlossaryFromMdx(m05p1Raw, "m05-p1")
 );
 
 function buildSearchRecords(): SearchRecord[] {
@@ -1232,6 +1306,7 @@ function buildSearchRecords(): SearchRecord[] {
   records.push(...extractSearchRecordsFromMdx(m04p1Raw, "m04-p1", lessons[13].title, 4));
   records.push(...extractSearchRecordsFromMdx(m04p2Raw, "m04-p2", lessons[14].title, 4));
   records.push(...extractSearchRecordsFromMdx(m04p3Raw, "m04-p3", lessons[15].title, 4));
+  records.push(...extractSearchRecordsFromMdx(m05p1Raw, "m05-p1", lessons[16].title, 5));
 
   for (const mod of SYLLABUS_MODULES) {
     for (const topic of mod.topics) {

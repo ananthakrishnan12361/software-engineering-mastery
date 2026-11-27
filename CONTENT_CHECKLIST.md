@@ -269,13 +269,13 @@ Split into 4 parts:
 - **M05-P4**: Concurrency, scaling & tuning (transactions, locking, isolation levels, partitioning, replication, connection pooling, EXPLAIN, EXPLAIN ANALYZE, query planner, query optimization, indexing, performance tuning, vacuum, autovacuum, maintenance, backup and recovery)
 
 #### Topics
-- [ ] PostgreSQL architecture
-- [ ] PostgreSQL internals
-- [ ] Database storage
-- [ ] Pages and tuples
-- [ ] MVCC
-- [ ] WAL
-- [ ] Transactions
+- [x] PostgreSQL architecture
+- [x] PostgreSQL internals
+- [x] Database storage
+- [x] Pages and tuples
+- [x] MVCC
+- [x] WAL
+- [x] Transactions
 - [ ] SQL
 - [ ] SELECT
 - [ ] INSERT

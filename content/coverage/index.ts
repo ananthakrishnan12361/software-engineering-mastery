@@ -14,6 +14,7 @@ import { m03p4Coverage } from "./m03-p4.coverage";
 import { m04p1Coverage } from "./m04-p1.coverage";
 import { m04p2Coverage } from "./m04-p2.coverage";
 import { m04p3Coverage } from "./m04-p3.coverage";
+import { m05p1Coverage } from "./m05-p1.coverage";
 import type { LessonCoverageSpec, ModuleCoverageTarget } from "./types";
 
 export type {
@@ -41,7 +42,8 @@ export const LESSON_COVERAGE_SPECS: LessonCoverageSpec[] = [
   m03p4Coverage,
   m04p1Coverage,
   m04p2Coverage,
-  m04p3Coverage
+  m04p3Coverage,
+  m05p1Coverage
 ];
 
 export const MODULE_INTERVIEW_TARGETS: ModuleCoverageTarget[] = [
@@ -77,7 +79,17 @@ export const MODULE_INTERVIEW_TARGETS: ModuleCoverageTarget[] = [
   },
   {
     moduleNumber: 4,
-    complete: false, // Parts 1-2 of 3 completed
+    complete: true, // All 3 parts of Module 4 completed (10/10/10/5 interview targets met)
+    targets: {
+      basic: 10,
+      intermediate: 10,
+      advanced: 10,
+      "senior-architect": 5
+    }
+  },
+  {
+    moduleNumber: 5,
+    complete: false, // Part 1 of 4 completed
     targets: {
       basic: 10,
       intermediate: 10,

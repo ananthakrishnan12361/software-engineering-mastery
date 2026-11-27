@@ -334,3 +334,15 @@ For each review, add:
   - PostgreSQL `CREATE INDEX CONCURRENTLY` & `ALTER TABLE ... NOT VALID / VALIDATE CONSTRAINT`: `https://www.postgresql.org/docs/current/sql-createindex.html` and `https://www.postgresql.org/docs/current/sql-altertable.html`
   - PostgreSQL Continuous Archiving & Point-in-Time Recovery (PITR) & `pg_dump`: `https://www.postgresql.org/docs/current/continuous-archiving.html` and `https://www.postgresql.org/docs/current/backup.html`
 - **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m04-p3.mdx`, `m04-p3.questions.ts`, and `m04-p3.coverage.ts`.
+
+---
+
+### Module 05 Part 1 (M05-P1) Technical Review Log — 2026-11-27
+
+- **Scope:** PostgreSQL architecture, PostgreSQL internals, Database storage, Pages and tuples, MVCC, WAL, Transactions.
+- **Official Documentation Verified (`M3`):**
+  - PostgreSQL Server Architecture & Memory (`shared_buffers`, `work_mem`, background processes): `https://www.postgresql.org/docs/current/runtime-config-resource.html`
+  - PostgreSQL Database Page Layout, Relation Forks (`_fsm`, `_vm`), & TOAST: `https://www.postgresql.org/docs/current/storage-page-layout.html`, `https://www.postgresql.org/docs/current/storage-fsm.html`, `https://www.postgresql.org/docs/current/storage-vm.html`, and `https://www.postgresql.org/docs/current/storage-toast.html`
+  - PostgreSQL HOT Updates & `VACUUM FREEZE` / Transaction ID Wraparound: `https://www.postgresql.org/docs/current/storage-hot.html` and `https://www.postgresql.org/docs/current/routine-vacuuming.html#VACUUM-FOR-WRAPAROUND`
+  - PostgreSQL Write-Ahead Logging (WAL), `full_page_writes`, & Checkpoints: `https://www.postgresql.org/docs/current/wal-configuration.html`
+- **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m05-p1.mdx`, `m05-p1.questions.ts`, and `m05-p1.coverage.ts`.
