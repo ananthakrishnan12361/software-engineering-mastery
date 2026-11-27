@@ -300,3 +300,15 @@ For each review, add:
   - AWS S3 Presigned Upload URLs & OWASP File Upload Cheat Sheet: `https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-presigned-url.html` and `https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html`
   - Node.js Performance & `monitorEventLoopDelay`: `https://nodejs.org/api/perf_hooks.html`
 - **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m03-p4.mdx`, `m03-p4.questions.ts`, and `m03-p4.coverage.ts`.
+
+---
+
+### Module 04 Part 1 (M04-P1) Technical Review Log — 2026-11-27
+
+- **Scope:** What a database is, Database architecture, Database engines, Relational databases, NoSQL databases, Data modeling, ER diagrams, Tables, Rows, Columns, Primary keys, Foreign keys, Unique constraints, Check constraints.
+- **Official Documentation Verified (`M3`):**
+  - PostgreSQL Table Constraints (`PRIMARY KEY`, `FOREIGN KEY`, `UNIQUE`, `CHECK`) & Numeric/Date Types: `https://www.postgresql.org/docs/current/ddl-constraints.html` and `https://www.postgresql.org/docs/current/datatype.html`
+  - PostgreSQL Write-Ahead Logging (WAL) & Buffer Manager: `https://www.postgresql.org/docs/current/wal-intro.html`
+  - RocksDB / LSM-Tree Storage Engine Architecture: `https://github.com/facebook/rocksdb/wiki/RocksDB-Overview`
+  - MySQL InnoDB Architecture (Buffer Pool & Clustered B-Tree Index): `https://dev.mysql.com/doc/refman/8.4/en/innodb-architecture.html`
+- **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m04-p1.mdx`, `m04-p1.questions.ts`, and `m04-p1.coverage.ts`.

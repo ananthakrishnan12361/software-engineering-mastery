@@ -222,20 +222,20 @@ Split into 3 parts:
 - **M04-P3**: Transactions, ACID, isolation levels, read anomalies (dirty, non-repeatable, phantom), locks, deadlocks, MVCC, concurrency, consistency, data integrity, schema migrations, connection pooling, backups & recovery
 
 #### Topics
-- [ ] What a database is
-- [ ] Database architecture
-- [ ] Database engines
-- [ ] Relational databases
-- [ ] NoSQL databases
-- [ ] Data modeling
-- [ ] ER diagrams
-- [ ] Tables
-- [ ] Rows
-- [ ] Columns
-- [ ] Primary keys
-- [ ] Foreign keys
-- [ ] Unique constraints
-- [ ] Check constraints
+- [x] What a database is
+- [x] Database architecture
+- [x] Database engines
+- [x] Relational databases
+- [x] NoSQL databases
+- [x] Data modeling
+- [x] ER diagrams
+- [x] Tables
+- [x] Rows
+- [x] Columns
+- [x] Primary keys
+- [x] Foreign keys
+- [x] Unique constraints
+- [x] Check constraints
 - [ ] Normalization
 - [ ] Denormalization
 - [ ] 1NF

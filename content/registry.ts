@@ -33,6 +33,8 @@ import M03P3Mdx from "./modules/03-nodejs/m03-p3.mdx";
 import m03p3Raw from "./modules/03-nodejs/m03-p3.mdx?raw";
 import M03P4Mdx from "./modules/03-nodejs/m03-p4.mdx";
 import m03p4Raw from "./modules/03-nodejs/m03-p4.mdx?raw";
+import M04P1Mdx from "./modules/04-database-fundamentals/m04-p1.mdx";
+import m04p1Raw from "./modules/04-database-fundamentals/m04-p1.mdx?raw";
 import { m01p1Questions } from "./interviews/m01-p1.questions";
 import { m01p2Questions } from "./interviews/m01-p2.questions";
 import { m01p3Questions } from "./interviews/m01-p3.questions";
@@ -46,6 +48,7 @@ import { m03p1Questions } from "./interviews/m03-p1.questions";
 import { m03p2Questions } from "./interviews/m03-p2.questions";
 import { m03p3Questions } from "./interviews/m03-p3.questions";
 import { m03p4Questions } from "./interviews/m03-p4.questions";
+import { m04p1Questions } from "./interviews/m04-p1.questions";
 import { SYLLABUS_MODULES } from "./syllabus";
 
 export interface HandbookCatalog {
@@ -169,6 +172,17 @@ const modules: ModuleRecord[] = [
       "Scope (Parts 1–4): Complete Node.js & Backend Engineering — Runtime, Express, REST, Auth/Security, Pagination, Queues, WebSockets, Pooling, Architecture & Testing",
     lead: "Master Node.js runtime internals, Express REST APIs, AuthN/AuthZ & injection defense, cursor pagination, queues, WebSockets, pooling, architecture, and backend testing.",
     lessonIds: ["m03-p1", "m03-p2", "m03-p3", "m03-p4"]
+  },
+  {
+    id: "module-4",
+    number: 4,
+    title: "Database Fundamentals & Database Architecture",
+    category: "databases",
+    partSummary: "Part 1 of 3",
+    scopeSummary:
+      "Scope (Part 1): Database Architecture, B-Tree vs. LSM Engines, Relational vs. NoSQL, Data Modeling, ER Diagrams, Tables, Rows, Columns & Constraints",
+    lead: "Master database internals (Buffer Pool, WAL, B-Tree vs. LSM), relational vs. NoSQL modeling, ER cardinalities, and storage-layer constraints.",
+    lessonIds: ["m04-p1"]
   }
 ];
 
@@ -934,8 +948,65 @@ const lessons: LessonRecord[] = [
       }
     ],
     prevLessonId: "m03-p3",
-    nextLessonId: null,
+    nextLessonId: "m04-p1",
     Content: M03P4Mdx
+  },
+  {
+    id: "m04-p1",
+    moduleId: "module-4",
+    moduleNumber: 4,
+    moduleTitle: "Database Fundamentals & Database Architecture",
+    partLabel: "Lesson M04-P1",
+    title: "Part 1: Database Architecture, Engines, Data Modeling, ER Diagrams & Constraints",
+    category: "databases",
+    duration: "90 min (40m theory · 30m practice · 20m review)",
+    objectives: [
+      "Trace database server architecture from query parsing/planning to Buffer Pool RAM pages and WAL crash durability.",
+      "Compare B-Tree (in-place read-optimized) vs. LSM-Tree (MemTable + SSTable write-optimized) storage engines and Relational vs. NoSQL trade-offs.",
+      "Design conceptual, logical, and physical ER models resolving 1:1, 1:N, and M:N junction tables with exact column types.",
+      "Enforce race-free data integrity using PRIMARY KEY, FOREIGN KEY (RESTRICT/CASCADE/SET NULL), UNIQUE, and CHECK constraints."
+    ],
+    sections: [
+      { id: "m04-p1-objectives", title: "Learning Objectives" },
+      { id: "m04-p1-sec-a", letter: "A", title: "Topic Introduction" },
+      { id: "m04-p1-sec-b", letter: "B", title: "Fundamentals (Simple Mental Models)" },
+      { id: "m04-p1-sec-c", letter: "C", title: "Internal Working & Architecture" },
+      { id: "m04-p1-sec-d", letter: "D", title: "Practical Examples (Interactive)" },
+      { id: "m04-p1-sec-e", letter: "E", title: "Step-by-Step Walkthrough" },
+      { id: "m04-p1-sec-f", letter: "F", title: "Real-World Use Cases" },
+      { id: "m04-p1-sec-g", letter: "G", title: "Common Mistakes" },
+      { id: "m04-p1-sec-h", letter: "H", title: "Best Practices" },
+      { id: "m04-p1-sec-i", letter: "I", title: "Performance & Scalability" },
+      { id: "m04-p1-sec-j", letter: "J", title: "Security Considerations" },
+      { id: "m04-p1-sec-k", letter: "K", title: "Comparisons & Decision Tables" },
+      { id: "m04-p1-sec-l", letter: "L", title: "Tips to Remember (Mnemonics & Mental Models)" },
+      { id: "m04-p1-sec-mn", letter: "M/N", title: "Interview Questions & Detailed Answers" },
+      { id: "m04-p1-sec-o", letter: "O", title: "Practical Exercises" },
+      { id: "m04-p1-sec-p", letter: "P", title: "Advanced Challenge" },
+      { id: "m04-p1-sec-q", letter: "Q", title: "Summary & Key Takeaways" },
+      { id: "m04-p1-mastery", title: "Mastery Assessment" }
+    ],
+    masteryItems: [
+      {
+        id: "m04-p1-m1",
+        label: "I can explain Buffer Pool, WAL durability, and B-Tree vs. LSM-Tree storage engine trade-offs."
+      },
+      {
+        id: "m04-p1-m2",
+        label: "I can model 1:1, 1:N, and M:N ER relationships with junction tables and exact column types."
+      },
+      {
+        id: "m04-p1-m3",
+        label: "I can enforce PRIMARY KEY, FOREIGN KEY (RESTRICT/CASCADE/SET NULL), UNIQUE, and CHECK constraints."
+      },
+      {
+        id: "m04-p1-m4",
+        label: "I completed the M04-P1 exercises and can answer the interview questions without notes."
+      }
+    ],
+    prevLessonId: "m03-p4",
+    nextLessonId: null,
+    Content: M04P1Mdx
   }
 ];
 
@@ -952,7 +1023,8 @@ const questionsByLesson: Record<string, InterviewQuestion[]> = {
   "m03-p1": m03p1Questions,
   "m03-p2": m03p2Questions,
   "m03-p3": m03p3Questions,
-  "m03-p4": m03p4Questions
+  "m03-p4": m03p4Questions,
+  "m04-p1": m04p1Questions
 };
 
 const allQuestions: InterviewQuestion[] = [
@@ -968,7 +1040,8 @@ const allQuestions: InterviewQuestion[] = [
   ...m03p1Questions,
   ...m03p2Questions,
   ...m03p3Questions,
-  ...m03p4Questions
+  ...m03p4Questions,
+  ...m04p1Questions
 ];
 
 function mergeGlossaryEntries(...batches: GlossaryEntry[][]): GlossaryEntry[] {
@@ -997,7 +1070,8 @@ const glossaryEntries: GlossaryEntry[] = mergeGlossaryEntries(
   extractGlossaryFromMdx(m03p1Raw, "m03-p1"),
   extractGlossaryFromMdx(m03p2Raw, "m03-p2"),
   extractGlossaryFromMdx(m03p3Raw, "m03-p3"),
-  extractGlossaryFromMdx(m03p4Raw, "m03-p4")
+  extractGlossaryFromMdx(m03p4Raw, "m03-p4"),
+  extractGlossaryFromMdx(m04p1Raw, "m04-p1")
 );
 
 function buildSearchRecords(): SearchRecord[] {
@@ -1029,6 +1103,7 @@ function buildSearchRecords(): SearchRecord[] {
   records.push(...extractSearchRecordsFromMdx(m03p2Raw, "m03-p2", lessons[10].title, 3));
   records.push(...extractSearchRecordsFromMdx(m03p3Raw, "m03-p3", lessons[11].title, 3));
   records.push(...extractSearchRecordsFromMdx(m03p4Raw, "m03-p4", lessons[12].title, 3));
+  records.push(...extractSearchRecordsFromMdx(m04p1Raw, "m04-p1", lessons[13].title, 4));
 
   for (const mod of SYLLABUS_MODULES) {
     for (const topic of mod.topics) {

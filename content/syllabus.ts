@@ -827,20 +827,76 @@ export const SYLLABUS_MODULES: SyllabusModule[] = [
   ]),
 
   defineModule(4, "Database Fundamentals & Database Architecture", "databases", [
-    "What a database is",
-    "Database architecture",
-    "Database engines",
-    "Relational databases",
-    "NoSQL databases",
-    "Data modeling",
-    "ER diagrams",
-    "Tables",
-    "Rows",
-    "Columns",
-    "Primary keys",
-    "Foreign keys",
-    "Unique constraints",
-    "Check constraints",
+    {
+      title: "What a database is",
+      lessonId: "m04-p1",
+      anchorId: "m04-p1-topic-what-a-database-is"
+    },
+    {
+      title: "Database architecture",
+      lessonId: "m04-p1",
+      anchorId: "m04-p1-topic-database-architecture"
+    },
+    {
+      title: "Database engines",
+      lessonId: "m04-p1",
+      anchorId: "m04-p1-topic-database-engines"
+    },
+    {
+      title: "Relational databases",
+      lessonId: "m04-p1",
+      anchorId: "m04-p1-topic-relational-databases"
+    },
+    {
+      title: "NoSQL databases",
+      lessonId: "m04-p1",
+      anchorId: "m04-p1-topic-nosql-databases"
+    },
+    {
+      title: "Data modeling",
+      lessonId: "m04-p1",
+      anchorId: "m04-p1-topic-data-modeling"
+    },
+    {
+      title: "ER diagrams",
+      lessonId: "m04-p1",
+      anchorId: "m04-p1-topic-er-diagrams"
+    },
+    {
+      title: "Tables",
+      lessonId: "m04-p1",
+      anchorId: "m04-p1-topic-tables"
+    },
+    {
+      title: "Rows",
+      lessonId: "m04-p1",
+      anchorId: "m04-p1-topic-rows"
+    },
+    {
+      title: "Columns",
+      lessonId: "m04-p1",
+      anchorId: "m04-p1-topic-columns"
+    },
+    {
+      title: "Primary keys",
+      lessonId: "m04-p1",
+      anchorId: "m04-p1-topic-primary-keys"
+    },
+    {
+      title: "Foreign keys",
+      lessonId: "m04-p1",
+      anchorId: "m04-p1-topic-foreign-keys"
+    },
+    {
+      title: "Unique constraints",
+      lessonId: "m04-p1",
+      anchorId: "m04-p1-topic-unique-constraints"
+    },
+    {
+      title: "Check constraints",
+      lessonId: "m04-p1",
+      anchorId: "m04-p1-topic-check-constraints"
+    },
     "Normalization",
     "Denormalization",
     "1NF",

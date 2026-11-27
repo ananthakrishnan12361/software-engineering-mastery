@@ -1,0 +1,565 @@
+<Callout variant="info" title="Topics Covered in Part 1 (M04-P1)">
+  <p>
+    This first part of Module 4 covers 14 core database architecture &amp; modeling topics: <strong>What a database is</strong>, <strong>Database architecture</strong>, <strong>Database engines</strong>, <strong>Relational databases</strong>, <strong>NoSQL databases</strong>, <strong>Data modeling</strong>, <strong>ER diagrams</strong>, <strong>Tables</strong>, <strong>Rows</strong>, <strong>Columns</strong>, <strong>Primary keys</strong>, <strong>Foreign keys</strong>, <strong>Unique constraints</strong>, and <strong>Check constraints</strong>.
+  </p>
+</Callout>
+
+<TopicSection id="m04-p1-sec-a" letter="A" title="Topic Introduction">
+
+#### What is this?
+
+A **database** is an organized, durable system for storing, querying, updating, and protecting structured or semi-structured data across crashes and concurrent users. Understanding **database architecture** and **storage engines** explains *how* bytes hit disk safely, while **relational vs. NoSQL** comparisons, **data modeling**, **ER diagrams**, and **constraints** (`PRIMARY KEY`, `FOREIGN KEY`, `UNIQUE`, `CHECK`) determine whether your schema stays clean and corruption-free as your product scales.
+
+#### Why does it exist & what problem does it solve?
+
+Saving application state in ad-hoc JSON files breaks immediately under concurrent writes, power-loss crashes, and complex queries. Databases solve concurrency, durability, indexing, and data-integrity enforcement at the storage layer so application code does not have to re-invent crash recovery or race-free uniqueness checks.
+
+#### Where is it used in real-world software?
+
+Every backend service—from financial ledgers and e-commerce order catalogs (PostgreSQL/MySQL) to high-throughput event logs and session caches (MongoDB, Cassandra, Redis)—builds on these foundational architecture and modeling primitives.
+
+</TopicSection>
+
+<TopicSection id="m04-p1-sec-b" letter="B" title="Fundamentals (Simple Mental Models)">
+
+<TopicAnchor id="m04-p1-topic-what-a-database-is" />
+
+#### 1. What a Database Is: Durable, Queryable, Concurrent State
+
+A **database** (managed by a **DBMS** — Database Management System) is software that persists data on non-volatile storage (SSD/NVMe) while giving applications a high-level query interface, crash durability, access control, and safe multi-user concurrency.
+
+Unlike in-memory variables or plain CSV files, a DBMS guarantees that committed writes survive process restarts via write-ahead logging and organizes data into indexed pages so lookups take milliseconds instead of full-file scans.
+
+<TopicAnchor id="m04-p1-topic-database-architecture" />
+
+#### 2. Database Architecture: Transport, Query Engine, Buffer Pool & Disk
+
+Modern **database architecture** is layered like a pipeline: the **Transport / Connection Manager** accepts client sockets and checks auth; the **Query Processor** parses SQL, validates schema names, and builds a cost-based execution plan; the **Execution Engine** runs joins/filters; and the **Storage Engine** reads/writes fixed-size pages through an in-memory **Buffer Pool** backed by a **Write-Ahead Log (WAL)** on disk.
+
+Separating query planning from page storage allows the optimizer to pick indexes or join algorithms dynamically without changing application queries.
+
+<TopicAnchor id="m04-p1-topic-database-engines" />
+
+#### 3. Database Engines: B-Tree (Read-Optimized) vs. LSM-Tree (Write-Optimized)
+
+The **database storage engine** (e.g., InnoDB in MySQL, PostgreSQL's heap + B-tree indexes, RocksDB/Cassandra's LSM-tree) controls how records are laid out on disk. **B-Tree** engines update fixed-size pages (8–16 KB) in place, giving predictable, fast point reads and range scans.
+
+**LSM-Tree (Log-Structured Merge-Tree)** engines append writes sequentially to an in-memory **MemTable** + WAL and flush immutable sorted **SSTables** later, delivering very high write throughput at the cost of background compaction and potential read amplification.
+
+<TopicAnchor id="m04-p1-topic-relational-databases" />
+
+#### 4. Relational Databases: Set Theory, Strict Schemas & Joins
+
+**Relational databases (RDBMS)**—such as PostgreSQL, MySQL, and SQL Server—model data as mathematically defined **relations (tables)** with fixed typed columns, enforced constraints, SQL querying, and cross-table `JOIN`s.
+
+Because relationships are normalized and enforced by the engine, relational databases excel when data has clear entities, strong consistency requirements, and evolving ad-hoc query patterns (financial ledgers, orders, inventory, SaaS multi-tenant data).
+
+<TopicAnchor id="m04-p1-topic-nosql-databases" />
+
+#### 5. NoSQL Databases: Document, Key-Value, Wide-Column & Graph
+
+**NoSQL databases** trade general-purpose joins and rigid schemas for specialized access patterns and horizontal partitioning: **Document stores** (MongoDB) store self-contained JSON/BSON aggregates; **Key-Value** (Redis) gives sub-millisecond lookups; **Wide-Column** (Cassandra) scales massive time-series writes across nodes; and **Graph** (Neo4j) traverses deep multi-hop relationships.
+
+Choosing NoSQL works best when your access patterns are known upfront and data fits aggregate boundaries—not just to skip thinking about data modeling.
+
+<TopicAnchor id="m04-p1-topic-data-modeling" />
+
+#### 6. Data Modeling: Conceptual, Logical & Physical Design
+
+**Data modeling** translates messy business requirements into a clean database schema in three steps: **Conceptual** (core entities and business rules), **Logical** (attributes, primary/foreign keys, cardinalities, normalization independent of vendor), and **Physical** (exact column types like `BIGINT`/`TIMESTAMPTZ`, indexes, and partitioning for PostgreSQL or MongoDB).
+
+Good modeling starts from **access patterns and invariants** (*"an order must always belong to an existing user and total >= 0"*), preventing expensive schema rewrites later.
+
+<TopicAnchor id="m04-p1-topic-er-diagrams" />
+
+#### 7. ER Diagrams: Entities, Attributes & Cardinalities (`1:1`, `1:N`, `M:N`)
+
+An **Entity-Relationship (ER) diagram** visualizes tables (**entities**), their fields (**attributes**), and **cardinalities**: **`1:1`** (e.g., `users` to `user_profiles`), **`1:N`** (one `user` places many `orders`—FK lives on the `N` side), and **`M:N`** (many `orders` contain many `products`—resolved via a **junction/join table** like `order_items`).
+
+Drawing an ER diagram before writing DDL reveals missing junction tables, ambiguous ownership, and circular foreign-key dependencies early.
+
+<TopicAnchor id="m04-p1-topic-tables" />
+
+#### 8. Tables: Named Collections of Uniform Records
+
+A **table** is a named set of records representing one entity type (such as `orders` or `products`). Every row in a relational table shares the same column definitions and constraints, ensuring predictable storage layout and type safety.
+
+Keep table names consistent (e.g., lowercase `snake_case` plurals like `order_items`), avoid mixing unrelated entity types into one polymorphic "god table", and store each distinct concept cleanly.
+
+<TopicAnchor id="m04-p1-topic-rows" />
+
+#### 9. Rows: Individual Entity Instances (Tuples)
+
+A **row** (or tuple) is a single record inside a table—for example, one specific order (`id = 1042, user_id = 7, total_cents = 4900`). In row-oriented OLTP engines (PostgreSQL, InnoDB), all columns of a row are stored together on disk pages so fetching or updating a single order takes one page read.
+
+By contrast, analytical **columnar** warehouses store values by column across rows for fast aggregations (`SUM(total_cents)`) over millions of records.
+
+<TopicAnchor id="m04-p1-topic-columns" />
+
+#### 10. Columns: Strict Types, Nullability & Precision
+
+A **column** defines an attribute's name, data type (`BIGINT`, `TEXT`, `BOOLEAN`, `TIMESTAMPTZ`, `NUMERIC(12,2)`), `NOT NULL` rule, and `DEFAULT` value. Choosing the narrowest accurate type shrinks table size, keeps more rows in the Buffer Pool RAM, and prevents precision bugs.
+
+For example, store money as exact integer cents (`BIGINT`) or fixed `NUMERIC`, never IEEE-754 `FLOAT`/`REAL`, and always store timestamps in UTC (`TIMESTAMPTZ`).
+
+<TopicAnchor id="m04-p1-topic-primary-keys" />
+
+#### 11. Primary Keys: Unique Non-Null Row Identity
+
+A **Primary Key (`PRIMARY KEY`)** uniquely identifies every row in a table (`UNIQUE + NOT NULL`) and cannot be duplicated. **Natural keys** (like `email` or `ssn`) carry business meaning but can change or leak PII; **Surrogate keys** (`BIGINT GENERATED ALWAYS AS IDENTITY` or time-sortable `UUIDv7`) stay immutable.
+
+Note that random `UUIDv4` primary keys cause random B-tree page splits and index fragmentation at scale, whereas sequential `BIGINT` or `UUIDv7` keys append cleanly to the right edge of the B-tree.
+
+<TopicAnchor id="m04-p1-topic-foreign-keys" />
+
+#### 12. Foreign Keys: Enforcing Referential Integrity Across Tables
+
+A **Foreign Key (`FOREIGN KEY`)** links a column in a child table (`orders.user_id`) to a primary/unique key in a parent table (`users.id`), guaranteeing no orphan `orders` can reference a nonexistent user.
+
+Specify explicit delete/update actions: **`ON DELETE RESTRICT`** (default/safest—blocks deleting a user who still has orders), **`ON DELETE CASCADE`** (auto-deletes child `order_items` when an order is deleted), or **`ON DELETE SET NULL`** (preserves audit rows while clearing optional links).
+
+<TopicAnchor id="m04-p1-topic-unique-constraints" />
+
+#### 13. Unique Constraints: Race-Free Uniqueness at the Storage Layer
+
+A **`UNIQUE` constraint** (single-column like `users(email)` or composite like `enrollments(student_id, course_id)`) prevents duplicate values even when two concurrent requests race at the exact same millisecond.
+
+Never rely solely on an application `SELECT ...` followed by `INSERT ...` (Time-of-Check to Time-of-Use race condition)—only a database `UNIQUE` constraint or unique index enforces uniqueness atomically under concurrency using internal index-page locks.
+
+<TopicAnchor id="m04-p1-topic-check-constraints" />
+
+#### 14. Check Constraints: Enforcing Domain Invariants Inside the Engine
+
+A **`CHECK` constraint** validates boolean row-level invariants on every `INSERT` and `UPDATE` directly inside the database engine (for example, `CHECK (quantity > 0)`, `CHECK (total_cents >= 0)`, or `CHECK (ends_at > starts_at)`).
+
+Enforcing invariants with `CHECK` constraints protects data integrity even if a background script, admin migration, or second microservice writes to the table while bypassing your main Node.js API validation.
+
+</TopicSection>
+
+<TopicSection id="m04-p1-sec-c" letter="C" title="Internal Working & Architecture">
+
+#### 1. Layered Database Server Architecture (Query Engine -> Buffer Pool -> WAL & Storage)
+
+A DBMS separates SQL parsing/optimization from in-memory Buffer Pool caching and crash-safe disk persistence (Write-Ahead Log + B-Tree or LSM-Tree storage).
+
+<DiagramCard caption="Figure 4.1 — Queries pass through parsing and cost-based planning before hitting the Buffer Pool and WAL-backed Storage Engine.">
+  <svg viewBox="0 0 820 195" role="img" aria-label="Layered database architecture from client connection to buffer pool and WAL storage engine">
+    <rect x="10" y="10" width="800" height="175" rx="10" fill="var(--bg-subtle)" stroke="var(--border)" />
+
+    <rect x="26" y="34" width="168" height="126" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" />
+    <text x="110" y="60" textAnchor="middle" fill="var(--accent-strong)" fontSize="12.5" fontWeight="700" fontFamily="sans-serif">1. Connection Mgr</text>
+    <text x="110" y="88" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">Auth + Sessions</text>
+    <text x="110" y="114" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Pool / TLS sockets</text>
+
+    <line x1="194" y1="97" x2="230" y2="97" stroke="var(--accent)" strokeWidth="2" />
+    <polygon points="230,97 220,92 220,102" fill="var(--accent)" />
+
+    <rect x="234" y="34" width="180" height="126" rx="8" fill="var(--bg-surface)" stroke="var(--border-strong)" />
+    <text x="324" y="60" textAnchor="middle" fill="var(--text-primary)" fontSize="12.5" fontWeight="700" fontFamily="sans-serif">2. Query Optimizer</text>
+    <text x="324" y="88" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">Parse -&gt; Cost Plan</text>
+    <text x="324" y="114" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Index / Join choice</text>
+
+    <line x1="414" y1="97" x2="450" y2="97" stroke="var(--warning)" strokeWidth="2" />
+    <polygon points="450,97 440,92 440,102" fill="var(--warning)" />
+
+    <rect x="454" y="34" width="165" height="126" rx="8" fill="var(--warning-soft)" stroke="var(--warning)" />
+    <text x="536" y="60" textAnchor="middle" fill="var(--warning)" fontSize="12.5" fontWeight="700" fontFamily="sans-serif">3. Buffer Pool (RAM)</text>
+    <text x="536" y="88" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">Cached 8-16KB pages</text>
+    <text x="536" y="114" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Dirty page tracking</text>
+
+    <line x1="619" y1="97" x2="655" y2="97" stroke="var(--success)" strokeWidth="2" />
+    <polygon points="655,97 645,92 645,102" fill="var(--success)" />
+
+    <rect x="659" y="34" width="135" height="126" rx="8" fill="var(--success-soft)" stroke="var(--success)" />
+    <text x="726" y="60" textAnchor="middle" fill="var(--success)" fontSize="12.5" fontWeight="700" fontFamily="sans-serif">4. WAL + Disk</text>
+    <text x="726" y="88" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">B-Tree / LSM</text>
+    <text x="726" y="114" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Crash durability</text>
+  </svg>
+</DiagramCard>
+
+#### 2. ER Cardinality & Constraint Relationships (`1:N` and `M:N` Junction Table)
+
+An `M:N` relationship between `orders` and `products` is decomposed into two `1:N` relationships using the `order_items` junction table, enforcing composite uniqueness and `CHECK` bounds.
+
+<DiagramCard caption="Figure 4.2 — ER schema showing 1:N ownership (users -> orders) and M:N resolution via order_items with PK, FK, UNIQUE, and CHECK rules.">
+  <svg viewBox="0 0 820 185" role="img" aria-label="ER diagram with users, orders, order_items junction table, and products">
+    <rect x="10" y="10" width="800" height="165" rx="10" fill="var(--bg-subtle)" stroke="var(--border)" />
+
+    <rect x="24" y="32" width="165" height="120" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" />
+    <text x="106" y="56" textAnchor="middle" fill="var(--accent-strong)" fontSize="13" fontWeight="700" fontFamily="sans-serif">users</text>
+    <text x="106" y="82" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">PK id (BIGINT)</text>
+    <text x="106" y="106" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="monospace">UNIQUE email</text>
+
+    <line x1="189" y1="92" x2="225" y2="92" stroke="var(--accent)" strokeWidth="2" />
+    <text x="207" y="80" textAnchor="middle" fill="var(--accent-strong)" fontSize="11" fontWeight="700" fontFamily="monospace">1:N</text>
+
+    <rect x="229" y="32" width="175" height="120" rx="8" fill="var(--bg-surface)" stroke="var(--border-strong)" />
+    <text x="316" y="56" textAnchor="middle" fill="var(--text-primary)" fontSize="13" fontWeight="700" fontFamily="sans-serif">orders</text>
+    <text x="316" y="82" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">PK id | FK user_id</text>
+    <text x="316" y="106" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="monospace">CHECK total &gt;= 0</text>
+
+    <line x1="404" y1="92" x2="440" y2="92" stroke="var(--warning)" strokeWidth="2" />
+    <text x="422" y="80" textAnchor="middle" fill="var(--warning)" fontSize="11" fontWeight="700" fontFamily="monospace">1:N</text>
+
+    <rect x="444" y="32" width="175" height="120" rx="8" fill="var(--warning-soft)" stroke="var(--warning)" />
+    <text x="531" y="56" textAnchor="middle" fill="var(--warning)" fontSize="13" fontWeight="700" fontFamily="sans-serif">order_items</text>
+    <text x="531" y="82" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">PK(order_id, prod_id)</text>
+    <text x="531" y="106" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="monospace">CHECK qty &gt; 0</text>
+
+    <line x1="619" y1="92" x2="655" y2="92" stroke="var(--success)" strokeWidth="2" />
+    <text x="637" y="80" textAnchor="middle" fill="var(--success)" fontSize="11" fontWeight="700" fontFamily="monospace">N:1</text>
+
+    <rect x="659" y="32" width="135" height="120" rx="8" fill="var(--success-soft)" stroke="var(--success)" />
+    <text x="726" y="56" textAnchor="middle" fill="var(--success)" fontSize="13" fontWeight="700" fontFamily="sans-serif">products</text>
+    <text x="726" y="82" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">PK id | UNIQUE sku</text>
+    <text x="726" y="106" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="monospace">CHECK price &gt;= 0</text>
+  </svg>
+</DiagramCard>
+
+</TopicSection>
+
+<TopicSection id="m04-p1-sec-d" letter="D" title="Practical Examples (Interactive)">
+
+#### Example 1: PostgreSQL Relational Schema With PK, FK, UNIQUE & CHECK Constraints (SQL Reference)
+
+<CodeBlock
+  lang="sql"
+  code={`CREATE TABLE users (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  email TEXT NOT NULL UNIQUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE products (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  sku TEXT NOT NULL UNIQUE,
+  price_cents BIGINT NOT NULL CHECK (price_cents >= 0)
+);
+
+CREATE TABLE orders (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+  total_cents BIGINT NOT NULL CHECK (total_cents >= 0),
+  status TEXT NOT NULL CHECK (status IN ('pending', 'paid', 'cancelled')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Junction table resolving M:N between orders and products
+CREATE TABLE order_items (
+  order_id BIGINT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE RESTRICT,
+  quantity INTEGER NOT NULL CHECK (quantity > 0),
+  unit_price_cents BIGINT NOT NULL CHECK (unit_price_cents >= 0),
+  PRIMARY KEY (order_id, product_id)
+);`}
+/>
+
+#### Example 2: Mini Relational Constraint Engine (`createRelationalDb` — PK, UNIQUE, CHECK & FK)
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// Models relational PK, UNIQUE, CHECK, and FOREIGN KEY ON DELETE RESTRICT enforcement
+function createRelationalDb() {
+  const users = new Map();
+  const emails = new Set();
+  const orders = new Map();
+
+  return {
+    insertUser({ id, email }) {
+      if (!Number.isInteger(id) || id < 1) throw new TypeError("PK id must be positive integer");
+      if (typeof email !== "string" || !email.includes("@")) throw new TypeError("Invalid email");
+      const normEmail = email.trim().toLowerCase();
+      if (users.has(id)) throw new Error("PRIMARY KEY violation: duplicate user id " + id);
+      if (emails.has(normEmail)) throw new Error("UNIQUE violation: duplicate email " + normEmail);
+      const row = { id, email: normEmail };
+      users.set(id, row);
+      emails.add(normEmail);
+      return row;
+    },
+    insertOrder({ id, userId, totalCents }) {
+      if (!Number.isInteger(id) || id < 1) throw new TypeError("PK id must be positive integer");
+      if (orders.has(id)) throw new Error("PRIMARY KEY violation: duplicate order id " + id);
+      if (!users.has(userId)) throw new Error("FOREIGN KEY violation: missing user " + userId);
+      if (!Number.isInteger(totalCents) || totalCents < 0) {
+        throw new Error("CHECK violation: totalCents must be integer >= 0");
+      }
+      const row = { id, userId, totalCents };
+      orders.set(id, row);
+      return row;
+    },
+    deleteUser(id) {
+      if (!users.has(id)) return false;
+      for (const ord of orders.values()) {
+        if (ord.userId === id) {
+          throw new Error("FOREIGN KEY RESTRICT: user " + id + " still has orders");
+        }
+      }
+      emails.delete(users.get(id).email);
+      return users.delete(id);
+    }
+  };
+}
+
+const db = createRelationalDb();
+db.insertUser({ id: 1, email: "Ada@Example.com" });
+db.insertOrder({ id: 100, userId: 1, totalCents: 2500 });
+let fkBlocked = false;
+try { db.deleteUser(1); } catch { fkBlocked = true; }
+console.log("User inserted & FK delete blocked?", fkBlocked);`}
+/>
+
+#### Example 3: B-Tree vs. LSM-Tree Storage Engine Write & Read Cost Simulator (`simulateEngine`)
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// Models B-Tree in-place page updates vs LSM-Tree MemTable + SSTable flushing
+function createLsmMemTable(flushThreshold = 3) {
+  if (!Number.isInteger(flushThreshold) || flushThreshold < 1) {
+    throw new TypeError("flushThreshold must be integer >= 1");
+  }
+  let memTable = new Map();
+  const sstables = []; // newest first
+
+  return {
+    put(key, value) {
+      if (typeof key !== "string" || !key) throw new TypeError("key required");
+      memTable.set(key, value);
+      if (memTable.size >= flushThreshold) {
+        const sorted = new Map([...memTable.entries()].sort((a, b) => a[0].localeCompare(b[0])));
+        sstables.unshift(sorted);
+        memTable = new Map();
+      }
+    },
+    get(key) {
+      if (memTable.has(key)) return { value: memTable.get(key), source: "memtable", probes: 1 };
+      for (let i = 0; i < sstables.length; i++) {
+        if (sstables[i].has(key)) return { value: sstables[i].get(key), source: "sstable-" + i, probes: i + 2 };
+      }
+      return { value: undefined, source: "miss", probes: sstables.length + 1 };
+    },
+    stats() {
+      return { memSize: memTable.size, sstableCount: sstables.length };
+    }
+  };
+}
+
+const lsm = createLsmMemTable(2);
+lsm.put("k1", "v1");
+lsm.put("k2", "v2"); // triggers flush to sstable-0
+lsm.put("k3", "v3"); // stays in memtable
+console.log("Read k3:", lsm.get("k3"), "| Read k1:", lsm.get("k1"), "| Stats:", lsm.stats());`}
+/>
+
+</TopicSection>
+
+<TopicSection id="m04-p1-sec-e" letter="E" title="Step-by-Step Walkthrough">
+
+Trace **`createLsmMemTable(2)`** (**Example 3**) across writes and reads:
+
+1. **Sequential MemTable Writes:** `put("k1", "v1")` and `put("k2", "v2")` append in RAM (`memTable`). Hitting `flushThreshold = 2` flushes a sorted immutable `sstable-0` and resets `memTable`.
+2. **Fast MemTable Hit:** `get("k3")` finds `"k3"` immediately in RAM (`probes: 1`).
+3. **SSTable Read Amplification:** Reading `"k1"` misses `memTable`, then probes `sstable-0` (`probes: 2`). This is why real LSM engines (RocksDB, Cassandra) keep **Bloom filters** per SSTable to skip tables that definitely do not contain a key.
+
+</TopicSection>
+
+<TopicSection id="m04-p1-sec-f" letter="F" title="Real-World Use Cases">
+
+#### Scenario 1: Stopping Duplicate Signups & Negative Balances Under Race Conditions
+
+**Problem:** An app checks `SELECT id FROM users WHERE email = $1` in Node.js before `INSERT`, allowing two concurrent signup requests to create duplicate accounts, while a race on `UPDATE` lets a wallet balance drop to `-500` cents.
+
+**Production Solution:** Add a database-level `UNIQUE` constraint on `users(email)` and `CHECK (balance_cents >= 0)` on `wallets`. The engine rejects duplicate emails (`23505`) and negative balances (`23514`) atomically regardless of concurrency.
+
+#### Scenario 2: Choosing Between PostgreSQL (Relational) and Cassandra (LSM Wide-Column)
+
+**Problem:** An engineering team stores both transactional user billing orders and 100k events/sec IoT sensor telemetry in one database.
+
+**Production Solution:** Keep transactional users, orders, and foreign-keyed line items in a **Relational B-Tree DB (PostgreSQL)** for ACID joins and constraints, and route high-volume append-only telemetry to an **LSM-Tree engine (Cassandra/Timescale)** tuned for write throughput.
+
+</TopicSection>
+
+<TopicSection id="m04-p1-sec-g" letter="G" title="Common Mistakes">
+
+- **Skipping `FOREIGN KEY` and `CHECK` constraints because "app code validates it":** Background jobs, admin scripts, and concurrent bugs still corrupt tables when the DB does not enforce invariants.
+- **Using `FLOAT`/`DOUBLE` for money or random `UUIDv4` as high-write clustered PKs:** Causes rounding errors on currency and random B-tree page splits.
+- **Modeling `M:N` relationships as comma-separated IDs (`"1,4,9"`) in one column:** Breaks foreign keys, indexing, and joins instead of using a proper junction table.
+- **Checking uniqueness with `SELECT` + `INSERT` in app code without a `UNIQUE` index:** Always vulnerable to concurrent TOCTOU race conditions.
+- **Choosing NoSQL solely to avoid writing migrations:** Ends up re-implementing joins, schema checks, and referential integrity poorly in application code.
+
+</TopicSection>
+
+<TopicSection id="m04-p1-sec-h" letter="H" title="Best Practices">
+
+- **Enforce invariants at the database boundary:** Use `PRIMARY KEY`, `FOREIGN KEY`, `NOT NULL`, `UNIQUE`, and `CHECK` constraints consistently.
+- **Draw ER diagrams before writing DDL** so `1:1`, `1:N`, and `M:N` junction tables are explicit upfront.
+- **Choose exact column types:** Integer cents/`NUMERIC` for money, `TIMESTAMPTZ` for dates, sequential `BIGINT` or `UUIDv7` for B-tree primary keys.
+- **Pick the right engine for the workload:** Relational B-Tree for complex queries/integrity; LSM/NoSQL for write-heavy append workloads or self-contained documents.
+
+</TopicSection>
+
+<TopicSection id="m04-p1-sec-i" letter="I" title="Performance & Scalability">
+
+- **Buffer Pool Hit Ratio:** Keeping column types compact (`INTEGER`/`BIGINT` instead of oversized `TEXT`) fits more rows per 8–16 KB page, increasing Buffer Pool RAM hit rates and reducing disk I/O.
+- **B-Tree Locality vs. LSM Compaction:** Sequential PKs (`BIGINT` identity / `UUIDv7`) keep B-tree inserts localized to the hot rightmost leaf page, whereas LSM engines trade background compaction CPU/I/O for fast sequential writes.
+- **Foreign Key Indexes:** Always index `FOREIGN KEY` columns on child tables (`orders(user_id)`) so parent deletes and joins do not trigger full table scans.
+
+</TopicSection>
+
+<TopicSection id="m04-p1-sec-j" letter="J" title="Security Considerations">
+
+- **Least-Privilege Schema Ownership:** Separate migration/DDL credentials from runtime app credentials so a compromised web app cannot `DROP TABLE` or `ALTER` constraints.
+- **Database-Level Invariants as Safety Nets:** `CHECK` and `FOREIGN KEY` constraints prevent tampered or buggy API requests from persisting negative prices, invalid statuses, or orphaned financial records.
+- **Surrogate Keys Over Sensitive Natural Keys:** Never use SSNs, phone numbers, or emails as public primary keys or foreign keys exposed in API URLs.
+
+</TopicSection>
+
+<TopicSection id="m04-p1-sec-k" letter="K" title="Comparisons & Decision Tables">
+
+#### 1. Relational (SQL) vs. NoSQL Databases
+
+| Dimension | Relational (PostgreSQL, MySQL) | NoSQL (MongoDB, Cassandra, Redis) |
+| --- | --- | --- |
+| **Schema** | Strict typed tables & constraints | Flexible/schema-on-read (or key-value) |
+| **Relationships & Joins** | Native `FOREIGN KEY` + `JOIN`s | Embedded documents or app-level lookups |
+| **Best Workload** | Complex queries, financial/relational integrity | High-scale write ingestion, caches, document aggregates |
+
+#### 2. B-Tree vs. LSM-Tree Storage Engines
+
+| Dimension | B-Tree (PostgreSQL, InnoDB) | LSM-Tree (Cassandra, RocksDB) |
+| --- | --- | --- |
+| **Write Path** | In-place page update + WAL | Append to MemTable + WAL, flush sorted SSTables |
+| **Read Speed** | Fast predictable `O(log n)` | May probe MemTable + multiple SSTables (mitigated by Bloom filters) |
+| **Trade-Off** | Random disk I/O on unindexed/UUIDv4 inserts | Background compaction CPU/disk I/O |
+
+#### 3. Foreign Key `ON DELETE` Actions
+
+| Action | Behavior When Parent Row Deleted | Typical Use |
+| --- | --- | --- |
+| `RESTRICT` / `NO ACTION` | Rejects delete if child rows exist | `users -> orders` (preserve financial history) |
+| `CASCADE` | Automatically deletes child rows | `orders -> order_items` |
+| `SET NULL` | Sets child FK column to `NULL` | `employees.manager_id` |
+
+</TopicSection>
+
+<TopicSection id="m04-p1-sec-l" letter="L" title="Tips to Remember (Mnemonics & Mental Models)">
+
+- **"B-Tree = fast reads & in-place pages; LSM-Tree = fast sequential writes + compaction."**
+- **"FK always lives on the `N` side of `1:N`; `M:N` needs a junction table."**
+- **"Never `SELECT` then `INSERT` for uniqueness—let the DB `UNIQUE` constraint win races."**
+- **"Constraints (`PK`, `FK`, `UNIQUE`, `CHECK`) are your last line of defense."**
+
+</TopicSection>
+
+<TopicSection id="m04-p1-sec-mn" letter="M/N" title="Interview Questions & Detailed Answers">
+
+<InterviewSection lessonId="m04-p1" />
+
+</TopicSection>
+
+<TopicSection id="m04-p1-sec-o" letter="O" title="Practical Exercises">
+
+<ExerciseCard
+  title="Exercise 1: ER Cardinality & Junction Table Validator (designRelationship)"
+  prompt={
+    <p>
+      Implement <code>designRelationship(&#123; leftEntity, rightEntity, cardinality &#125;)</code> that validates <code>"1:1"</code>, <code>"1:N"</code>, or <code>"M:N"</code> and returns where the Foreign Key lives (or generates the junction table name for <code>M:N</code>).
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function designRelationship({ leftEntity, rightEntity, cardinality }) {
+  if (typeof leftEntity !== "string" || !leftEntity.trim() || typeof rightEntity !== "string" || !rightEntity.trim()) {
+    throw new TypeError("Entity names must be non-empty strings");
+  }
+  const left = leftEntity.trim();
+  const right = rightEntity.trim();
+  if (cardinality === "1:1") {
+    return { fkTable: right, fkColumn: left + "_id", uniqueFk: true, junctionTable: null };
+  }
+  if (cardinality === "1:N") {
+    return { fkTable: right, fkColumn: left + "_id", uniqueFk: false, junctionTable: null };
+  }
+  if (cardinality === "M:N") {
+    return { fkTable: null, fkColumn: null, uniqueFk: false, junctionTable: left + "_" + right };
+  }
+  throw new RangeError("Unsupported cardinality: " + cardinality);
+}
+
+console.log("1:N:", designRelationship({ leftEntity: "users", rightEntity: "orders", cardinality: "1:N" }));
+console.log("M:N:", designRelationship({ leftEntity: "orders", rightEntity: "products", cardinality: "M:N" }));`}
+  />
+</ExerciseCard>
+
+<ExerciseCard
+  title="Exercise 2: Foreign Key Cascade vs. Restrict Simulator (applyParentDelete)"
+  prompt={
+    <p>
+      Implement <code>applyParentDelete(&#123; parentId, childRows, onDelete &#125;)</code> supporting <code>"RESTRICT"</code> (throws if children exist), <code>"CASCADE"</code> (removes matching children), and <code>"SET_NULL"</code> (sets <code>parentId: null</code> without mutating the input array).
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function applyParentDelete({ parentId, childRows, onDelete }) {
+  if (!Array.isArray(childRows)) throw new TypeError("childRows must be an array");
+  const hasChildren = childRows.some((r) => r.parentId === parentId);
+  if (onDelete === "RESTRICT") {
+    if (hasChildren) throw new Error("FOREIGN KEY RESTRICT: child rows exist");
+    return childRows.slice();
+  }
+  if (onDelete === "CASCADE") {
+    return childRows.filter((r) => r.parentId !== parentId);
+  }
+  if (onDelete === "SET_NULL") {
+    return childRows.map((r) => (r.parentId === parentId ? { ...r, parentId: null } : r));
+  }
+  throw new RangeError("Unsupported onDelete action: " + onDelete);
+}
+
+const items = [{ id: 1, parentId: 10 }, { id: 2, parentId: 20 }];
+console.log("CASCADE:", applyParentDelete({ parentId: 10, childRows: items, onDelete: "CASCADE" }));
+console.log("SET_NULL:", applyParentDelete({ parentId: 10, childRows: items, onDelete: "SET_NULL" }));`}
+  />
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m04-p1-sec-p" letter="P" title="Advanced Challenge">
+
+<Callout variant="warn" title="Senior Challenge: Fixing a Fragile E-Commerce Schema Before Scale">
+  <p>
+    An early startup schema stores product IDs as comma-separated strings inside <code>orders.product_ids</code>, uses <code>FLOAT</code> for prices, lacks <code>UNIQUE</code>/<code>CHECK</code> constraints, and uses random <code>UUIDv4</code> primary keys on a 50M-row high-insert table.
+  </p>
+  <p>
+    <strong>Your Task:</strong> Redesign the ER model and physical schema using a junction table, exact monetary types, DB constraints, and B-tree-friendly primary keys.
+  </p>
+</Callout>
+
+<ExerciseCard
+  title="Reference Architecture Notes"
+  prompt={null}
+  buttonLabel="Reveal Approach"
+  hideLabel="Hide Approach"
+>
+  <ol>
+    <li>Replace <code>orders.product_ids</code> with an <code>order_items</code> junction table (<code>PRIMARY KEY (order_id, product_id)</code>, <code>ON DELETE CASCADE</code>/<code>RESTRICT</code>) and <code>CHECK (quantity &gt; 0)</code>.</li>
+    <li>Convert <code>FLOAT</code> prices to <code>BIGINT</code> cents (or <code>NUMERIC(12,2)</code>) with <code>CHECK (price_cents &gt;= 0)</code> and add <code>UNIQUE</code> constraints on natural identifiers like <code>sku</code> and <code>email</code>.</li>
+    <li>Switch random <code>UUIDv4</code> clustered PKs to sequential <code>BIGINT GENERATED ALWAYS AS IDENTITY</code> (or time-ordered <code>UUIDv7</code>) to eliminate B-tree page-split fragmentation.</li>
+  </ol>
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m04-p1-sec-q" letter="Q" title="Summary & Key Takeaways">
+
+- **Architecture & Engines:** Databases layer query planning over a RAM Buffer Pool and WAL-backed storage—B-Trees optimize reads/in-place updates while LSM-Trees optimize high-throughput sequential writes.
+- **Relational vs. NoSQL:** Choose relational schemas for strict integrity, joins, and flexible queries; choose NoSQL for aggregate documents, key-value caches, or massive write-heavy partitioning.
+- **Data Modeling & ER:** Resolve `M:N` relationships with junction tables, pick exact column types (`BIGINT` cents, `TIMESTAMPTZ`), and prefer sequential PKs (`BIGINT` / `UUIDv7`).
+- **Constraints:** Enforce `PRIMARY KEY`, `FOREIGN KEY`, `UNIQUE`, and `CHECK` inside the database engine so concurrent requests and external scripts cannot corrupt state.
+
+</TopicSection>
