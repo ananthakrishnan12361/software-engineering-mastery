@@ -275,3 +275,207 @@ For each review, add:
   - Problem Details for HTTP APIs (RFC 9457): `https://www.rfc-editor.org/rfc/rfc9457.html`
   - Node.js HTTP Server Timeouts (`headersTimeout`, `requestTimeout`): `https://nodejs.org/api/http.html`
 - **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m03-p2.mdx`, `m03-p2.questions.ts`, and `m03-p2.coverage.ts`.
+
+---
+
+### Module 03 Part 3 (M03-P3) Technical Review Log — 2026-11-27
+
+- **Scope:** Authentication, JWT, Refresh tokens, Session management, Authorization, RBAC, OAuth fundamentals, Rate limiting, CORS, Security, Input sanitization, SQL injection, NoSQL injection, API security.
+- **Official Documentation Verified (`M3`):**
+  - OWASP API Security Top 10 (API1 BOLA) & SQL Injection Prevention Cheat Sheet: `https://owasp.org/API-Security/` and `https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html`
+  - OAuth 2.0 Security Best Current Practice (Authorization Code + PKCE) & RFC 7519 (JWT): `https://datatracker.ietf.org/doc/html/rfc9700` and `https://datatracker.ietf.org/doc/html/rfc7519`
+  - Node.js `node:crypto` (`scryptSync`, `timingSafeEqual`): `https://nodejs.org/api/crypto.html`
+  - Fetch Standard / MDN CORS (`Access-Control-Allow-Origin`, `Vary`, `Origin: null`): `https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS`
+- **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m03-p3.mdx`, `m03-p3.questions.ts`, and `m03-p3.coverage.ts`.
+
+---
+
+### Module 03 Part 4 (M03-P4) Technical Review Log — 2026-11-27
+
+- **Scope:** Pagination, Filtering, Sorting, File uploads, Background jobs, Queue systems, WebSockets, Connection pooling, Microservices, Modular monolith, Backend design patterns, Dependency injection, Testing, Unit tests, Integration tests, API tests, Performance optimization.
+- **Official Documentation Verified (`M3`):**
+  - PostgreSQL Keyset Pagination & Composite Indexes: `https://www.postgresql.org/docs/current/indexes-multicolumn.html`
+  - node-postgres (`pg.Pool`) Connection Pooling: `https://node-postgres.com/features/pooling`
+  - BullMQ Retries, Backoff & Dead-Letter Patterns: `https://docs.bullmq.io/guide/retrying-failing-jobs`
+  - AWS S3 Presigned Upload URLs & OWASP File Upload Cheat Sheet: `https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-presigned-url.html` and `https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html`
+  - Node.js Performance & `monitorEventLoopDelay`: `https://nodejs.org/api/perf_hooks.html`
+- **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m03-p4.mdx`, `m03-p4.questions.ts`, and `m03-p4.coverage.ts`.
+
+---
+
+### Module 04 Part 1 (M04-P1) Technical Review Log — 2026-11-27
+
+- **Scope:** What a database is, Database architecture, Database engines, Relational databases, NoSQL databases, Data modeling, ER diagrams, Tables, Rows, Columns, Primary keys, Foreign keys, Unique constraints, Check constraints.
+- **Official Documentation Verified (`M3`):**
+  - PostgreSQL Table Constraints (`PRIMARY KEY`, `FOREIGN KEY`, `UNIQUE`, `CHECK`) & Numeric/Date Types: `https://www.postgresql.org/docs/current/ddl-constraints.html` and `https://www.postgresql.org/docs/current/datatype.html`
+  - PostgreSQL Write-Ahead Logging (WAL) & Buffer Manager: `https://www.postgresql.org/docs/current/wal-intro.html`
+  - RocksDB / LSM-Tree Storage Engine Architecture: `https://github.com/facebook/rocksdb/wiki/RocksDB-Overview`
+  - MySQL InnoDB Architecture (Buffer Pool & Clustered B-Tree Index): `https://dev.mysql.com/doc/refman/8.4/en/innodb-architecture.html`
+- **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m04-p1.mdx`, `m04-p1.questions.ts`, and `m04-p1.coverage.ts`.
+
+---
+
+### Module 04 Part 2 (M04-P2) Technical Review Log — 2026-11-27
+
+- **Scope:** Normalization, Denormalization, 1NF, 2NF, 3NF, BCNF overview.
+- **Official Documentation Verified (`M3`):**
+  - PostgreSQL Materialized Views (`REFRESH MATERIALIZED VIEW CONCURRENTLY`): `https://www.postgresql.org/docs/current/rules-materializedviews.html`
+  - PostgreSQL Triggers & Generated Columns (Derived Cache Synchronization): `https://www.postgresql.org/docs/current/ddl-generated-columns.html` and `https://www.postgresql.org/docs/current/sql-createtrigger.html`
+- **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m04-p2.mdx`, `m04-p2.questions.ts`, and `m04-p2.coverage.ts`.
+
+---
+
+### Module 04 Part 3 (M04-P3) Technical Review Log — 2026-11-27
+
+- **Scope:** Transactions, ACID, Isolation levels, Dirty reads, Non-repeatable reads, Phantom reads, Locks, Deadlocks, MVCC, Concurrency, Database consistency, Data integrity, Schema migrations, Connection pooling, Database backups, Recovery.
+- **Official Documentation Verified (`M3`):**
+  - PostgreSQL Transaction Isolation (`READ COMMITTED`, `REPEATABLE READ`, `SERIALIZABLE` SSI): `https://www.postgresql.org/docs/current/transaction-iso.html`
+  - PostgreSQL Explicit Locking & Deadlocks (`FOR UPDATE`, `SKIP LOCKED`, `SQLSTATE 40P01`): `https://www.postgresql.org/docs/current/explicit-locking.html`
+  - PostgreSQL `CREATE INDEX CONCURRENTLY` & `ALTER TABLE ... NOT VALID / VALIDATE CONSTRAINT`: `https://www.postgresql.org/docs/current/sql-createindex.html` and `https://www.postgresql.org/docs/current/sql-altertable.html`
+  - PostgreSQL Continuous Archiving & Point-in-Time Recovery (PITR) & `pg_dump`: `https://www.postgresql.org/docs/current/continuous-archiving.html` and `https://www.postgresql.org/docs/current/backup.html`
+- **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m04-p3.mdx`, `m04-p3.questions.ts`, and `m04-p3.coverage.ts`.
+
+---
+
+### Module 05 Part 1 (M05-P1) Technical Review Log — 2026-11-27
+
+- **Scope:** PostgreSQL architecture, PostgreSQL internals, Database storage, Pages and tuples, MVCC, WAL, Transactions.
+- **Official Documentation Verified (`M3`):**
+  - PostgreSQL Server Architecture & Memory (`shared_buffers`, `work_mem`, background processes): `https://www.postgresql.org/docs/current/runtime-config-resource.html`
+  - PostgreSQL Database Page Layout, Relation Forks (`_fsm`, `_vm`), & TOAST: `https://www.postgresql.org/docs/current/storage-page-layout.html`, `https://www.postgresql.org/docs/current/storage-fsm.html`, `https://www.postgresql.org/docs/current/storage-vm.html`, and `https://www.postgresql.org/docs/current/storage-toast.html`
+  - PostgreSQL HOT Updates & `VACUUM FREEZE` / Transaction ID Wraparound: `https://www.postgresql.org/docs/current/storage-hot.html` and `https://www.postgresql.org/docs/current/routine-vacuuming.html#VACUUM-FOR-WRAPAROUND`
+  - PostgreSQL Write-Ahead Logging (WAL), `full_page_writes`, & Checkpoints: `https://www.postgresql.org/docs/current/wal-configuration.html`
+- **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m05-p1.mdx`, `m05-p1.questions.ts`, and `m05-p1.coverage.ts`.
+
+---
+
+### Module 05 Part 2 (M05-P2) Technical Review Log — 2026-11-27
+
+- **Scope:** SQL, SELECT, INSERT, UPDATE, DELETE, JOIN, INNER JOIN, LEFT JOIN, RIGHT JOIN, FULL JOIN, CROSS JOIN, Self joins, Subqueries, CTEs, Recursive CTEs, Window functions.
+- **Official Documentation Verified (`M3`):**
+  - PostgreSQL `SELECT` (`DISTINCT ON`, `LATERAL`, Joins) & `INSERT ... ON CONFLICT`: `https://www.postgresql.org/docs/current/sql-select.html` and `https://www.postgresql.org/docs/current/sql-insert.html`
+  - PostgreSQL `UPDATE`, `DELETE`, & `TRUNCATE`: `https://www.postgresql.org/docs/current/sql-update.html`, `https://www.postgresql.org/docs/current/sql-delete.html`, and `https://www.postgresql.org/docs/current/sql-truncate.html`
+  - PostgreSQL `WITH` Queries (CTEs, `MATERIALIZED`, `WITH RECURSIVE`, `CYCLE`): `https://www.postgresql.org/docs/current/queries-with.html`
+  - PostgreSQL Window Functions (`OVER`, `PARTITION BY`, `ROWS` vs `RANGE` frames): `https://www.postgresql.org/docs/current/tutorial-window.html` and `https://www.postgresql.org/docs/current/sql-expressions.html#SYNTAX-WINDOW-FUNCTIONS`
+- **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m05-p2.mdx`, `m05-p2.questions.ts`, and `m05-p2.coverage.ts`.
+
+---
+
+### Module 05 Part 3 (M05-P3) Technical Review Log — 2026-11-27
+
+- **Scope:** Views, Materialized views, Functions, Stored procedures, Triggers, Constraints, JSON, JSONB.
+- **Official Documentation Verified (`M3`):**
+  - PostgreSQL `CREATE VIEW` (`security_invoker`) & Materialized Views (`REFRESH MATERIALIZED VIEW CONCURRENTLY`): `https://www.postgresql.org/docs/current/sql-createview.html` and `https://www.postgresql.org/docs/current/rules-materializedviews.html`
+  - PostgreSQL Functions (Volatility), `CREATE PROCEDURE` (`COMMIT`/`ROLLBACK`), & Triggers (`BEFORE`/`AFTER`, `REFERENCING NEW TABLE`): `https://www.postgresql.org/docs/current/xfunc-volatility.html`, `https://www.postgresql.org/docs/current/sql-createprocedure.html`, and `https://www.postgresql.org/docs/current/trigger-definition.html`
+  - PostgreSQL Constraints (`EXCLUDE USING`, `DEFERRABLE`, `NOT VALID`): `https://www.postgresql.org/docs/current/ddl-constraints.html`
+  - PostgreSQL `JSON` / `JSONB` Types & `GIN` Indexing (`jsonb_ops`, `jsonb_path_ops`): `https://www.postgresql.org/docs/current/datatype-json.html`
+- **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m05-p3.mdx`, `m05-p3.questions.ts`, and `m05-p3.coverage.ts`.
+
+---
+
+### Module 05 Part 4 (M05-P4) Technical Review Log — 2026-11-27
+
+- **Scope:** Locking, Isolation levels, Partitioning, Replication, Connection pooling, EXPLAIN, EXPLAIN ANALYZE, Query planner, Query optimization, Indexing, Performance tuning, Vacuum, Autovacuum, Database maintenance, Backup and recovery.
+- **Official Documentation Verified (`M3`):**
+  - PostgreSQL Table Partitioning (`PARTITION BY RANGE/LIST/HASH` & Pruning): `https://www.postgresql.org/docs/current/ddl-partitioning.html`
+  - PostgreSQL Physical Streaming & Logical Replication: `https://www.postgresql.org/docs/current/high-availability.html` and `https://www.postgresql.org/docs/current/logical-replication.html`
+  - PostgreSQL `EXPLAIN (ANALYZE, BUFFERS)`, Planner Statistics, `pg_stat_statements`, `CREATE STATISTICS`, & Index Types (`B-Tree`, `GIN`, `GiST`, `BRIN`, `INCLUDE`): `https://www.postgresql.org/docs/current/using-explain.html`, `https://www.postgresql.org/docs/current/pgstatstatements.html`, `https://www.postgresql.org/docs/current/sql-createstatistics.html`, and `https://www.postgresql.org/docs/current/indexes-types.html`
+  - PgBouncer Connection Pooling Configuration: `https://www.pgbouncer.org/config.html`
+  - PostgreSQL Routine Vacuuming, Autovacuum Thresholds, `REINDEX CONCURRENTLY`, & PITR: `https://www.postgresql.org/docs/current/routine-vacuuming.html`, `https://www.postgresql.org/docs/current/sql-reindex.html`, and `https://www.postgresql.org/docs/current/continuous-archiving.html`
+- **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m05-p4.mdx`, `m05-p4.questions.ts`, and `m05-p4.coverage.ts`.
+
+---
+
+### Module 06 Part 1 (M06-P1) Technical Review Log — 2026-11-27
+
+- **Scope:** MySQL architecture, Storage engines, InnoDB, MyISAM overview, SQL, Transactions, ACID, Isolation levels, Locking, Deadlocks.
+- **Official Documentation Verified (`M3`):**
+  - MySQL 8.0 Pluggable Storage Engine Architecture & InnoDB Architecture: `https://dev.mysql.com/doc/refman/8.0/en/pluggable-storage-overview.html` and `https://dev.mysql.com/doc/refman/8.0/en/innodb-architecture.html`
+  - MySQL 8.0 MyISAM Storage Engine & Server SQL Modes (`STRICT_TRANS_TABLES`, `NO_ENGINE_SUBSTITUTION`): `https://dev.mysql.com/doc/refman/8.0/en/myisam-storage-engine.html` and `https://dev.mysql.com/doc/refman/8.0/en/sql-mode.html`
+  - MySQL 8.0 InnoDB Locking, Transaction Model, MVCC, Isolation Levels & Deadlocks: `https://dev.mysql.com/doc/refman/8.0/en/innodb-locking.html`, `https://dev.mysql.com/doc/refman/8.0/en/innodb-transaction-isolation-levels.html`, `https://dev.mysql.com/doc/refman/8.0/en/innodb-multi-versioning.html`, and `https://dev.mysql.com/doc/refman/8.0/en/innodb-deadlocks.html`
+  - MySQL 8.0 binary log / redo durability settings used by the commit protocol (`sync_binlog`, `innodb_flush_log_at_trx_commit`): `https://dev.mysql.com/doc/refman/8.0/en/replication-options-binary-log.html#sysvar_sync_binlog` and `https://dev.mysql.com/doc/refman/8.0/en/innodb-parameters.html#sysvar_innodb_flush_log_at_trx_commit`
+  - Consistent nonlocking reads (MVCC snapshot, plain `SELECT` phantom behavior) and locking reads / gap & next-key locks: `https://dev.mysql.com/doc/refman/8.0/en/innodb-consistent-read.html` and `https://dev.mysql.com/doc/refman/8.0/en/innodb-locking-reads.html`
+  - `SERIALIZABLE` implicit `FOR SHARE` only with `autocommit` off, `READ COMMITTED` requiring row/mixed binlog format: `https://dev.mysql.com/doc/refman/8.0/en/innodb-transaction-isolation-levels.html`
+  - Redo log sizing, `innodb_redo_log_capacity` (8.0.30+): `https://dev.mysql.com/doc/refman/8.0/en/innodb-redo-log.html`
+  - `performance_schema.data_locks` and `data_lock_waits`: `https://dev.mysql.com/doc/refman/8.0/en/performance-schema-data-locks-table.html` and `https://dev.mysql.com/doc/refman/8.0/en/performance-schema-data-lock-waits-table.html`
+  - Online DDL and `ALGORITHM=INSTANT` (add column any position / drop column in 8.0.29+): `https://dev.mysql.com/doc/refman/8.0/en/innodb-online-ddl-operations.html`
+  - Semi-synchronous replication semantics and `Seconds_Behind_Source` (`SHOW REPLICA STATUS`): `https://dev.mysql.com/doc/refman/8.0/en/replication-semisync.html` and `https://dev.mysql.com/doc/refman/8.0/en/show-replica-status.html`
+  - `CHECK` constraints enforced from 8.0.16: `https://dev.mysql.com/doc/refman/8.0/en/create-table-check-constraints.html`
+  - InnoDB `FULLTEXT` indexes (5.6+): `https://dev.mysql.com/doc/refman/8.0/en/innodb-fulltext-index.html`
+  - Keyring / InnoDB tablespace encryption: `https://dev.mysql.com/doc/refman/8.0/en/keyring.html`
+  - Enterprise Thread Pool: `https://dev.mysql.com/doc/refman/8.0/en/thread-pool.html`
+  - gh-ost cut-over (`_tbl_gho` / `_tbl_del`) and `pt-table-checksum`: `https://github.com/github/gh-ost/blob/master/doc/cut-over.md` and `https://docs.percona.com/percona-toolkit/pt-table-checksum.html`
+- **Verification Scope:** `npm run quality` over `m06-p1.mdx`, `m06-p1.questions.ts`, and `m06-p1.coverage.ts`. Round-1 independent audit (fresh Claude subagent, 2026-11-27) returned FAIL with findings on isolation/phantom claims, lock-manager rollback, interview accuracy and M3 links; remediation is recorded in `PIPELINE_STATE.md`.
+
+---
+
+### Module 06 Part 2 (M06-P2) Technical Review Log — 2026-11-27
+
+- **Scope:** Indexes, Composite indexes, Clustered indexes, Secondary indexes, Query optimization, EXPLAIN, Query execution, Stored procedures, Triggers, Views, Replication, Partitioning, Performance tuning, Connection management, Backup and recovery.
+- **Official Documentation Verified (`M3`):**
+  - MySQL 8.0 Clustered & Secondary Indexes, Multiple-Column Indexes & `EXPLAIN` / `EXPLAIN ANALYZE`: `https://dev.mysql.com/doc/refman/8.0/en/innodb-index-types.html`, `https://dev.mysql.com/doc/refman/8.0/en/multiple-column-indexes.html`, and `https://dev.mysql.com/doc/refman/8.0/en/explain-output.html`
+  - MySQL 8.0 Hash Joins, Functional Indexes & Invisible Indexes: `https://dev.mysql.com/doc/refman/8.0/en/hash-joins.html`, `https://dev.mysql.com/doc/refman/8.0/en/create-index.html#create-index-functional-key-parts`, and `https://dev.mysql.com/doc/refman/8.0/en/invisible-indexes.html`
+  - MySQL 8.0 Stored Programs, Triggers & Views (`MERGE`/`TEMPTABLE`, `SQL SECURITY INVOKER`): `https://dev.mysql.com/doc/refman/8.0/en/stored-programs-views.html`
+  - MySQL 8.0 GTID Replication, Parallel Workers & Partitioning: `https://dev.mysql.com/doc/refman/8.0/en/replication-gtids.html` and `https://dev.mysql.com/doc/refman/8.0/en/partitioning-range.html`
+  - MySQL 8.0 Connection Management, Backup & Point-in-Time Recovery (`mysqldump`, MySQL Shell, `mysqlbinlog`, Percona XtraBackup): `https://dev.mysql.com/doc/refman/8.0/en/point-in-time-recovery.html` and `https://docs.percona.com/percona-xtrabackup/8.0/`
+- **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m06-p2.mdx`, `m06-p2.questions.ts`, and `m06-p2.coverage.ts`.
+
+---
+
+### Module 07 Part 1 (M07-P1) Technical Review Log — 2026-11-27
+
+- **Scope:** SQL Server architecture, SQL Server engine, Storage, Pages, Extents, Tables, Indexes, Clustered indexes, Non-clustered indexes, Heap tables, Stored procedures, Functions, Views, Triggers, Temp tables, Table variables, CTEs, Window functions.
+- **Official Documentation Verified (`M3`):**
+  - SQL Server Architecture, SQLOS & Query Processing: `https://learn.microsoft.com/en-us/sql/relational-databases/sql-server-guides` and `https://learn.microsoft.com/en-us/sql/relational-databases/query-processing-architecture-guide`
+  - SQL Server Pages & Extents Architecture (8 KB Pages, 64 KB Uniform/Mixed Extents, Row-Overflow): `https://learn.microsoft.com/en-us/sql/relational-databases/pages-and-extents-architecture-guide`
+  - SQL Server Clustered, Non-Clustered (`INCLUDE`) & Heap Index Design: `https://learn.microsoft.com/en-us/sql/relational-databases/sql-server-index-design-guide` and `https://learn.microsoft.com/en-us/sql/relational-databases/indexes/heaps-tables-without-clustered-indexes`
+  - T-SQL Stored Procedures, Inline TVFs, Indexed Views (`SCHEMABINDING`), DML Triggers (`inserted`/`deleted`), `#Temp` vs. `@Table` (Deferred Compilation), CTEs & Window Functions (`ROWS` vs. `RANGE`): `https://learn.microsoft.com/en-us/sql/t-sql/statements/create-view-transact-sql`, `https://learn.microsoft.com/en-us/sql/relational-databases/user-defined-functions/scalar-udf-inlining`, and `https://learn.microsoft.com/en-us/sql/t-sql/queries/select-over-clause-transact-sql`
+- **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m07-p1.mdx`, `m07-p1.questions.ts`, and `m07-p1.coverage.ts`.
+
+---
+
+### Module 07 Part 2 (M07-P2) Technical Review Log — 2026-11-27
+
+- **Scope:** Transactions, Locking, Isolation levels, Deadlocks.
+- **Official Documentation Verified (`M3`):**
+  - SQL Server Transactions, `SET XACT_ABORT`, `XACT_STATE()` & Accelerated Database Recovery (ADR): `https://learn.microsoft.com/en-us/sql/t-sql/statements/set-xact-abort-transact-sql` and `https://learn.microsoft.com/en-us/sql/relational-databases/accelerated-database-recovery-concepts`
+  - SQL Server Transaction Locking, Row Versioning (`RCSI` / `SNAPSHOT`), & Lock Escalation: `https://learn.microsoft.com/en-us/sql/relational-databases/sql-server-transaction-locking-and-row-versioning-guide`
+  - SQL Server Deadlocks Guide (`Error 1205`, `DEADLOCK_PRIORITY`, `system_health`): `https://learn.microsoft.com/en-us/sql/relational-databases/sql-server-deadlocks-guide`
+- **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m07-p2.mdx`, `m07-p2.questions.ts`, and `m07-p2.coverage.ts`.
+
+---
+
+### Module 07 Part 3 (M07-P3) Technical Review Log — 2026-11-27
+
+- **Scope:** Query execution plans, Query optimization, Statistics, Execution plan analysis, Index maintenance, Fragmentation, Parameter sniffing, Query tuning, Partitioning, SQL Server Agent, Backup and recovery, Performance monitoring.
+- **Official Documentation Verified (`M3`):**
+  - SQL Server Query Store, Execution Plans, Statistics & Parameter Sensitive Plan (PSP) Optimization: `https://learn.microsoft.com/en-us/sql/relational-databases/performance/monitoring-performance-by-using-the-query-store`, `https://learn.microsoft.com/en-us/sql/relational-databases/statistics/statistics`, and `https://learn.microsoft.com/en-us/sql/relational-databases/performance/parameter-sensitive-plan-optimization`
+  - SQL Server Index Maintenance (`REORGANIZE` vs. `REBUILD`, 5%/30% Fragmentation) & Partitioning (`RANGE RIGHT`, `SWITCH`): `https://learn.microsoft.com/en-us/sql/relational-databases/indexes/reorganize-and-rebuild-indexes` and `https://learn.microsoft.com/en-us/sql/relational-databases/partitions/partitioned-tables-and-indexes`
+  - SQL Server Agent, Recovery Models, PITR (`NORECOVERY`/`STOPAT`), & Wait Stats (`sys.dm_os_wait_stats`): `https://learn.microsoft.com/en-us/sql/ssms/agent/sql-server-agent`, `https://learn.microsoft.com/en-us/sql/relational-databases/backup-restore/restore-a-sql-server-database-to-a-point-in-time-full-recovery-model`, and `https://learn.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-views/sys-dm-os-wait-stats-transact-sql`
+- **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m07-p3.mdx`, `m07-p3.questions.ts`, and `m07-p3.coverage.ts`.
+
+---
+
+### Module 08 Part 1 (M08-P1) Technical Review Log — 2026-11-27
+
+- **Scope:** Why indexes exist, How indexes work, B-Tree, B+ Tree, Hash indexes, Clustered indexes, Non-clustered indexes, Unique indexes.
+- **Official Documentation Verified (`M3`):**
+  - PostgreSQL index types, B-Tree implementation (high keys / right-links), `fillfactor` default 90, hash index limits (equality only, no uniqueness, WAL-logged since 10), unique indexes and `NULLS NOT DISTINCT` (15+), `INCLUDE` (11+), `CLUSTER`: `https://www.postgresql.org/docs/current/indexes-types.html`, `https://www.postgresql.org/docs/current/btree.html`, `https://www.postgresql.org/docs/current/hash-index.html`, `https://www.postgresql.org/docs/current/indexes-unique.html`, `https://www.postgresql.org/docs/current/sql-createindex.html`, and `https://www.postgresql.org/docs/current/sql-cluster.html`
+  - MySQL 8.0 InnoDB clustered and secondary indexes (primary key as clustering key, hidden row id, secondary entries store the primary key), index types per engine (`USING HASH` on InnoDB, MEMORY hash), adaptive hash index, `innodb_fill_factor`, `UUID_TO_BIN` swap flag: `https://dev.mysql.com/doc/refman/8.0/en/innodb-index-types.html`, `https://dev.mysql.com/doc/refman/8.0/en/index-btree-hash.html`, `https://dev.mysql.com/doc/refman/8.0/en/innodb-adaptive-hash.html`, `https://dev.mysql.com/doc/refman/8.0/en/create-index.html`, and `https://dev.mysql.com/doc/refman/8.0/en/miscellaneous-functions.html#function_uuid-to-bin`
+  - SQL Server clustered, nonclustered and heap indexes, row locators (clustering key / RID), unique-index NULL behaviour, `INCLUDE` columns, memory-optimized hash indexes with `BUCKET_COUNT`, `NEWSEQUENTIALID`: `https://learn.microsoft.com/en-us/sql/relational-databases/sql-server-index-design-guide`, `https://learn.microsoft.com/en-us/sql/relational-databases/indexes/clustered-and-nonclustered-indexes-described`, `https://learn.microsoft.com/en-us/sql/relational-databases/indexes/create-unique-indexes`, and `https://learn.microsoft.com/en-us/sql/t-sql/functions/newsequentialid-transact-sql`
+  - MongoDB indexes (B-Tree on WiredTiger, hashed indexes, unique indexes and missing-field-as-null, clustered collections 5.3+): `https://www.mongodb.com/docs/manual/indexes/`, `https://www.mongodb.com/docs/manual/core/indexes/index-types/index-hashed/`, `https://www.mongodb.com/docs/manual/core/index-unique/`, and `https://www.mongodb.com/docs/manual/core/clustered-collections/`
+  - B-Tree origin and UUIDv7 time-ordered identifiers: Bayer and McCreight, "Organization and Maintenance of Large Ordered Indexes" (1972) and `https://www.rfc-editor.org/rfc/rfc9562`
+  - Error codes (MySQL `1062`, PostgreSQL SQLSTATE `23505`, SQL Server `2601`/`2627`, MongoDB `11000`): `https://dev.mysql.com/doc/mysql-errors/8.0/en/server-error-reference.html`, `https://www.postgresql.org/docs/current/errcodes-appendix.html`, `https://learn.microsoft.com/en-us/sql/relational-databases/errors-events/database-engine-events-and-errors`, and `https://www.mongodb.com/docs/manual/reference/error-codes/`
+  - MySQL 8.0 default collation `utf8mb4_0900_ai_ci`, and MySQL foreign keys requiring an index: `https://dev.mysql.com/doc/refman/8.0/en/charset-mysql.html` and `https://dev.mysql.com/doc/refman/8.0/en/create-table-foreign-keys.html`
+  - PostgreSQL `random_page_cost` (default 4), HOT updates, index-only scans and the visibility map, and `pg_stat_user_indexes`: `https://www.postgresql.org/docs/current/runtime-config-query.html`, `https://www.postgresql.org/docs/current/storage-hot.html`, `https://www.postgresql.org/docs/current/indexes-index-only-scans.html`, and `https://www.postgresql.org/docs/current/monitoring-stats.html`
+  - SQL Server filtered (unique) indexes and `sys.dm_db_index_usage_stats`: `https://learn.microsoft.com/en-us/sql/relational-databases/indexes/create-filtered-indexes` and `https://learn.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-views/sys-dm-db-index-usage-stats-transact-sql`
+  - MySQL `sys.schema_unused_indexes` view: `https://dev.mysql.com/doc/refman/8.0/en/sys-schema-unused-indexes.html`
+  - Collation and case-sensitivity defaults (SQL Server, PostgreSQL, MongoDB): `https://learn.microsoft.com/en-us/sql/relational-databases/collations/collation-and-unicode-support`, `https://www.postgresql.org/docs/current/collation.html`, and `https://www.mongodb.com/docs/manual/reference/collation/`
+  - PostgreSQL TID (6 bytes) and page layout, SQL Server `FILLFACTOR` and RID row locators, InnoDB `innodb_fill_factor`: `https://www.postgresql.org/docs/current/storage-page-layout.html`, `https://learn.microsoft.com/en-us/sql/relational-databases/indexes/specify-fill-factor-for-an-index`, `https://learn.microsoft.com/en-us/sql/relational-databases/pages-and-extents-architecture-guide`, and `https://dev.mysql.com/doc/refman/8.0/en/innodb-parameters.html#sysvar_innodb_fill_factor`
+  - SQL Server RCSI / SNAPSHOT row versioning, PostgreSQL BRIN indexes, `INSERT ... ON CONFLICT`, T-SQL `MERGE`, MySQL `ANALYZE TABLE`: `https://learn.microsoft.com/en-us/sql/t-sql/statements/set-transaction-isolation-level-transact-sql`, `https://www.postgresql.org/docs/current/brin.html`, `https://www.postgresql.org/docs/current/sql-insert.html`, `https://learn.microsoft.com/en-us/sql/t-sql/statements/merge-transact-sql`, and `https://dev.mysql.com/doc/refman/8.0/en/analyze-table.html`
+  - Online schema-change tools named in IQ-10 (gh-ost, pt-online-schema-change): `https://github.com/github/gh-ost` and `https://docs.percona.com/percona-toolkit/pt-online-schema-change.html`
+  - Encryption options (PostgreSQL has no built-in TDE; InnoDB tablespace encryption; SQL Server TDE): `https://www.postgresql.org/docs/current/encryption-options.html`, `https://dev.mysql.com/doc/refman/8.0/en/innodb-data-encryption.html`, and `https://learn.microsoft.com/en-us/sql/relational-databases/security/encryption/transparent-data-encryption`
+  - Plan and statistics tooling used in the examples (`EXPLAIN (ANALYZE, BUFFERS)`, MySQL `EXPLAIN` output `type: ref`, SQL Server `SET STATISTICS IO`, PostgreSQL `ANALYZE`, SQL Server statistics updates): `https://www.postgresql.org/docs/current/sql-explain.html`, `https://dev.mysql.com/doc/refman/8.0/en/explain-output.html`, `https://learn.microsoft.com/en-us/sql/t-sql/statements/set-statistics-io-transact-sql`, `https://www.postgresql.org/docs/current/sql-analyze.html`, and `https://learn.microsoft.com/en-us/sql/relational-databases/statistics/update-statistics`
+  - Online index operations (SQL Server) and PostgreSQL logical replication named in the IQ-10 rollout step: `https://learn.microsoft.com/en-us/sql/relational-databases/indexes/perform-index-operations-online` and `https://www.postgresql.org/docs/current/logical-replication.html`
+  - InnoDB 16 KB page size and MongoDB covered queries: `https://dev.mysql.com/doc/refman/8.0/en/innodb-parameters.html#sysvar_innodb_page_size` and `https://www.mongodb.com/docs/manual/core/query-optimization/#covered-query`
+- **Verification Scope:** `npm run quality` over `m08-p1.mdx`, `m08-p1.questions.ts`, and `m08-p1.coverage.ts`. Round-1 independent audit (fresh Claude subagent, 2026-11-27) returned FAIL on M3 citation gaps plus minor findings (integer tree height, concurrency wording, PostgreSQL encryption wording, structural split tests, extra mutations, IQ-10 wording, defensive column copy); all addressed and re-audited in round 2 (see `PIPELINE_STATE.md`).

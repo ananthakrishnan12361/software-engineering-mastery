@@ -669,190 +669,742 @@ export const SYLLABUS_MODULES: SyllabusModule[] = [
       lessonId: "m03-p2",
       anchorId: "m03-p2-topic-logging"
     },
-    "Authentication",
-    "JWT",
-    "Refresh tokens",
-    "Session management",
-    "Authorization",
-    "RBAC",
-    "OAuth fundamentals",
-    "Rate limiting",
-    "CORS",
-    "Security",
-    "Input sanitization",
-    "SQL injection",
-    "NoSQL injection",
-    "API security",
-    "Pagination",
-    "Filtering",
-    "Sorting",
-    "File uploads",
-    "Background jobs",
-    "Queue systems",
-    "WebSockets",
-    "Connection pooling",
-    "Microservices",
-    "Modular monolith",
-    "Backend design patterns",
-    "Dependency injection",
-    "Testing",
-    "Unit tests",
-    "Integration tests",
-    "API tests",
-    "Performance optimization"
+    {
+      title: "Authentication",
+      lessonId: "m03-p3",
+      anchorId: "m03-p3-topic-authentication"
+    },
+    {
+      title: "JWT",
+      lessonId: "m03-p3",
+      anchorId: "m03-p3-topic-jwt"
+    },
+    {
+      title: "Refresh tokens",
+      lessonId: "m03-p3",
+      anchorId: "m03-p3-topic-refresh-tokens"
+    },
+    {
+      title: "Session management",
+      lessonId: "m03-p3",
+      anchorId: "m03-p3-topic-session-management"
+    },
+    {
+      title: "Authorization",
+      lessonId: "m03-p3",
+      anchorId: "m03-p3-topic-authorization"
+    },
+    {
+      title: "RBAC",
+      lessonId: "m03-p3",
+      anchorId: "m03-p3-topic-rbac"
+    },
+    {
+      title: "OAuth fundamentals",
+      lessonId: "m03-p3",
+      anchorId: "m03-p3-topic-oauth-fundamentals"
+    },
+    {
+      title: "Rate limiting",
+      lessonId: "m03-p3",
+      anchorId: "m03-p3-topic-rate-limiting"
+    },
+    {
+      title: "CORS",
+      lessonId: "m03-p3",
+      anchorId: "m03-p3-topic-cors"
+    },
+    {
+      title: "Security",
+      lessonId: "m03-p3",
+      anchorId: "m03-p3-topic-security"
+    },
+    {
+      title: "Input sanitization",
+      lessonId: "m03-p3",
+      anchorId: "m03-p3-topic-input-sanitization"
+    },
+    {
+      title: "SQL injection",
+      lessonId: "m03-p3",
+      anchorId: "m03-p3-topic-sql-injection"
+    },
+    {
+      title: "NoSQL injection",
+      lessonId: "m03-p3",
+      anchorId: "m03-p3-topic-nosql-injection"
+    },
+    {
+      title: "API security",
+      lessonId: "m03-p3",
+      anchorId: "m03-p3-topic-api-security"
+    },
+    {
+      title: "Pagination",
+      lessonId: "m03-p4",
+      anchorId: "m03-p4-topic-pagination"
+    },
+    {
+      title: "Filtering",
+      lessonId: "m03-p4",
+      anchorId: "m03-p4-topic-filtering"
+    },
+    {
+      title: "Sorting",
+      lessonId: "m03-p4",
+      anchorId: "m03-p4-topic-sorting"
+    },
+    {
+      title: "File uploads",
+      lessonId: "m03-p4",
+      anchorId: "m03-p4-topic-file-uploads"
+    },
+    {
+      title: "Background jobs",
+      lessonId: "m03-p4",
+      anchorId: "m03-p4-topic-background-jobs"
+    },
+    {
+      title: "Queue systems",
+      lessonId: "m03-p4",
+      anchorId: "m03-p4-topic-queue-systems"
+    },
+    {
+      title: "WebSockets",
+      lessonId: "m03-p4",
+      anchorId: "m03-p4-topic-websockets"
+    },
+    {
+      title: "Connection pooling",
+      lessonId: "m03-p4",
+      anchorId: "m03-p4-topic-connection-pooling"
+    },
+    {
+      title: "Microservices",
+      lessonId: "m03-p4",
+      anchorId: "m03-p4-topic-microservices"
+    },
+    {
+      title: "Modular monolith",
+      lessonId: "m03-p4",
+      anchorId: "m03-p4-topic-modular-monolith"
+    },
+    {
+      title: "Backend design patterns",
+      lessonId: "m03-p4",
+      anchorId: "m03-p4-topic-backend-design-patterns"
+    },
+    {
+      title: "Dependency injection",
+      lessonId: "m03-p4",
+      anchorId: "m03-p4-topic-dependency-injection"
+    },
+    {
+      title: "Testing",
+      lessonId: "m03-p4",
+      anchorId: "m03-p4-topic-testing"
+    },
+    {
+      title: "Unit tests",
+      lessonId: "m03-p4",
+      anchorId: "m03-p4-topic-unit-tests"
+    },
+    {
+      title: "Integration tests",
+      lessonId: "m03-p4",
+      anchorId: "m03-p4-topic-integration-tests"
+    },
+    {
+      title: "API tests",
+      lessonId: "m03-p4",
+      anchorId: "m03-p4-topic-api-tests"
+    },
+    {
+      title: "Performance optimization",
+      lessonId: "m03-p4",
+      anchorId: "m03-p4-topic-performance-optimization"
+    }
   ]),
 
   defineModule(4, "Database Fundamentals & Database Architecture", "databases", [
-    "What a database is",
-    "Database architecture",
-    "Database engines",
-    "Relational databases",
-    "NoSQL databases",
-    "Data modeling",
-    "ER diagrams",
-    "Tables",
-    "Rows",
-    "Columns",
-    "Primary keys",
-    "Foreign keys",
-    "Unique constraints",
-    "Check constraints",
-    "Normalization",
-    "Denormalization",
-    "1NF",
-    "2NF",
-    "3NF",
-    "BCNF overview",
-    "Transactions",
-    "ACID",
-    "Isolation levels",
-    "Dirty reads",
-    "Non-repeatable reads",
-    "Phantom reads",
-    "Locks",
-    "Deadlocks",
-    "MVCC",
-    "Concurrency",
-    "Database consistency",
-    "Data integrity",
-    "Schema migrations",
-    "Connection pooling",
-    "Database backups",
-    "Recovery"
+    {
+      title: "What a database is",
+      lessonId: "m04-p1",
+      anchorId: "m04-p1-topic-what-a-database-is"
+    },
+    {
+      title: "Database architecture",
+      lessonId: "m04-p1",
+      anchorId: "m04-p1-topic-database-architecture"
+    },
+    {
+      title: "Database engines",
+      lessonId: "m04-p1",
+      anchorId: "m04-p1-topic-database-engines"
+    },
+    {
+      title: "Relational databases",
+      lessonId: "m04-p1",
+      anchorId: "m04-p1-topic-relational-databases"
+    },
+    {
+      title: "NoSQL databases",
+      lessonId: "m04-p1",
+      anchorId: "m04-p1-topic-nosql-databases"
+    },
+    {
+      title: "Data modeling",
+      lessonId: "m04-p1",
+      anchorId: "m04-p1-topic-data-modeling"
+    },
+    {
+      title: "ER diagrams",
+      lessonId: "m04-p1",
+      anchorId: "m04-p1-topic-er-diagrams"
+    },
+    {
+      title: "Tables",
+      lessonId: "m04-p1",
+      anchorId: "m04-p1-topic-tables"
+    },
+    {
+      title: "Rows",
+      lessonId: "m04-p1",
+      anchorId: "m04-p1-topic-rows"
+    },
+    {
+      title: "Columns",
+      lessonId: "m04-p1",
+      anchorId: "m04-p1-topic-columns"
+    },
+    {
+      title: "Primary keys",
+      lessonId: "m04-p1",
+      anchorId: "m04-p1-topic-primary-keys"
+    },
+    {
+      title: "Foreign keys",
+      lessonId: "m04-p1",
+      anchorId: "m04-p1-topic-foreign-keys"
+    },
+    {
+      title: "Unique constraints",
+      lessonId: "m04-p1",
+      anchorId: "m04-p1-topic-unique-constraints"
+    },
+    {
+      title: "Check constraints",
+      lessonId: "m04-p1",
+      anchorId: "m04-p1-topic-check-constraints"
+    },
+    {
+      title: "Normalization",
+      lessonId: "m04-p2",
+      anchorId: "m04-p2-topic-normalization"
+    },
+    {
+      title: "Denormalization",
+      lessonId: "m04-p2",
+      anchorId: "m04-p2-topic-denormalization"
+    },
+    {
+      title: "1NF",
+      lessonId: "m04-p2",
+      anchorId: "m04-p2-topic-1nf"
+    },
+    {
+      title: "2NF",
+      lessonId: "m04-p2",
+      anchorId: "m04-p2-topic-2nf"
+    },
+    {
+      title: "3NF",
+      lessonId: "m04-p2",
+      anchorId: "m04-p2-topic-3nf"
+    },
+    {
+      title: "BCNF overview",
+      lessonId: "m04-p2",
+      anchorId: "m04-p2-topic-bcnf-overview"
+    },
+    {
+      title: "Transactions",
+      lessonId: "m04-p3",
+      anchorId: "m04-p3-topic-transactions"
+    },
+    {
+      title: "ACID",
+      lessonId: "m04-p3",
+      anchorId: "m04-p3-topic-acid"
+    },
+    {
+      title: "Isolation levels",
+      lessonId: "m04-p3",
+      anchorId: "m04-p3-topic-isolation-levels"
+    },
+    {
+      title: "Dirty reads",
+      lessonId: "m04-p3",
+      anchorId: "m04-p3-topic-dirty-reads"
+    },
+    {
+      title: "Non-repeatable reads",
+      lessonId: "m04-p3",
+      anchorId: "m04-p3-topic-non-repeatable-reads"
+    },
+    {
+      title: "Phantom reads",
+      lessonId: "m04-p3",
+      anchorId: "m04-p3-topic-phantom-reads"
+    },
+    {
+      title: "Locks",
+      lessonId: "m04-p3",
+      anchorId: "m04-p3-topic-locks"
+    },
+    {
+      title: "Deadlocks",
+      lessonId: "m04-p3",
+      anchorId: "m04-p3-topic-deadlocks"
+    },
+    {
+      title: "MVCC",
+      lessonId: "m04-p3",
+      anchorId: "m04-p3-topic-mvcc"
+    },
+    {
+      title: "Concurrency",
+      lessonId: "m04-p3",
+      anchorId: "m04-p3-topic-concurrency"
+    },
+    {
+      title: "Database consistency",
+      lessonId: "m04-p3",
+      anchorId: "m04-p3-topic-database-consistency"
+    },
+    {
+      title: "Data integrity",
+      lessonId: "m04-p3",
+      anchorId: "m04-p3-topic-data-integrity"
+    },
+    {
+      title: "Schema migrations",
+      lessonId: "m04-p3",
+      anchorId: "m04-p3-topic-schema-migrations"
+    },
+    {
+      title: "Connection pooling",
+      lessonId: "m04-p3",
+      anchorId: "m04-p3-topic-connection-pooling"
+    },
+    {
+      title: "Database backups",
+      lessonId: "m04-p3",
+      anchorId: "m04-p3-topic-database-backups"
+    },
+    {
+      title: "Recovery",
+      lessonId: "m04-p3",
+      anchorId: "m04-p3-topic-recovery"
+    }
   ]),
 
   defineModule(5, "PostgreSQL", "databases", [
-    "PostgreSQL architecture",
-    "PostgreSQL internals",
-    "Database storage",
-    "Pages and tuples",
-    "MVCC",
-    "WAL",
-    "Transactions",
-    "SQL",
-    "SELECT",
-    "INSERT",
-    "UPDATE",
-    "DELETE",
-    "JOIN",
-    "INNER JOIN",
-    "LEFT JOIN",
-    "RIGHT JOIN",
-    "FULL JOIN",
-    "CROSS JOIN",
-    "Self joins",
-    "Subqueries",
-    "CTEs",
-    "Recursive CTEs",
-    "Window functions",
-    "Views",
-    "Materialized views",
-    "Functions",
-    "Stored procedures",
-    "Triggers",
-    "Constraints",
-    "JSON",
-    "JSONB",
-    "Locking",
-    "Isolation levels",
-    "Partitioning",
-    "Replication",
-    "Connection pooling",
-    "EXPLAIN",
-    "EXPLAIN ANALYZE",
-    "Query planner",
-    "Query optimization",
-    "Indexing",
-    "Performance tuning",
-    "Vacuum",
-    "Autovacuum",
-    "Database maintenance",
-    "Backup and recovery"
+    {
+      title: "PostgreSQL architecture",
+      lessonId: "m05-p1",
+      anchorId: "m05-p1-topic-postgresql-architecture"
+    },
+    {
+      title: "PostgreSQL internals",
+      lessonId: "m05-p1",
+      anchorId: "m05-p1-topic-postgresql-internals"
+    },
+    {
+      title: "Database storage",
+      lessonId: "m05-p1",
+      anchorId: "m05-p1-topic-database-storage"
+    },
+    {
+      title: "Pages and tuples",
+      lessonId: "m05-p1",
+      anchorId: "m05-p1-topic-pages-and-tuples"
+    },
+    {
+      title: "MVCC",
+      lessonId: "m05-p1",
+      anchorId: "m05-p1-topic-mvcc"
+    },
+    {
+      title: "WAL",
+      lessonId: "m05-p1",
+      anchorId: "m05-p1-topic-wal"
+    },
+    {
+      title: "Transactions",
+      lessonId: "m05-p1",
+      anchorId: "m05-p1-topic-transactions"
+    },
+    {
+      title: "SQL",
+      lessonId: "m05-p2",
+      anchorId: "m05-p2-topic-sql"
+    },
+    {
+      title: "SELECT",
+      lessonId: "m05-p2",
+      anchorId: "m05-p2-topic-select"
+    },
+    {
+      title: "INSERT",
+      lessonId: "m05-p2",
+      anchorId: "m05-p2-topic-insert"
+    },
+    {
+      title: "UPDATE",
+      lessonId: "m05-p2",
+      anchorId: "m05-p2-topic-update"
+    },
+    {
+      title: "DELETE",
+      lessonId: "m05-p2",
+      anchorId: "m05-p2-topic-delete"
+    },
+    {
+      title: "JOIN",
+      lessonId: "m05-p2",
+      anchorId: "m05-p2-topic-join"
+    },
+    {
+      title: "INNER JOIN",
+      lessonId: "m05-p2",
+      anchorId: "m05-p2-topic-inner-join"
+    },
+    {
+      title: "LEFT JOIN",
+      lessonId: "m05-p2",
+      anchorId: "m05-p2-topic-left-join"
+    },
+    {
+      title: "RIGHT JOIN",
+      lessonId: "m05-p2",
+      anchorId: "m05-p2-topic-right-join"
+    },
+    {
+      title: "FULL JOIN",
+      lessonId: "m05-p2",
+      anchorId: "m05-p2-topic-full-join"
+    },
+    {
+      title: "CROSS JOIN",
+      lessonId: "m05-p2",
+      anchorId: "m05-p2-topic-cross-join"
+    },
+    {
+      title: "Self joins",
+      lessonId: "m05-p2",
+      anchorId: "m05-p2-topic-self-joins"
+    },
+    {
+      title: "Subqueries",
+      lessonId: "m05-p2",
+      anchorId: "m05-p2-topic-subqueries"
+    },
+    {
+      title: "CTEs",
+      lessonId: "m05-p2",
+      anchorId: "m05-p2-topic-ctes"
+    },
+    {
+      title: "Recursive CTEs",
+      lessonId: "m05-p2",
+      anchorId: "m05-p2-topic-recursive-ctes"
+    },
+    {
+      title: "Window functions",
+      lessonId: "m05-p2",
+      anchorId: "m05-p2-topic-window-functions"
+    },
+    {
+      title: "Views",
+      lessonId: "m05-p3",
+      anchorId: "m05-p3-topic-views"
+    },
+    {
+      title: "Materialized views",
+      lessonId: "m05-p3",
+      anchorId: "m05-p3-topic-materialized-views"
+    },
+    {
+      title: "Functions",
+      lessonId: "m05-p3",
+      anchorId: "m05-p3-topic-functions"
+    },
+    {
+      title: "Stored procedures",
+      lessonId: "m05-p3",
+      anchorId: "m05-p3-topic-stored-procedures"
+    },
+    {
+      title: "Triggers",
+      lessonId: "m05-p3",
+      anchorId: "m05-p3-topic-triggers"
+    },
+    {
+      title: "Constraints",
+      lessonId: "m05-p3",
+      anchorId: "m05-p3-topic-constraints"
+    },
+    {
+      title: "JSON",
+      lessonId: "m05-p3",
+      anchorId: "m05-p3-topic-json"
+    },
+    {
+      title: "JSONB",
+      lessonId: "m05-p3",
+      anchorId: "m05-p3-topic-jsonb"
+    },
+    {
+      title: "Locking",
+      lessonId: "m05-p4",
+      anchorId: "m05-p4-topic-locking"
+    },
+    {
+      title: "Isolation levels",
+      lessonId: "m05-p4",
+      anchorId: "m05-p4-topic-isolation-levels"
+    },
+    {
+      title: "Partitioning",
+      lessonId: "m05-p4",
+      anchorId: "m05-p4-topic-partitioning"
+    },
+    {
+      title: "Replication",
+      lessonId: "m05-p4",
+      anchorId: "m05-p4-topic-replication"
+    },
+    {
+      title: "Connection pooling",
+      lessonId: "m05-p4",
+      anchorId: "m05-p4-topic-connection-pooling"
+    },
+    {
+      title: "EXPLAIN",
+      lessonId: "m05-p4",
+      anchorId: "m05-p4-topic-explain"
+    },
+    {
+      title: "EXPLAIN ANALYZE",
+      lessonId: "m05-p4",
+      anchorId: "m05-p4-topic-explain-analyze"
+    },
+    {
+      title: "Query planner",
+      lessonId: "m05-p4",
+      anchorId: "m05-p4-topic-query-planner"
+    },
+    {
+      title: "Query optimization",
+      lessonId: "m05-p4",
+      anchorId: "m05-p4-topic-query-optimization"
+    },
+    {
+      title: "Indexing",
+      lessonId: "m05-p4",
+      anchorId: "m05-p4-topic-indexing"
+    },
+    {
+      title: "Performance tuning",
+      lessonId: "m05-p4",
+      anchorId: "m05-p4-topic-performance-tuning"
+    },
+    {
+      title: "Vacuum",
+      lessonId: "m05-p4",
+      anchorId: "m05-p4-topic-vacuum"
+    },
+    {
+      title: "Autovacuum",
+      lessonId: "m05-p4",
+      anchorId: "m05-p4-topic-autovacuum"
+    },
+    {
+      title: "Database maintenance",
+      lessonId: "m05-p4",
+      anchorId: "m05-p4-topic-database-maintenance"
+    },
+    {
+      title: "Backup and recovery",
+      lessonId: "m05-p4",
+      anchorId: "m05-p4-topic-backup-and-recovery"
+    }
   ]),
 
   defineModule(6, "MySQL", "databases", [
-    "MySQL architecture",
-    "Storage engines",
-    "InnoDB",
-    "MyISAM overview",
-    "SQL",
-    "Transactions",
-    "ACID",
-    "Isolation levels",
-    "Locking",
-    "Deadlocks",
-    "Indexes",
-    "Composite indexes",
-    "Clustered indexes",
-    "Secondary indexes",
-    "Query optimization",
-    "EXPLAIN",
-    "Query execution",
-    "Stored procedures",
-    "Triggers",
-    "Views",
-    "Replication",
-    "Partitioning",
-    "Performance tuning",
-    "Connection management",
-    "Backup and recovery"
+    {
+      title: "MySQL architecture",
+      lessonId: "m06-p1",
+      anchorId: "m06-p1-topic-mysql-architecture"
+    },
+    {
+      title: "Storage engines",
+      lessonId: "m06-p1",
+      anchorId: "m06-p1-topic-storage-engines"
+    },
+    {
+      title: "InnoDB",
+      lessonId: "m06-p1",
+      anchorId: "m06-p1-topic-innodb"
+    },
+    {
+      title: "MyISAM overview",
+      lessonId: "m06-p1",
+      anchorId: "m06-p1-topic-myisam-overview"
+    },
+    {
+      title: "SQL",
+      lessonId: "m06-p1",
+      anchorId: "m06-p1-topic-sql"
+    },
+    {
+      title: "Transactions",
+      lessonId: "m06-p1",
+      anchorId: "m06-p1-topic-transactions"
+    },
+    {
+      title: "ACID",
+      lessonId: "m06-p1",
+      anchorId: "m06-p1-topic-acid"
+    },
+    {
+      title: "Isolation levels",
+      lessonId: "m06-p1",
+      anchorId: "m06-p1-topic-isolation-levels"
+    },
+    {
+      title: "Locking",
+      lessonId: "m06-p1",
+      anchorId: "m06-p1-topic-locking"
+    },
+    {
+      title: "Deadlocks",
+      lessonId: "m06-p1",
+      anchorId: "m06-p1-topic-deadlocks"
+    },
+    {
+      title: "Indexes",
+      lessonId: "m06-p2",
+      anchorId: "m06-p2-topic-indexes"
+    },
+    {
+      title: "Composite indexes",
+      lessonId: "m06-p2",
+      anchorId: "m06-p2-topic-composite-indexes"
+    },
+    {
+      title: "Clustered indexes",
+      lessonId: "m06-p2",
+      anchorId: "m06-p2-topic-clustered-indexes"
+    },
+    {
+      title: "Secondary indexes",
+      lessonId: "m06-p2",
+      anchorId: "m06-p2-topic-secondary-indexes"
+    },
+    {
+      title: "Query optimization",
+      lessonId: "m06-p2",
+      anchorId: "m06-p2-topic-query-optimization"
+    },
+    {
+      title: "EXPLAIN",
+      lessonId: "m06-p2",
+      anchorId: "m06-p2-topic-explain"
+    },
+    {
+      title: "Query execution",
+      lessonId: "m06-p2",
+      anchorId: "m06-p2-topic-query-execution"
+    },
+    {
+      title: "Stored procedures",
+      lessonId: "m06-p2",
+      anchorId: "m06-p2-topic-stored-procedures"
+    },
+    {
+      title: "Triggers",
+      lessonId: "m06-p2",
+      anchorId: "m06-p2-topic-triggers"
+    },
+    {
+      title: "Views",
+      lessonId: "m06-p2",
+      anchorId: "m06-p2-topic-views"
+    },
+    {
+      title: "Replication",
+      lessonId: "m06-p2",
+      anchorId: "m06-p2-topic-replication"
+    },
+    {
+      title: "Partitioning",
+      lessonId: "m06-p2",
+      anchorId: "m06-p2-topic-partitioning"
+    },
+    {
+      title: "Performance tuning",
+      lessonId: "m06-p2",
+      anchorId: "m06-p2-topic-performance-tuning"
+    },
+    {
+      title: "Connection management",
+      lessonId: "m06-p2",
+      anchorId: "m06-p2-topic-connection-management"
+    },
+    {
+      title: "Backup and recovery",
+      lessonId: "m06-p2",
+      anchorId: "m06-p2-topic-backup-and-recovery"
+    }
   ]),
 
   defineModule(7, "Microsoft SQL Server (MSSQL)", "databases", [
-    "SQL Server architecture",
-    "SQL Server engine",
-    "Storage",
-    "Pages",
-    "Extents",
-    "Tables",
-    "Indexes",
-    "Clustered indexes",
-    "Non-clustered indexes",
-    "Heap tables",
-    "Stored procedures",
-    "Functions",
-    "Views",
-    "Triggers",
-    "Transactions",
-    "Locking",
-    "Isolation levels",
-    "Deadlocks",
-    "Query execution plans",
-    "Query optimization",
-    "Statistics",
-    "Execution plan analysis",
-    "Index maintenance",
-    "Fragmentation",
-    "Parameter sniffing",
-    "Query tuning",
-    "Temp tables",
-    "Table variables",
-    "CTEs",
-    "Window functions",
-    "Partitioning",
-    "SQL Server Agent",
-    "Backup and recovery",
-    "Performance monitoring"
+    { title: "SQL Server architecture", lessonId: "m07-p1", anchorId: "m07-p1-topic-sql-server-architecture" },
+    { title: "SQL Server engine", lessonId: "m07-p1", anchorId: "m07-p1-topic-sql-server-engine" },
+    { title: "Storage", lessonId: "m07-p1", anchorId: "m07-p1-topic-storage" },
+    { title: "Pages", lessonId: "m07-p1", anchorId: "m07-p1-topic-pages" },
+    { title: "Extents", lessonId: "m07-p1", anchorId: "m07-p1-topic-extents" },
+    { title: "Tables", lessonId: "m07-p1", anchorId: "m07-p1-topic-tables" },
+    { title: "Indexes", lessonId: "m07-p1", anchorId: "m07-p1-topic-indexes" },
+    { title: "Clustered indexes", lessonId: "m07-p1", anchorId: "m07-p1-topic-clustered-indexes" },
+    { title: "Non-clustered indexes", lessonId: "m07-p1", anchorId: "m07-p1-topic-non-clustered-indexes" },
+    { title: "Heap tables", lessonId: "m07-p1", anchorId: "m07-p1-topic-heap-tables" },
+    { title: "Stored procedures", lessonId: "m07-p1", anchorId: "m07-p1-topic-stored-procedures" },
+    { title: "Functions", lessonId: "m07-p1", anchorId: "m07-p1-topic-functions" },
+    { title: "Views", lessonId: "m07-p1", anchorId: "m07-p1-topic-views" },
+    { title: "Triggers", lessonId: "m07-p1", anchorId: "m07-p1-topic-triggers" },
+    { title: "Transactions", lessonId: "m07-p2", anchorId: "m07-p2-topic-transactions" },
+    { title: "Locking", lessonId: "m07-p2", anchorId: "m07-p2-topic-locking" },
+    { title: "Isolation levels", lessonId: "m07-p2", anchorId: "m07-p2-topic-isolation-levels" },
+    { title: "Deadlocks", lessonId: "m07-p2", anchorId: "m07-p2-topic-deadlocks" },
+    { title: "Query execution plans", lessonId: "m07-p3", anchorId: "m07-p3-topic-query-execution-plans" },
+    { title: "Query optimization", lessonId: "m07-p3", anchorId: "m07-p3-topic-query-optimization" },
+    { title: "Statistics", lessonId: "m07-p3", anchorId: "m07-p3-topic-statistics" },
+    { title: "Execution plan analysis", lessonId: "m07-p3", anchorId: "m07-p3-topic-execution-plan-analysis" },
+    { title: "Index maintenance", lessonId: "m07-p3", anchorId: "m07-p3-topic-index-maintenance" },
+    { title: "Fragmentation", lessonId: "m07-p3", anchorId: "m07-p3-topic-fragmentation" },
+    { title: "Parameter sniffing", lessonId: "m07-p3", anchorId: "m07-p3-topic-parameter-sniffing" },
+    { title: "Query tuning", lessonId: "m07-p3", anchorId: "m07-p3-topic-query-tuning" },
+    { title: "Temp tables", lessonId: "m07-p1", anchorId: "m07-p1-topic-temp-tables" },
+    { title: "Table variables", lessonId: "m07-p1", anchorId: "m07-p1-topic-table-variables" },
+    { title: "CTEs", lessonId: "m07-p1", anchorId: "m07-p1-topic-ctes" },
+    { title: "Window functions", lessonId: "m07-p1", anchorId: "m07-p1-topic-window-functions" },
+    { title: "Partitioning", lessonId: "m07-p3", anchorId: "m07-p3-topic-partitioning" },
+    { title: "SQL Server Agent", lessonId: "m07-p3", anchorId: "m07-p3-topic-sql-server-agent" },
+    { title: "Backup and recovery", lessonId: "m07-p3", anchorId: "m07-p3-topic-backup-and-recovery" },
+    { title: "Performance monitoring", lessonId: "m07-p3", anchorId: "m07-p3-topic-performance-monitoring" }
   ]),
 
   defineModule(
@@ -860,16 +1412,16 @@ export const SYLLABUS_MODULES: SyllabusModule[] = [
     "Database Indexing — Deep Dive",
     "databases",
     [
-      "Why indexes exist",
-      "How indexes work",
-      "B-Tree",
-      "B+ Tree",
-      "Hash indexes",
-      "Clustered indexes",
-      "Non-clustered indexes",
+      { title: "Why indexes exist", lessonId: "m08-p1", anchorId: "m08-p1-topic-why-indexes-exist" },
+      { title: "How indexes work", lessonId: "m08-p1", anchorId: "m08-p1-topic-how-indexes-work" },
+      { title: "B-Tree", lessonId: "m08-p1", anchorId: "m08-p1-topic-b-tree" },
+      { title: "B+ Tree", lessonId: "m08-p1", anchorId: "m08-p1-topic-b-plus-tree" },
+      { title: "Hash indexes", lessonId: "m08-p1", anchorId: "m08-p1-topic-hash-indexes" },
+      { title: "Clustered indexes", lessonId: "m08-p1", anchorId: "m08-p1-topic-clustered-indexes" },
+      { title: "Non-clustered indexes", lessonId: "m08-p1", anchorId: "m08-p1-topic-non-clustered-indexes" },
       "Composite indexes",
       "Covering indexes",
-      "Unique indexes",
+      { title: "Unique indexes", lessonId: "m08-p1", anchorId: "m08-p1-topic-unique-indexes" },
       "Partial indexes",
       "Filtered indexes",
       "Functional indexes",
@@ -899,7 +1451,13 @@ export const SYLLABUS_MODULES: SyllabusModule[] = [
       "Over-indexing",
       "Under-indexing",
       "Index selection",
-      "Index design for millions of records"
+      "Index design for millions of records",
+      "A slow query",
+      "An incorrect index",
+      "A better index",
+      "An execution plan",
+      "A performance comparison",
+      "A production index strategy"
     ],
     "Instructions: Compare indexing strategies across PostgreSQL, MySQL, MSSQL, and MongoDB; include realistic examples of slow query, incorrect index, better index, execution plan, performance comparison, and production index strategy."
   ),

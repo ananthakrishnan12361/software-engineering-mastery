@@ -1,0 +1,523 @@
+<Callout variant="info" title="Topics Covered in Part 4 (M05-P4)">
+  <p>
+    This final part of Module 5 covers 15 production PostgreSQL operations and tuning topics: <strong>Locking</strong>, <strong>Isolation levels</strong>, <strong>Partitioning</strong>, <strong>Replication</strong>, <strong>Connection pooling</strong>, <strong>EXPLAIN</strong>, <strong>EXPLAIN ANALYZE</strong>, <strong>Query planner</strong>, <strong>Query optimization</strong>, <strong>Indexing</strong>, <strong>Performance tuning</strong>, <strong>Vacuum</strong>, <strong>Autovacuum</strong>, <strong>Database maintenance</strong>, and <strong>Backup and recovery</strong>.
+  </p>
+</Callout>
+
+<TopicSection id="m05-p4-sec-a" letter="A" title="Topic Introduction">
+
+#### What is this?
+
+**Production PostgreSQL operations and performance tuning** bring together concurrency control (`Locking`, `Isolation levels`, `PgBouncer` pooling), horizontal table scaling (`Partitioning`), high availability (`Streaming & Logical Replication`), query diagnostics (`EXPLAIN (ANALYZE, BUFFERS)`, planner statistics, index selection), and ongoing cluster hygiene (`VACUUM`, `Autovacuum`, `REINDEX CONCURRENTLY`, and `WAL + PITR` backups).
+
+#### Why does it exist & what problem does it solve?
+
+Most production PostgreSQL outages are not hardware failures—they are caused by unindexed queries spilling to disk, stale `pg_statistic` plans, `ACCESS EXCLUSIVE` lock queues during DDL, unpruned 2 TB tables, or neglected `Autovacuum` leaving massive bloat. Mastering these tools turns reactive firefighting into predictable, measurable engineering.
+
+#### Where is it used in real-world software?
+
+High-throughput OLTP clusters, multi-region read-replica topologies, time-series event tables (`PARTITION BY RANGE`), and zero-downtime DBA/SRE operations.
+
+</TopicSection>
+
+<TopicSection id="m05-p4-sec-b" letter="B" title="Fundamentals (Simple Mental Models)">
+
+<TopicAnchor id="m05-p4-topic-locking" />
+
+#### 1. Locking: PostgreSQL Table Locks, Row Locks & Lock Queues
+
+PostgreSQL acquires **table-level locks** (`ACCESS SHARE` for `SELECT`, `ROW EXCLUSIVE` for `INSERT`/`UPDATE`/`DELETE`, `SHARE UPDATE EXCLUSIVE` for `VACUUM`/`CREATE INDEX CONCURRENTLY`, and `ACCESS EXCLUSIVE` for `ALTER TABLE`/`TRUNCATE`/`VACUUM FULL`) alongside **row-level locks** (`FOR UPDATE`, `FOR NO KEY UPDATE`, `FOR SHARE`).
+
+A critical operational trap is the **lock queue**: if an `ALTER TABLE` requests `ACCESS EXCLUSIVE` behind a slow 10-minute `SELECT`, every *new* `SELECT` queues behind the waiting `ALTER TABLE`—always set `lock_timeout` on migrations.
+
+<TopicAnchor id="m05-p4-topic-isolation-levels" />
+
+#### 2. Isolation Levels: READ COMMITTED, REPEATABLE READ & SERIALIZABLE (SSI)
+
+PostgreSQL implements three distinct behaviors: **`READ COMMITTED`** (default; fresh snapshot per statement), **`REPEATABLE READ`** (transaction-wide snapshot blocking dirty, non-repeatable, and phantom reads, aborting with `40001` on write-write conflicts), and **`SERIALIZABLE`** (Serializable Snapshot Isolation tracking predicate locks to abort write skew).
+
+Always keep transactions short and wrap `REPEATABLE READ` / `SERIALIZABLE` callers with exponential-backoff retry loops for `40001` serialization failures.
+
+<TopicAnchor id="m05-p4-topic-partitioning" />
+
+#### 3. Partitioning: Declarative Range, List & Hash Partition Pruning
+
+<GlossaryTerm definition="Splitting a large logical table into smaller physical child tables (Range, List, or Hash) so queries prune irrelevant partitions and old data drops instantly via DROP/DETACH.">Declarative partitioning</GlossaryTerm> splits a huge table (e.g., 2 TB `events`) into smaller physical child tables by **Range** (monthly timestamps), **List** (region/tenant tier), or **Hash** (uniform bucket spread).
+
+When a query filters on the partition key (`WHERE created_at >= '2026-11-01'`), **partition pruning** skips scanning cold partitions completely, and retiring old months uses `ALTER TABLE ... DETACH PARTITION CONCURRENTLY` + `DROP TABLE` in milliseconds with zero `VACUUM` overhead.
+
+<TopicAnchor id="m05-p4-topic-replication" />
+
+#### 4. Replication: Physical Streaming, Sync vs. Async & Logical Replication
+
+**Physical streaming replication** ships raw WAL bytes from the primary to standby replicas, creating an exact block-for-block cluster clone ideal for read scaling and high availability failover. **Asynchronous** replication gives minimal write latency (risking a few milliseconds of WAL loss on primary crash), whereas **synchronous** (`synchronous_commit = on` with `synchronous_standby_names`, or `remote_apply` for standby read-after-write visibility) guarantees zero RPO at the cost of network round-trip latency.
+
+**Logical replication** (publish/subscribe) streams decoded row changes (`INSERT`/`UPDATE`/`DELETE`) per table, enabling zero-downtime major PostgreSQL version upgrades and selective cross-cluster sync.
+
+<TopicAnchor id="m05-p4-topic-connection-pooling" />
+
+#### 5. Connection Pooling: PgBouncer Transaction Mode & Prepared Statements
+
+Because each PostgreSQL backend process consumes ~5–10 MB of RAM and lock-table slots, placing **PgBouncer** in **transaction pooling** mode in front of PostgreSQL multiplexes thousands of app connections onto a small backend pool (`~2 * cores + spindles`).
+
+Remember that transaction pooling reassigns the server connection after every `COMMIT`: avoid session-scoped `SET` commands or `LISTEN/NOTIFY` through a transaction pool, and verify your driver supports protocol-level prepared statements cleanly (PgBouncer 1.21+ supports them via `max_prepared_statements`).
+
+<TopicAnchor id="m05-p4-topic-explain" />
+
+#### 6. EXPLAIN: Reading Cost Units, Plan Nodes & Row Estimates
+
+`EXPLAIN` shows the Query Planner's *estimated* execution tree **without running the query**. Each node reports `(cost=startup..total rows=N width=W)` in arbitrary planner cost units (`seq_page_cost = 1.0`, `random_page_cost = 1.1` on SSDs).
+
+Reading `EXPLAIN` bottom-up (innermost indented nodes feed outer nodes) lets you check whether indexes, partition pruning, and join algorithms match expectations before touching production data.
+
+<TopicAnchor id="m05-p4-topic-explain-analyze" />
+
+#### 7. EXPLAIN ANALYZE: Actual Timing, Loops, Buffers & Disk Spills
+
+`EXPLAIN (ANALYZE, BUFFERS)` **actually executes the query** (wrap mutations in `BEGIN; ... ROLLBACK;`) and prints `actual time=first..last rows=N loops=L`, plus `Buffers: shared hit=... read=... temp written=...`.
+
+Always multiply `actual time` and `rows` by `loops`, compare `estimated rows` vs. `actual rows` to spot stale statistics, and watch for `temp written` blocks (indicating `Sort`/`Hash` spilled to disk due to insufficient `work_mem`).
+
+<TopicAnchor id="m05-p4-topic-query-planner" />
+
+#### 8. Query Planner: Statistics (pg_statistic), Selectivity & Cost Constants
+
+PostgreSQL's **cost-based optimizer** uses histograms, most-common values (`MCV`), and `n_distinct` counts stored in `pg_statistic` (populated by `ANALYZE`) to estimate filter selectivity and join cardinalities.
+
+When `estimated rows` differs from `actual rows` by 10x or more—often on correlated columns like `(city, zip_code)`—run `ANALYZE` or create **extended statistics** (`CREATE STATISTICS ... ON col1, col2 FROM tbl`) so the planner stops picking bad Nested Loops over Hash Joins.
+
+<TopicAnchor id="m05-p4-topic-query-optimization" />
+
+#### 9. Query Optimization: SARGable Predicates, Join Order & Eliminating Spills
+
+**Query optimization** starts with making predicates **SARGable** (Search ARGument-able): write `created_at >= '2026-11-01' AND created_at < '2026-12-01'` instead of `date_trunc('month', created_at) = ...`, unless you have a matching expression index.
+
+Other high-leverage wins include replacing `OFFSET` with keyset cursors, adding covering `INCLUDE` columns for Index-Only Scans, and raising session `work_mem` selectively for large analytical sorts.
+
+<TopicAnchor id="m05-p4-topic-indexing" />
+
+#### 10. Indexing: B-Tree, GIN, GiST, BRIN, Partial & Covering (INCLUDE)
+
+PostgreSQL offers specialized index types beyond default **B-Tree** (`=`, `<`, `>`, `ORDER BY`): **GIN** for `JSONB`, arrays, and Full-Text Search; **GiST** for ranges (`TSTZRANGE`), PostGIS geometry, and `EXCLUDE` constraints; and **BRIN** (Block Range Index) for tiny (~1000x smaller) indexes on huge append-only timestamp/ID tables.
+
+Combine them with **Partial Indexes** (`WHERE status = 'pending'`) and **Covering Indexes** (`INCLUDE (total_cents)`) to shrink index size and enable fast Index-Only Scans.
+
+<TopicAnchor id="m05-p4-topic-performance-tuning" />
+
+#### 11. Performance Tuning: pg_stat_statements, Cache Hit Ratio & I/O
+
+Effective **performance tuning** is measurement-driven: enable `pg_stat_statements` to rank queries by **total execution time (`total_exec_time`)**, `mean_exec_time`, and `shared_blks_read` rather than guessing which endpoint is slow. Focus first on queries consuming the highest cumulative database CPU and I/O time.
+
+Verify your working-set buffer hit ratio (`shared_blks_hit / (shared_blks_hit + shared_blks_read)` > 99% for hot OLTP), tune `random_page_cost = 1.1` and `effective_cache_size` (~75% of RAM) on NVMe SSDs, and eliminate chatty N+1 queries.
+
+<TopicAnchor id="m05-p4-topic-vacuum" />
+
+#### 12. Vacuum: Reclaiming Dead Tuples, Updating FSM/VM & Freezing XIDs
+
+Because MVCC `UPDATE`s and `DELETE`s leave dead tuple versions in 8 KB heap pages, **`VACUUM`** scans pages to mark dead tuple space reusable in the **Free Space Map (`_fsm`)**, updates the **Visibility Map (`_vm`)** for Index-Only Scans, and freezes old XIDs (`VACUUM FREEZE`).
+
+Plain `VACUUM` runs **online without blocking reads or writes**, whereas `VACUUM FULL` rewrites the entire table under an `ACCESS EXCLUSIVE` lock—avoid `VACUUM FULL` in production unless you have a maintenance window.
+
+<TopicAnchor id="m05-p4-topic-autovacuum" />
+
+#### 13. Autovacuum: Threshold Formulas, Scale Factors & Per-Table Tuning
+
+<GlossaryTerm definition="Background worker daemon that automatically runs VACUUM and ANALYZE when dead/modified tuples exceed threshold + scale_factor * reltuples.">Autovacuum</GlossaryTerm> triggers `VACUUM` on a table when `n_dead_tup > autovacuum_vacuum_threshold + autovacuum_vacuum_scale_factor * reltuples` (defaults: `50 + 0.20 * rows`).
+
+On a 500M-row table, `20%` equals 100M dead rows before vacuum even starts! Override per-table storage parameters (`ALTER TABLE orders SET (autovacuum_vacuum_scale_factor = 0.01, autovacuum_analyze_scale_factor = 0.005)`) so huge tables vacuum frequently in small, steady increments.
+
+<TopicAnchor id="m05-p4-topic-database-maintenance" />
+
+#### 14. Database Maintenance: ANALYZE, REINDEX CONCURRENTLY & pg_repack
+
+Routine **database maintenance** keeps planner stats fresh (`ANALYZE`), repairs bloated indexes online via **`REINDEX INDEX CONCURRENTLY`** (PG 12+), and reclaims severe heap bloat online using **`pg_repack`** (which builds a shadow table and swaps via triggers without holding long `ACCESS EXCLUSIVE` locks). Schedule heavy maintenance during low-traffic windows to preserve I/O headroom.
+
+Always monitor `pg_stat_user_tables` (`n_dead_tup`, `last_autovacuum`, `last_autoanalyze`) and replication slot lag so maintenance stays ahead of churn before bloat degrades index scans.
+
+<TopicAnchor id="m05-p4-topic-backup-and-recovery" />
+
+#### 15. Backup and Recovery: pg_dump, pg_basebackup, WAL Archiving & PITR
+
+Production **backup and recovery** combines **physical base backups** (`pg_basebackup` / `pgBackRest`) with **continuous WAL archiving** to encrypted object storage for second-level **Point-in-Time Recovery (PITR)**, supplemented by `pg_dump` for portable logical exports. Encrypted backups protect sensitive customer data at rest in external buckets.
+
+Always define concrete **RPO** (Recovery Point Objective) and **RTO** (Recovery Time Objective) targets and run automated staging restore drills to verify backup integrity and restore speed.
+
+</TopicSection>
+
+<TopicSection id="m05-p4-sec-c" letter="C" title="Internal Working & Architecture">
+
+PostgreSQL scales large tables via declarative partition pruning and streaming WAL replication, while relying on `EXPLAIN (ANALYZE, BUFFERS)` and `Autovacuum` feedback loops to keep plans and storage healthy.
+
+<DiagramCard caption="Figure 5.7 — Declarative Range Partition Pruning & Physical Streaming Replication (Primary -> Sync/Async Standbys).">
+  <svg viewBox="0 0 820 190" width="100%" role="img" aria-label="Declarative partition pruning and streaming WAL replication">
+    <rect x="8" y="10" width="804" height="170" rx="12" fill="var(--bg-subtle)" stroke="var(--border)" />
+
+    <rect x="24" y="26" width="376" height="138" rx="10" fill="var(--accent-soft)" stroke="var(--accent)" />
+    <text x="212" y="48" textAnchor="middle" fill="var(--accent-strong)" fontSize="12" fontWeight="700" fontFamily="sans-serif">Partition Pruning (RANGE created_at)</text>
+    <rect x="40" y="64" width="104" height="52" rx="6" fill="var(--bg-surface)" stroke="var(--border)" />
+    <text x="92" y="86" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="monospace">2026_09</text>
+    <text x="92" y="104" textAnchor="middle" fill="var(--text-secondary)" fontSize="10" fontFamily="sans-serif">Pruned (skip)</text>
+
+    <rect x="160" y="64" width="104" height="52" rx="6" fill="var(--bg-surface)" stroke="var(--border)" />
+    <text x="212" y="86" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="monospace">2026_10</text>
+    <text x="212" y="104" textAnchor="middle" fill="var(--text-secondary)" fontSize="10" fontFamily="sans-serif">Pruned (skip)</text>
+
+    <rect x="280" y="64" width="104" height="52" rx="6" fill="var(--success-soft)" stroke="var(--success)" />
+    <text x="332" y="86" textAnchor="middle" fill="var(--success)" fontSize="11" fontWeight="700" fontFamily="monospace">2026_11</text>
+    <text x="332" y="104" textAnchor="middle" fill="var(--success)" fontSize="10" fontFamily="sans-serif">Scanned</text>
+    <text x="212" y="146" textAnchor="middle" fill="var(--text-primary)" fontSize="10" fontFamily="sans-serif">WHERE created_at &gt;= &apos;2026-11-01&apos; scans 1/3 partitions</text>
+
+    <rect x="420" y="26" width="376" height="138" rx="10" fill="var(--success-soft)" stroke="var(--success)" />
+    <text x="608" y="48" textAnchor="middle" fill="var(--success)" fontSize="12" fontWeight="700" fontFamily="sans-serif">Physical WAL Streaming Replication</text>
+    <rect x="438" y="68" width="112" height="50" rx="6" fill="var(--bg-surface)" stroke="var(--border-control)" />
+    <text x="494" y="89" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontWeight="700" fontFamily="sans-serif">Primary</text>
+    <text x="494" y="105" textAnchor="middle" fill="var(--text-secondary)" fontSize="10" fontFamily="monospace">WAL Sender</text>
+
+    <line x1="550" y1="82" x2="626" y2="76" stroke="var(--success)" strokeWidth="2" />
+    <polygon points="626,76 617,73 618,81" fill="var(--success)" />
+    <line x1="550" y1="104" x2="626" y2="114" stroke="var(--accent)" strokeWidth="2" />
+    <polygon points="626,114 617,109 618,117" fill="var(--accent)" />
+
+    <rect x="630" y="58" width="148" height="36" rx="6" fill="var(--bg-surface)" stroke="var(--success)" />
+    <text x="704" y="80" textAnchor="middle" fill="var(--success)" fontSize="10" fontWeight="700" fontFamily="sans-serif">Sync Standby (0 RPO)</text>
+    <rect x="630" y="102" width="148" height="36" rx="6" fill="var(--bg-surface)" stroke="var(--accent)" />
+    <text x="704" y="124" textAnchor="middle" fill="var(--accent-strong)" fontSize="10" fontWeight="700" fontFamily="sans-serif">Async Read Replica</text>
+    <text x="608" y="152" textAnchor="middle" fill="var(--text-secondary)" fontSize="10" fontFamily="sans-serif">Plus continuous WAL archive -&gt; Object Store (PITR)</text>
+  </svg>
+</DiagramCard>
+
+<DiagramCard caption="Figure 5.8 — EXPLAIN (ANALYZE, BUFFERS) Diagnostic Signals & Autovacuum Trigger Formula.">
+  <svg viewBox="0 0 820 190" width="100%" role="img" aria-label="EXPLAIN ANALYZE signals and Autovacuum trigger loop">
+    <rect x="8" y="10" width="804" height="170" rx="12" fill="var(--bg-subtle)" stroke="var(--border)" />
+
+    <rect x="24" y="26" width="376" height="138" rx="10" fill="var(--bg-surface)" stroke="var(--border-control)" />
+    <text x="212" y="48" textAnchor="middle" fill="var(--text-primary)" fontSize="12" fontWeight="700" fontFamily="sans-serif">EXPLAIN (ANALYZE, BUFFERS) Signals</text>
+    <text x="212" y="76" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">est_rows vs actual_rows -&gt; ANALYZE</text>
+    <text x="212" y="98" textAnchor="middle" fill="var(--warning)" fontSize="11" fontFamily="monospace">temp written &gt; 0 -&gt; raise work_mem</text>
+    <text x="212" y="120" textAnchor="middle" fill="var(--success)" fontSize="11" fontFamily="monospace">shared hit &gt;&gt; read -&gt; warm cache</text>
+    <text x="212" y="142" textAnchor="middle" fill="var(--text-secondary)" fontSize="10" fontFamily="sans-serif">Always multiply actual time &amp; rows by loops</text>
+
+    <rect x="420" y="26" width="376" height="138" rx="10" fill="var(--warning-soft)" stroke="var(--warning)" />
+    <text x="608" y="48" textAnchor="middle" fill="var(--warning)" fontSize="12" fontWeight="700" fontFamily="sans-serif">Autovacuum Trigger Threshold</text>
+    <text x="608" y="76" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">dead &gt; 50 + (scale_factor * live)</text>
+    <text x="608" y="98" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Default 0.20 waits 100M rows on 500M table</text>
+    <text x="608" y="120" textAnchor="middle" fill="var(--success)" fontSize="11" fontFamily="monospace">Tune: scale_factor = 0.01 per table</text>
+    <text x="608" y="142" textAnchor="middle" fill="var(--text-primary)" fontSize="10" fontFamily="sans-serif">Updates FSM + VM + freezes old XIDs online</text>
+  </svg>
+</DiagramCard>
+
+</TopicSection>
+
+<TopicSection id="m05-p4-sec-d" letter="D" title="Practical Examples (Interactive)">
+
+#### Example 1: Partitioning, Covering Index, `EXPLAIN (ANALYZE, BUFFERS)` & Autovacuum Tuning (SQL)
+
+<CodeBlock
+  lang="sql"
+  code={`-- 1. Declarative monthly range partitioning
+CREATE TABLE events (
+  id BIGINT GENERATED ALWAYS AS IDENTITY,
+  tenant_id BIGINT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL,
+  payload JSONB NOT NULL,
+  PRIMARY KEY (id, created_at)
+) PARTITION BY RANGE (created_at);
+
+CREATE TABLE events_2026_11 PARTITION OF events
+  FOR VALUES FROM ('2026-11-01') TO ('2026-12-01');
+
+-- 2. Partial Covering Index (enables Index-Only Scans)
+CREATE INDEX CONCURRENTLY idx_orders_pending_cover
+  ON orders (tenant_id, created_at DESC)
+  INCLUDE (total_cents)
+  WHERE status = 'pending';
+
+-- 3. Inspect real buffers & spills (wrap DML in ROLLBACK)
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT id, total_cents FROM orders WHERE tenant_id = 42 AND status = 'pending'
+ORDER BY created_at DESC LIMIT 20;
+
+-- 4. Per-table Autovacuum override for a 500M-row table
+ALTER TABLE orders SET (
+  autovacuum_vacuum_scale_factor = 0.01,
+  autovacuum_analyze_scale_factor = 0.005
+);`}
+/>
+
+#### Example 2: Declarative Range Partition Pruning Simulator (`routeAndPrunePartitions`)
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// Models PostgreSQL declarative RANGE partition pruning over [from, to) half-open bounds
+function routeAndPrunePartitions({ partitions, queryStart, queryEnd }) {
+  if (!Array.isArray(partitions)) throw new TypeError("partitions must be an array");
+  if (!Number.isFinite(queryStart) || !Number.isFinite(queryEnd) || queryStart > queryEnd) {
+    throw new TypeError("queryStart and queryEnd must be finite numbers with queryStart <= queryEnd");
+  }
+
+  const scanned = [];
+  const pruned = [];
+
+  for (const p of partitions) {
+    if (!p || typeof p.name !== "string" || !p.name.trim() || !Number.isFinite(p.from) || !Number.isFinite(p.to) || p.from >= p.to) {
+      throw new TypeError("Each partition requires non-empty name and finite half-open [from, to) bounds");
+    }
+    const overlaps = p.from <= queryEnd && queryStart < p.to;
+    if (overlaps) {
+      scanned.push(p.name);
+    } else {
+      pruned.push(p.name);
+    }
+  }
+
+  return { scanned, pruned, prunedCount: pruned.length };
+}
+
+const parts = [
+  { name: "events_2026_09", from: 20260901, to: 20261001 },
+  { name: "events_2026_10", from: 20261001, to: 20261101 },
+  { name: "events_2026_11", from: 20261101, to: 20261201 }
+];
+console.log("Nov query:", routeAndPrunePartitions({ partitions: parts, queryStart: 20261105, queryEnd: 20261120 }));`}
+/>
+
+#### Example 3: `EXPLAIN (ANALYZE, BUFFERS)` Diagnostic Analyzer (`analyzeExplainNode`)
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// Diagnoses planner row-estimate skew, buffer cache hit ratio, and work_mem disk spills
+function analyzeExplainNode({ estRows, actualRows, sharedHit, sharedRead, tempWrittenBlocks = 0 }) {
+  for (const [k, v] of Object.entries({ estRows, actualRows, sharedHit, sharedRead, tempWrittenBlocks })) {
+    if (!Number.isFinite(v) || v < 0) throw new TypeError(k + " must be non-negative finite number");
+  }
+
+  const findings = [];
+  const safeEst = Math.max(estRows, 1);
+  const safeActual = Math.max(actualRows, 1);
+  const skewRatio = Math.max(safeActual / safeEst, safeEst / safeActual);
+  if (skewRatio >= 10) {
+    findings.push("STALE_STATS: row estimate skew " + skewRatio.toFixed(1) + "x (run ANALYZE or CREATE STATISTICS)");
+  }
+
+  const totalBuffers = sharedHit + sharedRead;
+  const hitRatio = totalBuffers === 0 ? 1 : sharedHit / totalBuffers;
+  if (totalBuffers > 0 && hitRatio < 0.95) {
+    findings.push("COLD_CACHE: buffer hit ratio " + (hitRatio * 100).toFixed(1) + "%");
+  }
+
+  if (tempWrittenBlocks > 0) {
+    findings.push("WORK_MEM_SPILL: " + tempWrittenBlocks + " temp blocks written to disk");
+  }
+
+  return { skewRatio: Number(skewRatio.toFixed(2)), hitRatio: Number(hitRatio.toFixed(4)), findings };
+}
+
+console.log(
+  "Bad plan:",
+  analyzeExplainNode({ estRows: 100, actualRows: 45000, sharedHit: 800, sharedRead: 400, tempWrittenBlocks: 320 })
+);
+console.log(
+  "Healthy plan:",
+  analyzeExplainNode({ estRows: 500, actualRows: 480, sharedHit: 995, sharedRead: 5, tempWrittenBlocks: 0 })
+);`}
+/>
+
+</TopicSection>
+
+<TopicSection id="m05-p4-sec-e" letter="E" title="Step-by-Step Walkthrough">
+
+Let us trace how `analyzeExplainNode` flags a degraded query plan:
+
+1. **Row Estimate Skew (`estRows: 100`, `actualRows: 45000`)**: `skewRatio` evaluates to `450x` (`>= 10`), emitting `STALE_STATS` so the engineer knows to run `ANALYZE` or add multi-column `CREATE STATISTICS`.
+2. **Buffer Hit Ratio (`800 / (800 + 400) = 66.7%`)**: Below `95%`, emitting `COLD_CACHE` (missing covering index or undersized `shared_buffers`).
+3. **Temp Disk Spill (`tempWrittenBlocks: 320`)**: Emits `WORK_MEM_SPILL`, indicating a `Sort` or `Hash` node exceeded `work_mem` and spilled to disk.
+
+</TopicSection>
+
+<TopicSection id="m05-p4-sec-f" letter="F" title="Real-World Use Cases">
+
+#### Scenario 1: Instant Retention Drops on a 2 TB Event Table
+
+Partitioning `audit_events` by month lets a nightly cron job drop 12-month-old partitions with `ALTER TABLE audit_events DETACH PARTITION ... CONCURRENTLY` + `DROP TABLE` in milliseconds—avoiding multi-hour `DELETE` + `VACUUM` I/O storms.
+
+#### Scenario 2: Zero-Downtime Major Version Upgrade via Logical Replication
+
+Publishing tables from PostgreSQL 14 to a new PostgreSQL 17 cluster via logical replication syncs historical data and live changes with sub-second lag before cutting over application traffic.
+
+</TopicSection>
+
+<TopicSection id="m05-p4-sec-g" letter="G" title="Common Mistakes">
+
+- **Running `EXPLAIN ANALYZE` on `DELETE`/`UPDATE` without `BEGIN; ... ROLLBACK;`:** Because `EXPLAIN ANALYZE` actually executes the statement, forgetting to wrap writes mutates production data permanently.
+- **Using `VACUUM FULL` during business hours:** `VACUUM FULL` rewrites the table under an `ACCESS EXCLUSIVE` lock, causing an immediate application outage; use `pg_repack` instead.
+- **Adding B-Tree indexes on every column:** Extra indexes slow down every `INSERT`/`UPDATE`/`DELETE`, increase WAL volume, and block HOT updates.
+
+</TopicSection>
+
+<TopicSection id="m05-p4-sec-h" letter="H" title="Best Practices">
+
+- Enable `pg_stat_statements` and `auto_explain` (with `log_min_duration_statement` / `auto_explain.log_min_duration`) to capture slow production plans automatically.
+- Lower `autovacuum_vacuum_scale_factor` (`0.01–0.02`) on tables over 10M rows so vacuum runs steadily instead of stalling on massive bloat.
+- Use `CREATE INDEX CONCURRENTLY` and `REINDEX INDEX CONCURRENTLY` on live tables, and always pair `pg_basebackup` + WAL archiving with automated PITR restore tests.
+
+</TopicSection>
+
+<TopicSection id="m05-p4-sec-i" letter="I" title="Performance & Scalability">
+
+- **BRIN Indexes for Time-Series:** On a 1 TB append-only table sorted by `created_at`, a `BRIN` index takes ~100 KB instead of ~30 GB for a B-Tree while still skipping 99%+ of irrelevant 8 KB page ranges.
+- **Covering Indexes (`INCLUDE`):** Including non-filtered `SELECT` columns (`INCLUDE (total_cents)`) turns heap lookups into fast Index-Only Scans once `_vm` is updated by `VACUUM`.
+
+</TopicSection>
+
+<TopicSection id="m05-p4-sec-j" letter="J" title="Security Considerations">
+
+- **Replication & Backup Encryption:** Both streaming replication connections and WAL archives carry full database contents; enforce `sslmode=verify-full` with client certificates on replication slots and KMS encryption on WAL/base backups.
+- **Lock-Queue DoS Prevention:** Enforce `lock_timeout` and `statement_timeout` on application and migration roles so one blocked DDL or runaway `SELECT` cannot stall the entire cluster.
+
+</TopicSection>
+
+<TopicSection id="m05-p4-sec-k" letter="K" title="Comparisons & Decision Tables">
+
+#### 1. PostgreSQL Index Types
+
+| Index Type | Best Data & Operators | Size / Write Cost | Sweet Spot |
+| --- | --- | --- | --- |
+| **B-Tree** | Scalar `=`, `<`, `<=`, `>`, `>=`, `ORDER BY` | Moderate | Primary keys, FKs, `INCLUDE` covering lookups |
+| **GIN** | `JSONB` (`@>`, `?`), arrays, `tsvector` | Larger / higher write cost | Document containment & full-text search |
+| **GiST** | Ranges (`&&`, `@>`), PostGIS geometry | Moderate | `EXCLUDE USING gist` & spatial queries |
+| **BRIN** | Physically correlated append-only columns | Tiny (~1000x smaller) | Multi-TB `created_at` logs & IoT time-series |
+
+#### 2. Physical Streaming vs. Logical Replication
+
+| Dimension | Physical Streaming Replication | Logical Replication (Pub/Sub) |
+| --- | --- | --- |
+| **Scope** | Entire cluster (all DBs & roles) | Selected tables only |
+| **Major Version Upgrades** | Same major version only | Cross-major-version (e.g., PG 14 -> 17) |
+| **DDL Propagation** | Automatic (WAL bytes) | Manual DDL sync required |
+| **Primary Use** | HA failover & read-only scaling | Zero-downtime upgrades & CDC subsets |
+
+#### 3. Bloat & Index Maintenance Tools
+
+| Tool / Command | Lock Held | Reclaims Heap Space | Use Case |
+| --- | --- | --- | --- |
+| **`VACUUM`** | `SHARE UPDATE EXCLUSIVE` (non-blocking) | Marks space in `_fsm` (no file shrink) | Routine MVCC cleanup & XID freeze |
+| **`VACUUM FULL`** | `ACCESS EXCLUSIVE` (blocks all!) | Shrinks OS file | Offline maintenance windows only |
+| **`REINDEX CONCURRENTLY`** | Non-blocking (PG 12+) | Rebuilds bloated index | Repairing bloated B-tree/GIN indexes online |
+| **`pg_repack`** | Brief metadata swap only | Shrinks OS heap + indexes online | Reclaiming severe bloat without downtime |
+
+</TopicSection>
+
+<TopicSection id="m05-p4-sec-l" letter="L" title="Tips to Remember (Mnemonics & Mental Models)">
+
+- **"`EXPLAIN` estimates; `EXPLAIN (ANALYZE, BUFFERS)` executes and measures real hits, reads, and spills."**
+- **"Default `autovacuum` 20% scale factor is too slow on 100M+ row tables—tune per table to `0.01`."**
+- **"Never run `VACUUM FULL` on a live primary—use `pg_repack` or `REINDEX CONCURRENTLY`."**
+- **"Use `BRIN` for append-only time-series, `GIN` for `JSONB`, `GiST` for ranges, and `B-Tree INCLUDE` for Index-Only Scans."**
+
+</TopicSection>
+
+<TopicSection id="m05-p4-sec-mn" letter="M/N" title="Interview Questions & Detailed Answers">
+
+<InterviewSection lessonId="m05-p4" />
+
+</TopicSection>
+
+<TopicSection id="m05-p4-sec-o" letter="O" title="Practical Exercises">
+
+#### Exercise 1: Autovacuum Trigger Evaluator (shouldTriggerAutovacuum)
+
+<ExerciseCard
+  title="Exercise 1: Autovacuum Trigger Evaluator (shouldTriggerAutovacuum)"
+  prompt={
+    <p>
+      Implement <code>shouldTriggerAutovacuum(&#123; liveTuples, deadTuples, baseThreshold, scaleFactor &#125;)</code> computing PostgreSQL's exact vacuum trigger threshold <code>baseThreshold + scaleFactor * liveTuples</code> and returning whether autovacuum triggers plus the ratio of dead tuples.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function shouldTriggerAutovacuum({ liveTuples, deadTuples, baseThreshold = 50, scaleFactor = 0.2 }) {
+  if (!Number.isInteger(liveTuples) || liveTuples < 0) throw new TypeError("liveTuples must be >= 0");
+  if (!Number.isInteger(deadTuples) || deadTuples < 0) throw new TypeError("deadTuples must be >= 0");
+  if (!Number.isInteger(baseThreshold) || baseThreshold < 0) throw new TypeError("baseThreshold must be >= 0");
+  if (!Number.isFinite(scaleFactor) || scaleFactor < 0 || scaleFactor > 1) {
+    throw new TypeError("scaleFactor must be between 0 and 1");
+  }
+
+  const triggerAt = Math.floor(baseThreshold + scaleFactor * liveTuples);
+  const triggered = deadTuples > triggerAt;
+  const deadPct = liveTuples === 0 ? 0 : Number(((deadTuples / liveTuples) * 100).toFixed(2));
+  return { triggered, triggerAt, deadTuples, deadPct };
+}
+
+console.log("Default 0.20 on 100M rows:", shouldTriggerAutovacuum({ liveTuples: 100000000, deadTuples: 5000000 }));
+console.log("Tuned 0.01 on 100M rows:", shouldTriggerAutovacuum({ liveTuples: 100000000, deadTuples: 5000000, scaleFactor: 0.01 }));`}
+  />
+</ExerciseCard>
+
+#### Exercise 2: PostgreSQL Index Type Selector (selectPostgresIndexType)
+
+<ExerciseCard
+  title="Exercise 2: PostgreSQL Index Type Selector (selectPostgresIndexType)"
+  prompt={
+    <p>
+      Implement <code>selectPostgresIndexType(&#123; queryPattern, sortedAppendOnly, subsetRatio &#125;)</code> returning the best PostgreSQL index strategy (<code>BRIN</code>, <code>GIN</code>, <code>GiST</code>, <code>PARTIAL_BTREE</code>, or <code>BTREE</code>) with input validation.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function selectPostgresIndexType({ queryPattern, sortedAppendOnly = false, subsetRatio = 1 }) {
+  const valid = new Set(["equality_or_range", "jsonb_containment", "range_overlap", "timestamp_scan"]);
+  if (!valid.has(queryPattern)) throw new TypeError("Invalid queryPattern: " + queryPattern);
+  if (typeof sortedAppendOnly !== "boolean") throw new TypeError("sortedAppendOnly must be boolean");
+  if (!Number.isFinite(subsetRatio) || subsetRatio <= 0 || subsetRatio > 1) {
+    throw new TypeError("subsetRatio must be in (0, 1]");
+  }
+
+  if (queryPattern === "jsonb_containment") return { indexType: "GIN", opClass: "jsonb_path_ops" };
+  if (queryPattern === "range_overlap") return { indexType: "GiST", useCase: "EXCLUDE or &&" };
+  if (queryPattern === "timestamp_scan" && sortedAppendOnly) return { indexType: "BRIN", benefit: "Minimal size" };
+  if (subsetRatio <= 0.15) return { indexType: "PARTIAL_BTREE", benefit: "Small hot-subset index" };
+  return { indexType: "BTREE", benefit: "General equality, range, and ORDER BY" };
+}
+
+console.log("JSONB:", selectPostgresIndexType({ queryPattern: "jsonb_containment" }));
+console.log("Logs:", selectPostgresIndexType({ queryPattern: "timestamp_scan", sortedAppendOnly: true }));
+console.log("Hot queue:", selectPostgresIndexType({ queryPattern: "equality_or_range", subsetRatio: 0.05 }));`}
+  />
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m05-p4-sec-p" letter="P" title="Advanced Challenge">
+
+<Callout variant="warning" title="Production Crisis: 3 TB Unpartitioned Table, Lock Queue Outage & Disk Spills">
+  <p>
+    A 3 TB PostgreSQL 15 primary hits 100% disk I/O from unpruned event queries, <code>EXPLAIN (ANALYZE, BUFFERS)</code> shows 400x row-estimate skew and <code>temp written=95000</code>, and an unguarded <code>ALTER TABLE</code> stalls all app traffic.
+  </p>
+</Callout>
+
+<ExerciseCard
+  title="Challenge: End-to-End PostgreSQL Tuning, Partitioning & Zero-Downtime Upgrade Plan"
+  prompt={
+    <p>
+      Design a complete remediation and zero-downtime upgrade plan using <code>pg_stat_statements</code>, <code>EXPLAIN (ANALYZE, BUFFERS)</code>, <code>CREATE STATISTICS</code>, declarative partitioning, <code>PgBouncer</code>, <code>Autovacuum</code> tuning, and logical replication. Compare your plan against Interview Questions 8 and 9 in Section M/N.
+    </p>
+  }
+/>
+
+</TopicSection>
+
+<TopicSection id="m05-p4-sec-q" letter="Q" title="Summary & Key Takeaways">
+
+- **Lock queues & pooling:** Guard DDL with `lock_timeout`, use `CONCURRENTLY` / `NOT VALID`, and multiplex connections with PgBouncer transaction pooling.
+- **Query tuning:** Use `EXPLAIN (ANALYZE, BUFFERS)` to catch stale stats (`ANALYZE` / `CREATE STATISTICS`), `work_mem` spills, and missing covering/partial/GIN/BRIN indexes.
+- **Scaling & HA:** Partition multi-TB time-series tables for instant pruning/drops, and combine streaming replication + WAL archiving for HA and PITR.
+- **Hygiene:** Tune `autovacuum_vacuum_scale_factor` per table (`0.01`) and use `pg_repack` / `REINDEX CONCURRENTLY` instead of `VACUUM FULL`.
+
+</TopicSection>

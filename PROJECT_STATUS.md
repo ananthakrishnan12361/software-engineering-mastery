@@ -4,10 +4,10 @@
 Maintain a comfortable, offline-capable React + TypeScript + MDX learning portal built with Feature-Sliced Design v2.1 and bundled into `dist/software_engineering_mastery.html`.
 
 ## Overall status
-**Modules 1 & 2 Complete + `M03-P1`–`M03-P2` Audited (`PASS`) — `M03-P3` next**
+**Modules 1–7 Complete & Audited (`PASS`) — `M08-P1` next**
 
 ## Current phase
-Phase 3 design remains locked in [DESIGN_GUIDE.md](DESIGN_GUIDE.md). Module 1 (`47/47`), Module 2 (`46/46`), and `M03-P1`–`M03-P2` (`25/56`) are complete & verified (`M03-P3` next).
+Phase 3 design remains locked in [DESIGN_GUIDE.md](DESIGN_GUIDE.md). Modules 1–7 (`290/945` topics across 25 lessons, `245` IQs) are complete & verified (`M08-P1` next).
 
 ## Completed
 - [x] Phase 1 & 2: Legacy v1 archived in `legacy/`, React 19 + TS + Vite 8 + MDX + `vite-plugin-singlefile` + Steiger setup
@@ -19,13 +19,13 @@ Phase 3 design remains locked in [DESIGN_GUIDE.md](DESIGN_GUIDE.md). Module 1 (`
 - [x] Verification: `tsc`, `vite build`, `steiger ./src`, `verify:syllabus`, `verify:parity`, `verify:offline`, and headless Chrome CDP checks at `360`, `390`, `768`, `1024`, `1440` widths across all 3 themes
 
 ## Module progress
-Use `COURSE_OUTLINE.md` and `CONTENT_CHECKLIST.md` to track module and part status. Currently written: Module 1 complete (`47/47` topics, `35/35` IQs) + Module 2 complete (`46/46` topics, `35/35` IQs) + `M03-P1`–`M03-P2` (`25/56` topics, `18/35` IQs: `6` Basic, `6` Intermediate, `4` Advanced, `2` Senior/Architect) = `118` topics available, `827` not written yet.
+Use `COURSE_OUTLINE.md` and `CONTENT_CHECKLIST.md` to track module and part status. Currently written: Module 1 complete (`47/47` topics, `35/35` IQs) + Module 2 complete (`46/46` topics, `35/35` IQs) + Module 3 complete (`56/56` topics, `35/35` IQs) + Module 4 complete (`36/36` topics, `35/35` IQs) + Module 5 complete (`46/46` topics, `35/35` IQs) + Module 6 complete (`25/25` topics, `35/35` IQs) + Module 7 complete (`34/34` topics, `35/35` IQs: `10` Basic, `10` Intermediate, `10` Advanced, `5` Senior/Architect) = `290` topics available, `655` not written yet.
 
 ## Current task
-`M03-P2` completed, audited (`PASS` Round 2), and committed locally on `react-fsd`. Next part: `M03-P3` (Authentication, JWT, Refresh tokens, Session management, Authorization, RBAC, OAuth fundamentals, Rate limiting, CORS, Security, Input sanitization, SQL injection, NoSQL injection, API security).
+Module 7 complete (`M07-P3` audited `PASS` and committed locally on `react-fsd`). Next part: `M08-P1` (Database Indexing — Deep Dive Part 1: Why indexes exist, How indexes work, B-Tree, B+ Tree, Hash indexes, Clustered indexes, Non-clustered indexes, Unique indexes).
 
 ## Next actions
-1. Proceed to `M03-P3` (`PLAN -> WRITE -> CHECK -> AUDIT -> UPDATE -> COMMIT` on `react-fsd`).
+1. Proceed to `M08-P1` (`PLAN -> WRITE -> CHECK -> AUDIT -> UPDATE -> COMMIT` on `react-fsd`).
 2. User decides when to approve removing `legacy/`.
 
 ## Decisions

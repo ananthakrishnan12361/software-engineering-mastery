@@ -1,0 +1,615 @@
+<Callout variant="info" title="Topics Covered in Part 3 (M07-P3)">
+  <p>
+    This final part of Module 7 covers 12 production SQL Server tuning, maintenance, and operations topics: <strong>Query execution plans</strong>, <strong>Query optimization</strong>, <strong>Statistics</strong>, <strong>Execution plan analysis</strong>, <strong>Index maintenance</strong>, <strong>Fragmentation</strong>, <strong>Parameter sniffing</strong>, <strong>Query tuning</strong>, <strong>Partitioning</strong>, <strong>SQL Server Agent</strong>, <strong>Backup and recovery</strong>, and <strong>Performance monitoring</strong>.
+  </p>
+</Callout>
+
+<TopicSection id="m07-p3-sec-a" letter="A" title="Topic Introduction">
+
+#### What is this?
+
+**Production SQL Server optimization and operations** tie together how the Query Optimizer builds **execution plans** from **statistics**, how **parameter sniffing** and stale histograms skew memory grants and join choices, how **index maintenance** manages fragmentation, and how **partitioning**, **SQL Server Agent**, **Query Store**, and **Full/Differential/Log backups** keep enterprise databases fast and recoverable.
+
+#### Why does it exist & what problem does it solve?
+
+Most production SQL Server slowdowns come from a handful of predictable causes: parameter sniffing caching a Nested-Loop plan for a 1-row tenant and reusing it on a 500K-row tenant, `CONVERT_IMPLICIT` disabling an Index Seek, underestimated memory grants spilling `Sort`/`Hash` operators into `tempdb`, or untested backup chains missing a transaction log `.trn` file during an outage.
+
+#### Where is it used in real-world software?
+
+Enterprise .NET/SQL Server OLTP systems monitored with **Query Store** and **DMVs**, automated **Ola Hallengren** maintenance jobs scheduled via **SQL Server Agent**, multi-terabyte partitioned tables (`SWITCH` sliding windows), and strict SLA Full/Diff/Log PITR pipelines.
+
+</TopicSection>
+
+<TopicSection id="m07-p3-sec-b" letter="B" title="Fundamentals (Simple Mental Models)">
+
+<TopicAnchor id="m07-p3-topic-query-execution-plans" />
+
+#### 1. Query Execution Plans: Estimated vs. Actual Plans & Query Store
+
+A SQL Server **Query Execution Plan** is the compiled tree of physical operators (`Clustered Index Seek`, `Hash Match`, `Sort`, `Key Lookup`) produced by the optimizer. An **Estimated Plan** (`SET SHOWPLAN_XML ON`) compiles without running the query, whereas an **Actual Plan** (`SET STATISTICS XML ON` or SSMS "Include Actual Execution Plan") runs the query and captures **actual row counts, actual executions, wait stats, and memory-grant usage**.
+
+Enable **Query Store** (`ALTER DATABASE AppDb SET QUERY_STORE = ON`, enabled by default in SQL Server 2022) to persist historical plans, runtime stats, and wait categories across restarts—allowing instant plan-regression detection and one-click plan forcing without editing application code.
+
+<TopicAnchor id="m07-p3-topic-query-optimization" />
+
+#### 2. Query Optimization: SARGability, Implicit Conversions & Join Choices
+
+**Query optimization** ensures predicates remain **SARGable** so the optimizer can perform `Index Seek`s instead of scans. Avoid wrapping columns in functions (`WHERE YEAR(OrderDate) = 2026`), leading wildcards (`LIKE '%abc'`), or type mismatches (`VARCHAR` column compared to `NVARCHAR` parameter), which trigger **`CONVERT_IMPLICIT`** and silently force an Index Scan.
+
+The optimizer picks among three physical joins: **Nested Loops** (best for small outer input + indexed inner lookup), **Merge Join** (fastest for two pre-sorted inputs on equi-joins), and **Hash Match** (best for large unsorted/unindexed inputs, consuming a memory grant).
+
+<TopicAnchor id="m07-p3-topic-statistics" />
+
+#### 3. Statistics: Histograms, Density Vector & Cardinality Estimation
+
+SQL Server's cost-based optimizer relies on **Statistics** (up to 200-step **histograms** plus a **density vector** for multi-column distinctness) to estimate how many rows match a predicate. Accurate estimates drive join selection and **memory grants** (`Sort`/`Hash` RAM reservation).
+
+By default (`AUTO_UPDATE_STATISTICS ON`), statistics refresh automatically after ~20% + 500 row changes (or at a much lower dynamic threshold `SQRT(1000 * rows)` under Trace Flag 2371 / SQL Server 2016+ compat 130+). If estimates are wildly wrong on skewed data, run `UPDATE STATISTICS tbl` or create **filtered statistics** on subsets.
+
+<TopicAnchor id="m07-p3-topic-execution-plan-analysis" />
+
+#### 4. Execution Plan Analysis: Warnings, Memory Grants & Operator Costs
+
+When reading an **Actual Execution Plan** (typically right-to-left for data flow, top-to-bottom), ignore the misleading estimated percentage numbers when actuals diverge—instead inspect **Actual vs. Estimated Rows**, **`Warnings`** (yellow exclamation triangles for `tempdb` spills, missing indexes, or `CONVERT_IMPLICIT`), **Memory Grant** (excessive grant wastes RAM; under-grant spills to `tempdb`), and **Key Lookups**.
+
+Also pair the actual plan with `SET STATISTICS IO, TIME ON` to measure exact **logical reads** (8 KB pages read from Buffer Pool) and CPU vs. elapsed time.
+
+<TopicAnchor id="m07-p3-topic-index-maintenance" />
+
+#### 5. Index Maintenance: `REORGANIZE` vs. `REBUILD` & Statistics Side Effects
+
+**Index Maintenance** keeps B+Tree leaf pages compact and statistics fresh without causing unnecessary log growth or blocking. **`ALTER INDEX ... REORGANIZE`** is an **online**, single-threaded, minimally logged operation that defragments leaf pages in-place—and **does not** update statistics.
+
+**`ALTER INDEX ... REBUILD`** builds a fresh B+Tree (supporting `WITH (ONLINE = ON)` on Enterprise/Azure SQL and `RESUMABLE = ON` in 2017+) and **automatically updates index statistics** with a full-scan equivalent, at the cost of higher transaction log and `tempdb` (`SORT_IN_TEMPDB`) usage. Never blindly rebuild every index nightly.
+
+<TopicAnchor id="m07-p3-topic-fragmentation" />
+
+#### 6. Fragmentation: Internal vs. External Page Fragmentation & Thresholds
+
+**External (Logical) Fragmentation** occurs when leaf-level 8 KB pages are out of physical page-ID order (`avg_fragmentation_in_percent` in `sys.dm_db_index_physical_stats`), hurting sequential read-ahead scans. **Internal Fragmentation** occurs when pages have excessive empty free space (`avg_page_space_used_in_percent`), wasting Buffer Pool RAM.
+
+Follow Microsoft's standard thresholds **only for indexes over ~1,000 pages**: ignore `< 5%` fragmentation; run **`REORGANIZE`** for **`5%–30%`**; run **`REBUILD`** for **`> 30%`**. Remember that on modern NVMe SSDs, external fragmentation matters far less for random OLTP seeks than internal page density and fresh statistics.
+
+<TopicAnchor id="m07-p3-topic-parameter-sniffing" />
+
+#### 7. Parameter Sniffing: Plan Caching, Skew & Mitigation Options
+
+<GlossaryTerm definition="SQL Server compiling and caching a parameterized query plan using the specific parameter values supplied on the very first execution, which can perform poorly for other parameter distributions.">Parameter sniffing</GlossaryTerm> happens when a stored procedure compiles its cached plan for the first caller's parameter (e.g., `@TenantId = 99` with 5 rows → `Nested Loops + Key Lookup`), and a later caller passes `@TenantId = 1` with 2,000,000 rows—forcing 2 million Key Lookups instead of a `Hash Match` + Scan!
+
+Fix parameter sniffing selectively: use **`OPTION (RECOMPILE)`** for low-frequency, highly skewed reporting queries; use **`OPTION (OPTIMIZE FOR UNKNOWN)`** (or `@TypicalValue`) for stable middle-ground plans; use **Query Store** plan forcing; or upgrade to **SQL Server 2022 Parameter Sensitive Plan (PSP) optimization**, which automatically caches multiple plans per parameter-skew variant.
+
+<TopicAnchor id="m07-p3-topic-query-tuning" />
+
+#### 8. Query Tuning: Iterative Measurement, `STATISTICS IO` & Batching
+
+Systematic **Query Tuning** follows a strict loop: baseline `SET STATISTICS IO, TIME ON` and Query Store metrics → inspect Actual Plan for the highest-I/O operator → eliminate `CONVERT_IMPLICIT`, Key Lookups (`INCLUDE`), and `tempdb` spills → verify logical reads drop cleanly.
+
+Avoid "silver bullet" query hints (`FORCE ORDER`, `INDEX(...)`) unless temporary emergency mitigation is needed; prefer structural fixes (composite covering indexes, `iTVF`s, `EXISTS` over `IN` with nulls, and `SARGable` predicates) so the optimizer adapts naturally as data grows.
+
+<TopicAnchor id="m07-p3-topic-partitioning" />
+
+#### 9. Partitioning: Partition Functions, Schemes & `SWITCH` Sliding Windows
+
+SQL Server **Table Partitioning** splits a large table across filegroups using a **Partition Function** (`RANGE LEFT` or **`RANGE RIGHT`**, where `RANGE RIGHT` is preferred for `DATE`/`DATETIME2` boundaries so `'2026-11-01'` starts the November partition cleanly) and a **Partition Scheme**.
+
+Its superpower is **metadata-only `ALTER TABLE ... SWITCH`**: you can swap an entire 100M-row monthly partition out to a staging table (or swap a pre-loaded staging partition in) in **milliseconds** (`Sch-M` metadata swap) with zero row-by-row `DELETE` log storms, provided both tables share identical schemas, indexes, and aligned constraints.
+
+<TopicAnchor id="m07-p3-topic-sql-server-agent" />
+
+#### 10. SQL Server Agent: Jobs, Schedules, Alerts & Maintenance Automation
+
+**SQL Server Agent** is the built-in background job scheduler (available in Standard/Enterprise; absent in Express) that executes multi-step **Jobs** (`T-SQL`, PowerShell, SSIS) on cron-like **Schedules** and triggers **Alerts** / **Operators** on severity 17–25 errors, low disk space, or high deadlocks.
+
+Production DBAs use SQL Server Agent to run **Ola Hallengren's Maintenance Solution** (intelligent threshold-based index/stats maintenance, `DBCC CHECKDB` corruption checks, and automated Full/Diff/Log backups) and `sp_WhoIsActive` logging jobs.
+
+<TopicAnchor id="m07-p3-topic-backup-and-recovery" />
+
+#### 11. Backup and Recovery: Full, Differential, Log (`.trn`) & PITR
+
+SQL Server supports three **Recovery Models**: **`SIMPLE`** (auto-truncates `.ldf` on checkpoint; no log backups, no PITR), **`FULL`** (preserves all log records until `BACKUP LOG`; supports **Point-in-Time Recovery** to the exact second), and **`BULK_LOGGED`**.
+
+A standard **PITR Restore Sequence** restores: (1) latest **Full** backup `WITH NORECOVERY`, (2) latest **Differential** backup `WITH NORECOVERY`, and (3) every subsequent **Transaction Log (`.trn`)** backup in LSN order `WITH NORECOVERY`—finishing the final log with **`WITH RECOVERY, STOPAT = '2026-11-27T14:22:00'`**. Always run `RESTORE VERIFYONLY` and automated restore drills, plus periodic `DBCC CHECKDB`.
+
+<TopicAnchor id="m07-p3-topic-performance-monitoring" />
+
+#### 12. Performance Monitoring: Wait Stats, DMVs, Query Store & Extended Events
+
+SQL Server **Performance Monitoring** follows the **"Waits and Queues"** methodology via **`sys.dm_os_wait_stats`**: measure where SQLOS threads spend time waiting—`PAGEIOLATCH_*` (storage/memory pressure), `WRITELOG` (`.ldf` disk latency), `LCK_M_*` (blocking), `CXPACKET`/`CXCONSUMER` (parallelism), or `SOS_SCHEDULER_YIELD` (CPU pressure).
+
+Combine wait stats with **`sys.dm_exec_requests`** (live running queries), **`sys.dm_db_index_usage_stats`** (unused indexes), **Query Store** (`sys.query_store_runtime_stats`), and lightweight **Extended Events** (replacing legacy SQL Profiler) for low-overhead production diagnostics.
+
+</TopicSection>
+
+<TopicSection id="m07-p3-sec-c" letter="C" title="Internal Working & Architecture">
+
+#### Optimizer Compilation, Statistics & Parameter Sniffing Flow
+
+When a parameterized procedure executes for the first time, the optimizer reads the 200-step **histogram** for the sniffed parameter value, picks a plan + **memory grant**, and stores it in the **Plan Cache** / **Query Store**. Subsequent executions reuse that plan unless recompiled, updated by statistics, or split by SQL Server 2022 **PSP**.
+
+<DiagramCard title="Figure 7.5 — SQL Server Execution Plan Pipeline, Statistics & Parameter Sniffing">
+<svg viewBox="0 0 820 190" xmlns="http://www.w3.org/2000/svg" aria-label="SQL Server execution plan pipeline showing plan cache lookup, statistics histogram, parameter sniffing, and Query Store feedback">
+  <defs>
+    <style>{`
+      .m75-lbl { font: 600 11px system-ui, sans-serif; fill: var(--token-text-primary); }
+      .m75-sub { font: 400 9.5px system-ui, sans-serif; fill: var(--token-text-secondary); }
+      .m75-hdr { font: 700 10px system-ui, sans-serif; fill: var(--token-text-inverse); }
+      .m75-box { rx: 6; ry: 6; }
+    `}</style>
+    <marker id="arr75" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="var(--token-brand-default)" />
+    </marker>
+  </defs>
+
+  <rect class="m75-box" x="6" y="8" width="178" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
+  <rect x="6" y="8" width="178" height="22" rx="6" ry="6" fill="var(--token-brand-muted)" />
+  <text x="95" y="22" text-anchor="middle" class="m75-hdr">1. Parameterized Call</text>
+  <rect class="m75-box" x="16" y="40" width="158" height="52" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="95" y="57" text-anchor="middle" class="m75-lbl">EXEC dbo.GetOrders</text>
+  <text x="95" y="71" text-anchor="middle" class="m75-sub">@TenantId = 99 (5 rows)</text>
+  <text x="95" y="84" text-anchor="middle" class="m75-sub">Cache miss → compile</text>
+  <rect class="m75-box" x="16" y="102" width="158" height="70" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="95" y="119" text-anchor="middle" class="m75-lbl">Statistics (200 Steps)</text>
+  <text x="95" y="134" text-anchor="middle" class="m75-sub">Histogram + Density Vector</text>
+  <text x="95" y="148" text-anchor="middle" class="m75-sub">Auto-update ~SQRT(1000*N)</text>
+  <text x="95" y="162" text-anchor="middle" class="m75-sub">Drives Join + Memory Grant</text>
+
+  <path d="M184 66 L202 66" stroke="var(--token-brand-default)" stroke-width="2" marker-end="url(#arr75)" />
+
+  <rect class="m75-box" x="204" y="8" width="204" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
+  <rect x="204" y="8" width="204" height="22" rx="6" ry="6" fill="var(--token-warning-muted)" />
+  <text x="306" y="22" text-anchor="middle" class="m75-hdr">2. Sniffed Plan Cached</text>
+  <rect class="m75-box" x="214" y="40" width="184" height="56" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="306" y="57" text-anchor="middle" class="m75-lbl">Plan A: Nested Loops</text>
+  <text x="306" y="71" text-anchor="middle" class="m75-sub">Index Seek + Key Lookup</text>
+  <text x="306" y="84" text-anchor="middle" class="m75-sub">Small memory grant (1 MB)</text>
+  <rect class="m75-box" x="214" y="104" width="184" height="68" fill="var(--token-surface-raised)" stroke="var(--token-error-default)" stroke-width="1.2" />
+  <text x="306" y="121" text-anchor="middle" class="m75-lbl">Skewed Call: @TenantId=1</text>
+  <text x="306" y="135" text-anchor="middle" class="m75-sub">Actual: 2,000,000 rows!</text>
+  <text x="306" y="149" text-anchor="middle" class="m75-sub">Est=5 → 2M Key Lookups +</text>
+  <text x="306" y="163" text-anchor="middle" class="m75-sub">tempdb Sort/Hash spill!</text>
+
+  <path d="M408 95 L426 95" stroke="var(--token-brand-default)" stroke-width="2" marker-end="url(#arr75)" />
+
+  <rect class="m75-box" x="428" y="8" width="192" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
+  <rect x="428" y="8" width="192" height="22" rx="6" ry="6" fill="var(--token-success-muted)" />
+  <text x="524" y="22" text-anchor="middle" class="m75-hdr">3. Sniffing Mitigations</text>
+  <rect class="m75-box" x="438" y="40" width="172" height="40" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="524" y="56" text-anchor="middle" class="m75-lbl">Covering INCLUDE Index</text>
+  <text x="524" y="69" text-anchor="middle" class="m75-sub">Fixes root Key Lookup cost</text>
+  <rect class="m75-box" x="438" y="86" width="172" height="40" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="524" y="102" text-anchor="middle" class="m75-lbl">OPTION (RECOMPILE)</text>
+  <text x="524" y="115" text-anchor="middle" class="m75-sub">Or OPTIMIZE FOR UNKNOWN</text>
+  <rect class="m75-box" x="438" y="132" width="172" height="40" fill="var(--token-surface-raised)" stroke="var(--token-success-default)" stroke-width="1.2" />
+  <text x="524" y="148" text-anchor="middle" class="m75-lbl">SQL 2022 PSP + Query Store</text>
+  <text x="524" y="161" text-anchor="middle" class="m75-sub">Multi-plan per skew variant</text>
+
+  <rect class="m75-box" x="630" y="8" width="184" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
+  <rect x="630" y="8" width="184" height="22" rx="6" ry="6" fill="var(--token-error-muted)" />
+  <text x="722" y="22" text-anchor="middle" class="m75-hdr">4. Waits &amp; DMVs</text>
+  <rect class="m75-box" x="640" y="40" width="164" height="40" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="722" y="56" text-anchor="middle" class="m75-lbl">PAGEIOLATCH / WRITELOG</text>
+  <text x="722" y="69" text-anchor="middle" class="m75-sub">Disk I/O &amp; .ldf bottlenecks</text>
+  <rect class="m75-box" x="640" y="86" width="164" height="40" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="722" y="102" text-anchor="middle" class="m75-lbl">LCK_M_* / SOS_SCHEDULER</text>
+  <text x="722" y="115" text-anchor="middle" class="m75-sub">Blocking &amp; CPU saturation</text>
+  <rect class="m75-box" x="640" y="132" width="164" height="40" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="722" y="148" text-anchor="middle" class="m75-lbl">Query Store + XEvents</text>
+  <text x="722" y="161" text-anchor="middle" class="m75-sub">Persistent plan history</text>
+</svg>
+</DiagramCard>
+
+</TopicSection>
+
+<TopicSection id="m07-p3-sec-d" letter="D" title="Practical Examples (Interactive)">
+
+#### Example 1: SQL Server Execution Plan & Parameter Sniffing Analyzer (`analyzeMssqlPlan`)
+
+This analyzer inspects a SQL Server Actual Execution Plan node for cardinality skew (`>= 10x`), `tempdb` spills, `CONVERT_IMPLICIT` warnings, and high-row Key Lookups.
+
+<CodeBlock lang="javascript" runnable title="SQL Server Execution Plan Analyzer" code={`
+function analyzeMssqlPlan({ estRows, actualRows, keyLookupRows = 0, spillPages = 0, hasImplicitConvert = false }) {
+  if (!Number.isFinite(estRows) || estRows < 0) throw new TypeError("estRows must be >= 0");
+  if (!Number.isFinite(actualRows) || actualRows < 0) throw new TypeError("actualRows must be >= 0");
+  if (!Number.isInteger(keyLookupRows) || keyLookupRows < 0) throw new TypeError("keyLookupRows must be >= 0");
+  if (!Number.isInteger(spillPages) || spillPages < 0) throw new TypeError("spillPages must be >= 0");
+  if (typeof hasImplicitConvert !== "boolean") throw new TypeError("hasImplicitConvert must be a boolean");
+
+  const skewRatio = Math.max(estRows, actualRows) / Math.max(1, Math.min(estRows, actualRows));
+  const findings = [];
+
+  if (skewRatio >= 10) {
+    findings.push("CARDINALITY_SKEW: Refresh statistics or investigate parameter sniffing");
+  }
+  if (hasImplicitConvert) {
+    findings.push("CONVERT_IMPLICIT: Fix parameter/column data type mismatch to restore Index Seek");
+  }
+  if (spillPages > 0) {
+    findings.push("TEMPDB_SPILL: " + spillPages + " pages spilled due to underestimated memory grant");
+  }
+  if (keyLookupRows > 100) {
+    findings.push("KEY_LOOKUP: Add covering INCLUDE columns to eliminate base-table probes");
+  }
+
+  return { skewRatio: Number(skewRatio.toFixed(2)), healthy: findings.length === 0, findings };
+}
+
+console.log("Sniffed bad plan:", JSON.stringify(analyzeMssqlPlan({ estRows: 5, actualRows: 250000, keyLookupRows: 250000, spillPages: 4200 })));
+console.log("Healthy plan:", JSON.stringify(analyzeMssqlPlan({ estRows: 120, actualRows: 115, keyLookupRows: 0, spillPages: 0 })));
+`} />
+
+#### Example 2: SQL Server Index Maintenance & Fragmentation Planner (`planIndexMaintenance`)
+
+<CodeBlock lang="javascript" runnable title="SQL Server Index Maintenance Planner" code={`
+function planIndexMaintenance({ pageCount, avgFragmentationPct, onlineSupported = true }) {
+  if (!Number.isInteger(pageCount) || pageCount < 0) throw new TypeError("pageCount must be >= 0");
+  if (!Number.isFinite(avgFragmentationPct) || avgFragmentationPct < 0 || avgFragmentationPct > 100) {
+    throw new TypeError("avgFragmentationPct must be in [0, 100]");
+  }
+  if (typeof onlineSupported !== "boolean") throw new TypeError("onlineSupported must be a boolean");
+
+  if (pageCount < 1000 || avgFragmentationPct < 5) {
+    return { action: "NONE", updatesStats: false, reason: "Index is small (<1,000 pages) or fragmentation <5%." };
+  }
+  if (avgFragmentationPct <= 30) {
+    return {
+      action: "REORGANIZE",
+      updatesStats: false,
+      command: "ALTER INDEX ... REORGANIZE; -- follow with UPDATE STATISTICS"
+    };
+  }
+  return {
+    action: "REBUILD",
+    updatesStats: true,
+    command: onlineSupported ? "ALTER INDEX ... REBUILD WITH (ONLINE = ON);" : "ALTER INDEX ... REBUILD;"
+  };
+}
+
+console.log("Small table:", JSON.stringify(planIndexMaintenance({ pageCount: 250, avgFragmentationPct: 65 })));
+console.log("Moderate frag:", JSON.stringify(planIndexMaintenance({ pageCount: 80000, avgFragmentationPct: 18 })));
+console.log("Heavy frag:", JSON.stringify(planIndexMaintenance({ pageCount: 80000, avgFragmentationPct: 48, onlineSupported: true })));
+`} />
+
+#### T-SQL Example: Query Store, `REORGANIZE`/`REBUILD` & PITR Restore Sequence
+
+<CodeBlock lang="sql" title="T-SQL Query Store, Maintenance & PITR Restore Sequence" code={`
+-- 1. Enable Query Store (default ON in SQL Server 2022)
+ALTER DATABASE AppDb SET QUERY_STORE = ON (OPERATION_MODE = READ_WRITE);
+
+-- 2. Inspect fragmentation for indexes >= 1,000 pages
+SELECT OBJECT_NAME(ips.object_id) AS table_name, i.name AS index_name,
+       ips.page_count, ips.avg_fragmentation_in_percent
+FROM sys.dm_db_index_physical_stats(DB_ID(), NULL, NULL, NULL, 'LIMITED') ips
+JOIN sys.indexes i ON i.object_id = ips.object_id AND i.index_id = ips.index_id
+WHERE ips.page_count >= 1000 AND ips.avg_fragmentation_in_percent >= 5;
+
+-- 3. Point-in-Time Recovery (FULL recovery model: Full -> Diff -> Logs -> RECOVERY)
+RESTORE DATABASE AppDb FROM DISK = 'C:\\backups\\AppDb_Full.bak' WITH NORECOVERY, REPLACE;
+RESTORE DATABASE AppDb FROM DISK = 'C:\\backups\\AppDb_Diff.bak' WITH NORECOVERY;
+RESTORE LOG AppDb FROM DISK = 'C:\\backups\\AppDb_Log1.trn' WITH NORECOVERY;
+RESTORE LOG AppDb FROM DISK = 'C:\\backups\\AppDb_Log2.trn'
+  WITH RECOVERY, STOPAT = '2026-11-27T14:22:00';
+`} />
+
+</TopicSection>
+
+<TopicSection id="m07-p3-sec-e" letter="E" title="Step-by-Step Walkthrough">
+
+#### How `analyzeMssqlPlan` Diagnoses Plan Regressions
+
+1. **Compute Cardinality Skew:** Divides `max(estRows, actualRows)` by `max(1, min(estRows, actualRows))`; ratios `>= 10` emit `CARDINALITY_SKEW` (pointing to stale statistics or parameter sniffing).
+2. **Detect `CONVERT_IMPLICIT`:** Flags type mismatches that force SQL Server to scan an entire index instead of seeking.
+3. **Inspect `tempdb` Spills:** Non-zero `spillPages` indicates an underestimated memory grant pushed `Sort` or `Hash Match` data onto `tempdb`.
+4. **Flag Excessive Key Lookups:** More than 100 Key Lookup probes signals a missing `INCLUDE` covering column.
+
+</TopicSection>
+
+<TopicSection id="m07-p3-sec-f" letter="F" title="Real-World Use Cases">
+
+#### Scenario 1: Resolving Multi-Tenant Parameter Sniffing with Query Store + `INCLUDE`
+
+A multi-tenant stored procedure compiled for a 5-row tenant cached a Nested-Loop + Key Lookup plan that timed out for a 1.5M-row tenant. Adding an `INCLUDE` covering index eliminated the Key Lookup penalty, and SQL Server 2022 **PSP optimization** (or `OPTION (RECOMPILE)` on heavy reports) stabilized latency across all tenants.
+
+#### Scenario 2: Instant Monthly Archiving via Partition `SWITCH`
+
+A 3 TB telemetry table used `PARTITION BY RANGE RIGHT` on `CreatedAt` and a SQL Server Agent job calling `ALTER TABLE dbo.Events SWITCH PARTITION 2 TO dbo.Events_Archive` each month—retiring 120M rows in under 100ms without transaction log bloat.
+
+#### Scenario 3: Recovering from an Accidental `UPDATE` Without `WHERE`
+
+A developer ran an unguarded `UPDATE` at 14:22:10. Because the database ran in `FULL` recovery model with nightly Full, 6-hour Diff, and 15-minute `.trn` log backups, the DBA restored Full + Diff + Logs `WITH NORECOVERY` and stopped cleanly at `STOPAT = '2026-11-27T14:22:00'`.
+
+</TopicSection>
+
+<TopicSection id="m07-p3-sec-g" letter="G" title="Common Mistakes">
+
+- **Rebuilding Every Index Nightly Regardless of Fragmentation:** Wastes CPU, saturates `.ldf` transaction logs, bloats Availability Group redo queues, and flushes Buffer Pool caches needlessly.
+- **Forgetting `UPDATE STATISTICS` After `ALTER INDEX ... REORGANIZE`:** `REORGANIZE` defragments leaf pages but does **not** update statistics, leaving stale histograms behind.
+- **Running `FULL` Recovery Model Without Scheduling `BACKUP LOG`:** Causes the `.ldf` transaction log to grow endlessly until disk space runs out!
+- **Using `OPTION (RECOMPILE)` on High-QPS (5,000/sec) OLTP Queries:** Recompiling every call burns CPU (`SOS_SCHEDULER_YIELD`); reserve `OPTION (RECOMPILE)` for lower-frequency analytical/search queries.
+- **Ignoring `CONVERT_IMPLICIT` on `NVARCHAR` vs. `VARCHAR`:** Passing a `.NET` `NVARCHAR` parameter against a `VARCHAR` indexed column forces a full Index Scan due to data-type precedence.
+
+</TopicSection>
+
+<TopicSection id="m07-p3-sec-h" letter="H" title="Best Practices">
+
+- Enable **Query Store** on every production database to retain plan history, wait stats, and fast regression rollbacks.
+- Use **Ola Hallengren's Maintenance Solution** via **SQL Server Agent** with threshold-driven maintenance (`< 5%` skip, `5%–30%` `REORGANIZE` + stats update, `> 30%` `REBUILD WITH (ONLINE = ON)`).
+- Match parameter types (`.SqlDbType`) exactly to column types (`VARCHAR` vs `NVARCHAR`) to prevent `CONVERT_IMPLICIT`.
+- Use `RANGE RIGHT` for date-based Partition Functions and keep staging tables aligned on the same filegroups/indexes for instant `SWITCH` operations.
+- Run `FULL` recovery model for production databases with automated Full + Diff + Log backups, `CHECKSUM`, `RESTORE VERIFYONLY`, and scheduled restore drills + `DBCC CHECKDB`.
+
+</TopicSection>
+
+<TopicSection id="m07-p3-sec-i" letter="I" title="Performance & Scalability">
+
+- **`SORT_IN_TEMPDB = ON` During Index Rebuilds:** Offloads intermediate sort runs during `ALTER INDEX ... REBUILD` from the user database's `.mdf`/`.ldf` to `tempdb`, speeding up builds and reducing user-DB log growth when `tempdb` sits on fast NVMe storage.
+- **Wait-Stats First Triage:** Query `sys.dm_os_wait_stats` deltas rather than guessing; high `PAGEIOLATCH_SH` points to missing indexes or undersized Buffer Pool, whereas high `WRITELOG` points to `.ldf` storage latency or chatty autocommit writes.
+
+</TopicSection>
+
+<TopicSection id="m07-p3-sec-j" letter="J" title="Security Considerations">
+
+- **Backup Encryption & Least-Privilege Agent Proxies:** Encrypt production backups (`WITH ENCRYPTION (ALGORITHM = AES_256, SERVER CERTIFICATE = ...)` or TDE) so stolen `.bak`/`.trn` files cannot be restored elsewhere, and run SQL Server Agent job steps under least-privilege **Agent Proxies** rather than `sysadmin` when accessing OS/PowerShell resources.
+- **Query Store & DMV Access:** Restrict `ALTER` / Query Store plan-forcing permissions (`ALTER ANY DATABASE` / `CONTROL`) to DBA roles, and grant `VIEW DATABASE STATE` / `VIEW SERVER STATE` carefully to monitoring tools.
+
+</TopicSection>
+
+<TopicSection id="m07-p3-sec-k" letter="K" title="Comparisons & Decision Tables">
+
+#### Table K.1 — `REORGANIZE` vs. `REBUILD` Index Maintenance
+
+| Operation | Fragmentation Range | Locking / Online | Updates Statistics? | Log / `tempdb` Impact |
+| --- | --- | --- | --- | --- |
+| **Skip** | `< 5%` (or `< 1,000` pages) | None | No | Zero |
+| **`REORGANIZE`** | `5% – 30%` | Always online | ❌ No (run `UPDATE STATISTICS`) | Minimal |
+| **`REBUILD`** | `> 30%` | Offline unless `ONLINE = ON` | ✅ Yes (full-scan equivalent) | High |
+
+#### Table K.2 — Parameter Sniffing Remedies
+
+| Approach | How It Works | Best For | Trade-Off |
+| --- | --- | --- | --- |
+| **`OPTION (RECOMPILE)`** | Fresh plan compiled every call | Infrequent skewed search/report procs | Higher CPU if called 1,000+ times/sec |
+| **`OPTIMIZE FOR UNKNOWN`** | Uses average density vector | Uniformly moderate distributions | Suboptimal for extreme outliers |
+| **SQL 2022 PSP Optimization** | Caches multiple plans by parameter size | Skewed multi-tenant OLTP | Requires SQL Server 2022+ (compat 160) |
+| **Query Store Plan Forcing** | Pins a known-good historical plan | Emergency regression mitigation | Pins one plan even if data shifts later |
+
+#### Table K.3 — SQL Server Backup Types & Recovery Models
+
+| Backup / Model | Captures | Restore Option (`NORECOVERY` / `RECOVERY`) | Use Case |
+| --- | --- | --- | --- |
+| **Full (`.bak`)** | All allocated data pages + active log | `NORECOVERY` (if Diff/Log follow) | Baseline snapshot |
+| **Differential (`.bak`)** | Extents changed since last Full | `NORECOVERY` (if Logs follow) | Fast mid-week recovery point |
+| **Transaction Log (`.trn`)** | Log records since last Log backup (`FULL` model) | `NORECOVERY` → final `RECOVERY` + `STOPAT` | Point-in-Time Recovery (PITR) |
+
+</TopicSection>
+
+<TopicSection id="m07-p3-sec-l" letter="L" title="Tips to Remember (Mnemonics & Mental Models)">
+
+- **"5 / 30 Rule for Indexes >= 1,000 Pages":** `< 5%` ignore, `5–30%` `REORGANIZE` (+ update stats), `> 30%` `REBUILD`.
+- **"NORECOVERY Until the Very Last File":** Every Full, Diff, and intermediate `.trn` restore uses `WITH NORECOVERY`; only the final `.trn` uses `WITH RECOVERY` (and optional `STOPAT`).
+- **"RANGE RIGHT for Dates":** `RANGE RIGHT` puts `'2026-11-01 00:00:00'` cleanly into the November partition, avoiding boundary bugs.
+- **"Measure Waits, Then Plans":** Check `sys.dm_os_wait_stats` + Query Store + `STATISTICS IO` before touching indexes or hints.
+
+</TopicSection>
+
+<TopicSection id="m07-p3-sec-mn" letter="M/N" title="Interview Questions & Detailed Answers">
+
+<InterviewSection lessonId="m07-p3" />
+
+</TopicSection>
+
+<TopicSection id="m07-p3-sec-o" letter="O" title="Practical Exercises">
+
+#### Exercise 1: SQL Server `RANGE RIGHT` Partition Router (`routeMssqlPartition`)
+
+<ExerciseCard
+  title="Exercise 1: SQL Server RANGE RIGHT Partition Router (routeMssqlPartition)"
+  prompt={
+    <p>
+      Implement <code>routeMssqlPartition(boundaries, value)</code> modeling SQL Server's <code>RANGE RIGHT</code> partition function: given sorted integer boundaries <code>[b1, b2, ...]</code>, return the 1-based <code>partitionNumber</code> where values <code>&gt;= b_i</code> enter partition <code>i + 1</code>.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function routeMssqlPartition(boundaries, value) {
+  if (!Array.isArray(boundaries) || boundaries.length === 0) {
+    throw new TypeError("boundaries must be a non-empty array");
+  }
+  if (!Number.isInteger(value)) throw new TypeError("value must be an integer");
+
+  for (let i = 0; i < boundaries.length; i++) {
+    if (!Number.isInteger(boundaries[i])) throw new TypeError("All boundaries must be integers");
+    if (i > 0 && boundaries[i] <= boundaries[i - 1]) {
+      throw new TypeError("boundaries must be strictly increasing");
+    }
+  }
+
+  let partitionNumber = 1;
+  for (const b of boundaries) {
+    if (value >= b) {
+      partitionNumber++;
+    } else {
+      break;
+    }
+  }
+  return { value, partitionNumber, rangeType: "RANGE_RIGHT" };
+}
+
+console.log("Before b1:", JSON.stringify(routeMssqlPartition([20261001, 20261101, 20261201], 20260915)));
+console.log("Exact b2:", JSON.stringify(routeMssqlPartition([20261001, 20261101, 20261201], 20261101)));
+console.log("After b3:", JSON.stringify(routeMssqlPartition([20261001, 20261101, 20261201], 20270101)));
+`}
+  />
+</ExerciseCard>
+
+#### Exercise 2: SQL Server Backup Chain & PITR Restore Planner (`planMssqlRestoreChain`)
+
+<ExerciseCard
+  title="Exercise 2: SQL Server Backup Chain & PITR Restore Planner (planMssqlRestoreChain)"
+  prompt={
+    <p>
+      Implement <code>planMssqlRestoreChain(&#123; fullBackup, diffBackup, logBackups, stopAt &#125;)</code> returning the ordered restore steps where every step except the final one uses <code>NORECOVERY</code> and the final step uses <code>RECOVERY</code> (plus <code>STOPAT</code> if provided).
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function planMssqlRestoreChain({ fullBackup, diffBackup = null, logBackups = [], stopAt = null }) {
+  if (typeof fullBackup !== "string" || fullBackup.trim().length === 0) {
+    throw new TypeError("fullBackup file name is required");
+  }
+  if (diffBackup !== null && (typeof diffBackup !== "string" || diffBackup.trim().length === 0)) {
+    throw new TypeError("diffBackup must be null or non-empty string");
+  }
+  if (!Array.isArray(logBackups) || logBackups.some((l) => typeof l !== "string" || l.trim().length === 0)) {
+    throw new TypeError("logBackups must be an array of non-empty strings");
+  }
+  if (stopAt !== null && (typeof stopAt !== "string" || stopAt.trim().length === 0)) {
+    throw new TypeError("stopAt must be null or non-empty timestamp string");
+  }
+  if (stopAt !== null && logBackups.length === 0) {
+    throw new TypeError("STOPAT requires at least one transaction log backup");
+  }
+
+  const files = [{ type: "FULL", file: fullBackup }];
+  if (diffBackup) files.push({ type: "DIFF", file: diffBackup });
+  for (const log of logBackups) files.push({ type: "LOG", file: log });
+
+  return files.map((entry, idx) => {
+    const isLast = idx === files.length - 1;
+    return {
+      step: idx + 1,
+      type: entry.type,
+      file: entry.file,
+      mode: isLast ? "RECOVERY" : "NORECOVERY",
+      stopAt: isLast && entry.type === "LOG" ? stopAt : null
+    };
+  });
+}
+
+console.log("Full+Diff+Logs:", JSON.stringify(planMssqlRestoreChain({
+  fullBackup: "db_full.bak",
+  diffBackup: "db_diff.bak",
+  logBackups: ["log1.trn", "log2.trn"],
+  stopAt: "2026-11-27T14:22:00"
+})));
+`}
+  />
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m07-p3-sec-p" letter="P" title="Advanced Challenge">
+
+<Callout variant="warning" title="Production Crisis: Parameter Sniffing Skew & High-QPS CPU Spike">
+  <p>
+    A stored procedure called 4,000 times/sec suffers severe parameter sniffing on skewed tenants, while an unindexed <code>NVARCHAR</code> parameter causes <code>CONVERT_IMPLICIT</code> scans.
+  </p>
+</Callout>
+
+<ExerciseCard
+  title="Challenge: Parameter Sniffing Mitigation Selector (selectSniffingFix)"
+  prompt={
+    <p>
+      Implement <code>selectSniffingFix(&#123; callsPerSec, hasImplicitConvert, sqlServer2022, severeDataSkew &#125;)</code> prioritizing structural fixes (<code>FIX_IMPLICIT_CONVERT</code>) before <code>PSP_2022</code>, <code>OPTION_RECOMPILE</code>, or <code>OPTIMIZE_FOR_UNKNOWN</code>.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function selectSniffingFix({ callsPerSec, hasImplicitConvert = false, sqlServer2022 = false, severeDataSkew = true }) {
+  if (!Number.isFinite(callsPerSec) || callsPerSec < 0) throw new TypeError("callsPerSec must be >= 0");
+  if ([hasImplicitConvert, sqlServer2022, severeDataSkew].some((v) => typeof v !== "boolean")) {
+    throw new TypeError("boolean flags must be booleans");
+  }
+
+  if (hasImplicitConvert) {
+    return { fix: "FIX_IMPLICIT_CONVERT", reason: "Align parameter type with column type first to restore Index Seek." };
+  }
+  if (sqlServer2022 && severeDataSkew) {
+    return { fix: "PSP_2022", reason: "SQL Server 2022 Parameter Sensitive Plan optimization caches per-skew variants automatically." };
+  }
+  if (severeDataSkew && callsPerSec < 100) {
+    return { fix: "OPTION_RECOMPILE", reason: "Low call rate tolerates compile CPU for optimal per-parameter plans." };
+  }
+  return { fix: "OPTIMIZE_FOR_UNKNOWN", reason: "High-QPS path avoids recompile CPU storm while stabilizing plan choice." };
+}
+
+console.log("Implicit convert:", JSON.stringify(selectSniffingFix({ callsPerSec: 4000, hasImplicitConvert: true })));
+console.log("High QPS SQL 2022:", JSON.stringify(selectSniffingFix({ callsPerSec: 4000, sqlServer2022: true, severeDataSkew: true })));
+console.log("High QPS pre-2022:", JSON.stringify(selectSniffingFix({ callsPerSec: 4000, sqlServer2022: false, severeDataSkew: true })));
+`}
+  />
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m07-p3-sec-q" letter="Q" title="Summary & Key Takeaways">
+
+<DiagramCard title="Figure 7.6 — Index Maintenance (5/30 Rule), Partition SWITCH & PITR Restore">
+<svg viewBox="0 0 820 190" xmlns="http://www.w3.org/2000/svg" aria-label="SQL Server Index Maintenance 5/30 rule, Partition SWITCH metadata swap, and Full/Diff/Log PITR restore chain">
+  <defs>
+    <style>{`
+      .m76-lbl { font: 600 11px system-ui, sans-serif; fill: var(--token-text-primary); }
+      .m76-sub { font: 400 9.5px system-ui, sans-serif; fill: var(--token-text-secondary); }
+      .m76-hdr { font: 700 10px system-ui, sans-serif; fill: var(--token-text-inverse); }
+      .m76-box { rx: 6; ry: 6; }
+    `}</style>
+    <marker id="arr76" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="var(--token-brand-default)" />
+    </marker>
+  </defs>
+
+  <rect class="m76-box" x="6" y="8" width="248" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
+  <rect x="6" y="8" width="248" height="22" rx="6" ry="6" fill="var(--token-brand-muted)" />
+  <text x="130" y="22" text-anchor="middle" class="m76-hdr">Index Maintenance (5 / 30 Rule)</text>
+  <rect class="m76-box" x="16" y="38" width="228" height="38" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="130" y="54" text-anchor="middle" class="m76-lbl">&lt; 5% or &lt; 1,000 pages → Skip</text>
+  <text x="130" y="68" text-anchor="middle" class="m76-sub">Avoid unnecessary log churn</text>
+  <rect class="m76-box" x="16" y="84" width="228" height="40" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="130" y="100" text-anchor="middle" class="m76-lbl">5%–30% → REORGANIZE</text>
+  <text x="130" y="114" text-anchor="middle" class="m76-sub">Online · follow with UPDATE STATS</text>
+  <rect class="m76-box" x="16" y="132" width="228" height="40" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="130" y="148" text-anchor="middle" class="m76-lbl">&gt; 30% → REBUILD (ONLINE = ON)</text>
+  <text x="130" y="162" text-anchor="middle" class="m76-sub">Auto-updates stats · SORT_IN_TEMPDB</text>
+
+  <rect class="m76-box" x="266" y="8" width="248" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
+  <rect x="266" y="8" width="248" height="22" rx="6" ry="6" fill="var(--token-warning-muted)" />
+  <text x="390" y="22" text-anchor="middle" class="m76-hdr">Partition SWITCH &amp; Agent</text>
+  <rect class="m76-box" x="276" y="38" width="228" height="44" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="390" y="55" text-anchor="middle" class="m76-lbl">RANGE RIGHT Boundaries</text>
+  <text x="390" y="69" text-anchor="middle" class="m76-sub">Exact boundary starts next partition</text>
+  <rect class="m76-box" x="276" y="88" width="228" height="40" fill="var(--token-surface-raised)" stroke="var(--token-brand-default)" stroke-width="1.2" />
+  <text x="390" y="104" text-anchor="middle" class="m76-lbl">ALTER TABLE ... SWITCH (ms)</text>
+  <text x="390" y="118" text-anchor="middle" class="m76-sub">Metadata swap · 0 DELETE log storm</text>
+  <rect class="m76-box" x="276" y="134" width="228" height="38" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="390" y="150" text-anchor="middle" class="m76-lbl">SQL Server Agent Jobs</text>
+  <text x="390" y="163" text-anchor="middle" class="m76-sub">Maintenance · CHECKDB · Alerts</text>
+
+  <rect class="m76-box" x="526" y="8" width="288" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
+  <rect x="526" y="8" width="288" height="22" rx="6" ry="6" fill="var(--token-success-muted)" />
+  <text x="670" y="22" text-anchor="middle" class="m76-hdr">PITR Restore Chain (FULL Model)</text>
+  <rect class="m76-box" x="536" y="38" width="268" height="38" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="670" y="54" text-anchor="middle" class="m76-lbl">1. Full (.bak) WITH NORECOVERY</text>
+  <text x="670" y="67" text-anchor="middle" class="m76-sub">Latest baseline snapshot</text>
+  <path d="M670 76 L670 84" stroke="var(--token-brand-default)" stroke-width="1.5" marker-end="url(#arr76)" />
+  <rect class="m76-box" x="536" y="86" width="268" height="38" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="670" y="102" text-anchor="middle" class="m76-lbl">2. Diff (.bak) WITH NORECOVERY</text>
+  <text x="670" y="115" text-anchor="middle" class="m76-sub">Extents changed since Full</text>
+  <path d="M670 124 L670 132" stroke="var(--token-brand-default)" stroke-width="1.5" marker-end="url(#arr76)" />
+  <rect class="m76-box" x="536" y="134" width="268" height="38" fill="var(--token-surface-raised)" stroke="var(--token-success-default)" stroke-width="1.2" />
+  <text x="670" y="150" text-anchor="middle" class="m76-lbl">3. Logs (.trn) → Final RECOVERY</text>
+  <text x="670" y="163" text-anchor="middle" class="m76-sub">STOPAT = exact second before error</text>
+</svg>
+</DiagramCard>
+
+#### Key Takeaways
+
+- **Plans, Stats & Sniffing:** Enable **Query Store**, fix `CONVERT_IMPLICIT` and Key Lookups (`INCLUDE`) first, and mitigate parameter sniffing with SQL Server 2022 **PSP**, `OPTION (RECOMPILE)` (low QPS), or `OPTIMIZE FOR UNKNOWN`.
+- **Maintenance & Partitioning:** Apply the 5%/30% fragmentation rule on indexes >= 1,000 pages (`REORGANIZE` needs manual `UPDATE STATISTICS`), and use `RANGE RIGHT` + `SWITCH` for instant sliding-window archiving.
+- **Backups & Monitoring:** Pair `FULL` recovery model Full/Diff/Log chains (`NORECOVERY` until the last `.trn` `WITH RECOVERY, STOPAT`) with wait-stats triage (`sys.dm_os_wait_stats`) and Extended Events.
+
+</TopicSection>

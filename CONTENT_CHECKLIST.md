@@ -181,37 +181,37 @@ Split into 4 parts:
 - [x] API validation
 - [x] Error handling
 - [x] Logging
-- [ ] Authentication
-- [ ] JWT
-- [ ] Refresh tokens
-- [ ] Session management
-- [ ] Authorization
-- [ ] RBAC
-- [ ] OAuth fundamentals
-- [ ] Rate limiting
-- [ ] CORS
-- [ ] Security
-- [ ] Input sanitization
-- [ ] SQL injection
-- [ ] NoSQL injection
-- [ ] API security
-- [ ] Pagination
-- [ ] Filtering
-- [ ] Sorting
-- [ ] File uploads
-- [ ] Background jobs
-- [ ] Queue systems
-- [ ] WebSockets
-- [ ] Connection pooling
-- [ ] Microservices
-- [ ] Modular monolith
-- [ ] Backend design patterns
-- [ ] Dependency injection
-- [ ] Testing
-- [ ] Unit tests
-- [ ] Integration tests
-- [ ] API tests
-- [ ] Performance optimization
+- [x] Authentication
+- [x] JWT
+- [x] Refresh tokens
+- [x] Session management
+- [x] Authorization
+- [x] RBAC
+- [x] OAuth fundamentals
+- [x] Rate limiting
+- [x] CORS
+- [x] Security
+- [x] Input sanitization
+- [x] SQL injection
+- [x] NoSQL injection
+- [x] API security
+- [x] Pagination
+- [x] Filtering
+- [x] Sorting
+- [x] File uploads
+- [x] Background jobs
+- [x] Queue systems
+- [x] WebSockets
+- [x] Connection pooling
+- [x] Microservices
+- [x] Modular monolith
+- [x] Backend design patterns
+- [x] Dependency injection
+- [x] Testing
+- [x] Unit tests
+- [x] Integration tests
+- [x] API tests
+- [x] Performance optimization
 
 ---
 
@@ -222,42 +222,42 @@ Split into 3 parts:
 - **M04-P3**: Transactions, ACID, isolation levels, read anomalies (dirty, non-repeatable, phantom), locks, deadlocks, MVCC, concurrency, consistency, data integrity, schema migrations, connection pooling, backups & recovery
 
 #### Topics
-- [ ] What a database is
-- [ ] Database architecture
-- [ ] Database engines
-- [ ] Relational databases
-- [ ] NoSQL databases
-- [ ] Data modeling
-- [ ] ER diagrams
-- [ ] Tables
-- [ ] Rows
-- [ ] Columns
-- [ ] Primary keys
-- [ ] Foreign keys
-- [ ] Unique constraints
-- [ ] Check constraints
-- [ ] Normalization
-- [ ] Denormalization
-- [ ] 1NF
-- [ ] 2NF
-- [ ] 3NF
-- [ ] BCNF overview
-- [ ] Transactions
-- [ ] ACID
-- [ ] Isolation levels
-- [ ] Dirty reads
-- [ ] Non-repeatable reads
-- [ ] Phantom reads
-- [ ] Locks
-- [ ] Deadlocks
-- [ ] MVCC
-- [ ] Concurrency
-- [ ] Database consistency
-- [ ] Data integrity
-- [ ] Schema migrations
-- [ ] Connection pooling
-- [ ] Database backups
-- [ ] Recovery
+- [x] What a database is
+- [x] Database architecture
+- [x] Database engines
+- [x] Relational databases
+- [x] NoSQL databases
+- [x] Data modeling
+- [x] ER diagrams
+- [x] Tables
+- [x] Rows
+- [x] Columns
+- [x] Primary keys
+- [x] Foreign keys
+- [x] Unique constraints
+- [x] Check constraints
+- [x] Normalization
+- [x] Denormalization
+- [x] 1NF
+- [x] 2NF
+- [x] 3NF
+- [x] BCNF overview
+- [x] Transactions
+- [x] ACID
+- [x] Isolation levels
+- [x] Dirty reads
+- [x] Non-repeatable reads
+- [x] Phantom reads
+- [x] Locks
+- [x] Deadlocks
+- [x] MVCC
+- [x] Concurrency
+- [x] Database consistency
+- [x] Data integrity
+- [x] Schema migrations
+- [x] Connection pooling
+- [x] Database backups
+- [x] Recovery
 
 ---
 
@@ -269,52 +269,52 @@ Split into 4 parts:
 - **M05-P4**: Concurrency, scaling & tuning (transactions, locking, isolation levels, partitioning, replication, connection pooling, EXPLAIN, EXPLAIN ANALYZE, query planner, query optimization, indexing, performance tuning, vacuum, autovacuum, maintenance, backup and recovery)
 
 #### Topics
-- [ ] PostgreSQL architecture
-- [ ] PostgreSQL internals
-- [ ] Database storage
-- [ ] Pages and tuples
-- [ ] MVCC
-- [ ] WAL
-- [ ] Transactions
-- [ ] SQL
-- [ ] SELECT
-- [ ] INSERT
-- [ ] UPDATE
-- [ ] DELETE
-- [ ] JOIN
-- [ ] INNER JOIN
-- [ ] LEFT JOIN
-- [ ] RIGHT JOIN
-- [ ] FULL JOIN
-- [ ] CROSS JOIN
-- [ ] Self joins
-- [ ] Subqueries
-- [ ] CTEs
-- [ ] Recursive CTEs
-- [ ] Window functions
-- [ ] Views
-- [ ] Materialized views
-- [ ] Functions
-- [ ] Stored procedures
-- [ ] Triggers
-- [ ] Constraints
-- [ ] JSON
-- [ ] JSONB
-- [ ] Locking
-- [ ] Isolation levels
-- [ ] Partitioning
-- [ ] Replication
-- [ ] Connection pooling
-- [ ] EXPLAIN
-- [ ] EXPLAIN ANALYZE
-- [ ] Query planner
-- [ ] Query optimization
-- [ ] Indexing
-- [ ] Performance tuning
-- [ ] Vacuum
-- [ ] Autovacuum
-- [ ] Database maintenance
-- [ ] Backup and recovery
+- [x] PostgreSQL architecture
+- [x] PostgreSQL internals
+- [x] Database storage
+- [x] Pages and tuples
+- [x] MVCC
+- [x] WAL
+- [x] Transactions
+- [x] SQL
+- [x] SELECT
+- [x] INSERT
+- [x] UPDATE
+- [x] DELETE
+- [x] JOIN
+- [x] INNER JOIN
+- [x] LEFT JOIN
+- [x] RIGHT JOIN
+- [x] FULL JOIN
+- [x] CROSS JOIN
+- [x] Self joins
+- [x] Subqueries
+- [x] CTEs
+- [x] Recursive CTEs
+- [x] Window functions
+- [x] Views
+- [x] Materialized views
+- [x] Functions
+- [x] Stored procedures
+- [x] Triggers
+- [x] Constraints
+- [x] JSON
+- [x] JSONB
+- [x] Locking
+- [x] Isolation levels
+- [x] Partitioning
+- [x] Replication
+- [x] Connection pooling
+- [x] EXPLAIN
+- [x] EXPLAIN ANALYZE
+- [x] Query planner
+- [x] Query optimization
+- [x] Indexing
+- [x] Performance tuning
+- [x] Vacuum
+- [x] Autovacuum
+- [x] Database maintenance
+- [x] Backup and recovery
 
 ---
 
@@ -324,31 +324,31 @@ Split into 2 parts:
 - **M06-P2**: Indexes (composite, clustered, secondary), query optimization, EXPLAIN, query execution, stored procedures, triggers, views, replication, partitioning, performance tuning, connection management, backup and recovery
 
 #### Topics
-- [ ] MySQL architecture
-- [ ] Storage engines
-- [ ] InnoDB
-- [ ] MyISAM overview
-- [ ] SQL
-- [ ] Transactions
-- [ ] ACID
-- [ ] Isolation levels
-- [ ] Locking
-- [ ] Deadlocks
-- [ ] Indexes
-- [ ] Composite indexes
-- [ ] Clustered indexes
-- [ ] Secondary indexes
-- [ ] Query optimization
-- [ ] EXPLAIN
-- [ ] Query execution
-- [ ] Stored procedures
-- [ ] Triggers
-- [ ] Views
-- [ ] Replication
-- [ ] Partitioning
-- [ ] Performance tuning
-- [ ] Connection management
-- [ ] Backup and recovery
+- [x] MySQL architecture
+- [x] Storage engines
+- [x] InnoDB
+- [x] MyISAM overview
+- [x] SQL
+- [x] Transactions
+- [x] ACID
+- [x] Isolation levels
+- [x] Locking
+- [x] Deadlocks
+- [x] Indexes
+- [x] Composite indexes
+- [x] Clustered indexes
+- [x] Secondary indexes
+- [x] Query optimization
+- [x] EXPLAIN
+- [x] Query execution
+- [x] Stored procedures
+- [x] Triggers
+- [x] Views
+- [x] Replication
+- [x] Partitioning
+- [x] Performance tuning
+- [x] Connection management
+- [x] Backup and recovery
 
 ---
 
@@ -359,40 +359,40 @@ Split into 3 parts:
 - **M07-P3**: Query execution plans, optimization, statistics, execution plan analysis, index maintenance, fragmentation, parameter sniffing, query tuning, partitioning, SQL Server Agent, backup & recovery, performance monitoring
 
 #### Topics
-- [ ] SQL Server architecture
-- [ ] SQL Server engine
-- [ ] Storage
-- [ ] Pages
-- [ ] Extents
-- [ ] Tables
-- [ ] Indexes
-- [ ] Clustered indexes
-- [ ] Non-clustered indexes
-- [ ] Heap tables
-- [ ] Stored procedures
-- [ ] Functions
-- [ ] Views
-- [ ] Triggers
-- [ ] Transactions
-- [ ] Locking
-- [ ] Isolation levels
-- [ ] Deadlocks
-- [ ] Query execution plans
-- [ ] Query optimization
-- [ ] Statistics
-- [ ] Execution plan analysis
-- [ ] Index maintenance
-- [ ] Fragmentation
-- [ ] Parameter sniffing
-- [ ] Query tuning
-- [ ] Temp tables
-- [ ] Table variables
-- [ ] CTEs
-- [ ] Window functions
-- [ ] Partitioning
-- [ ] SQL Server Agent
-- [ ] Backup and recovery
-- [ ] Performance monitoring
+- [x] SQL Server architecture
+- [x] SQL Server engine
+- [x] Storage
+- [x] Pages
+- [x] Extents
+- [x] Tables
+- [x] Indexes
+- [x] Clustered indexes
+- [x] Non-clustered indexes
+- [x] Heap tables
+- [x] Stored procedures
+- [x] Functions
+- [x] Views
+- [x] Triggers
+- [x] Transactions
+- [x] Locking
+- [x] Isolation levels
+- [x] Deadlocks
+- [x] Query execution plans
+- [x] Query optimization
+- [x] Statistics
+- [x] Execution plan analysis
+- [x] Index maintenance
+- [x] Fragmentation
+- [x] Parameter sniffing
+- [x] Query tuning
+- [x] Temp tables
+- [x] Table variables
+- [x] CTEs
+- [x] Window functions
+- [x] Partitioning
+- [x] SQL Server Agent
+- [x] Backup and recovery
+- [x] Performance monitoring
 
 ---
 

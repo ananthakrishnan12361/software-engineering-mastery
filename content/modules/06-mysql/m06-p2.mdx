@@ -1,0 +1,761 @@
+<Callout variant="info" title="Topics Covered in Part 2 (M06-P2)">
+  <p>
+    This second and final part of Module 6 covers 15 production MySQL indexing, execution, programmability, and operations topics: <strong>Indexes</strong>, <strong>Composite indexes</strong>, <strong>Clustered indexes</strong>, <strong>Secondary indexes</strong>, <strong>Query optimization</strong>, <strong>EXPLAIN</strong>, <strong>Query execution</strong>, <strong>Stored procedures</strong>, <strong>Triggers</strong>, <strong>Views</strong>, <strong>Replication</strong>, <strong>Partitioning</strong>, <strong>Performance tuning</strong>, <strong>Connection management</strong>, and <strong>Backup and recovery</strong>.
+  </p>
+</Callout>
+
+<TopicSection id="m06-p2-sec-a" letter="A" title="Topic Introduction">
+
+#### What is this?
+
+**MySQL indexing, query optimization, and high-availability operations** turn a single-node InnoDB database into a predictable, low-latency production system. This part covers how InnoDB organizes data inside clustered and secondary B+Trees, how the optimizer selects access paths shown by `EXPLAIN`, how stored programs and views behave, and how to scale and protect clusters with GTID replication, partitioning, connection pooling, and hot backups.
+
+#### Why does it exist & what problem does it solve?
+
+Unindexed lookups, broken composite index prefixes, `UUIDv4` primary-key page splits, and `Using filesort` / `Using temporary` plans quickly saturate disk I/O and CPU. Similarly, poorly planned replication, unpooled connection storms, or untested logical dumps turn routine traffic spikes or hardware failures into prolonged outages. Mastering these internals gives you deterministic control over query latency and cluster recovery.
+
+#### Where is it used in real-world software?
+
+High-throughput OLTP SaaS platforms, multi-region read-replica topologies, e-commerce order archives (`PARTITION BY RANGE`), ProxySQL / MySQL Router pools, and automated Percona XtraBackup + binary log point-in-time recovery (PITR) pipelines.
+
+</TopicSection>
+
+<TopicSection id="m06-p2-sec-b" letter="B" title="Fundamentals (Simple Mental Models)">
+
+<TopicAnchor id="m06-p2-topic-indexes" />
+
+#### 1. Indexes: B+Tree Structure, Selectivity & Write Amplification
+
+In InnoDB, every standard index is a **B+Tree** stored in 16 KB pages where internal nodes hold routing keys and leaf nodes hold sorted entries linked doubly for fast range scans. An index speeds up `WHERE`, `JOIN`, `ORDER BY`, and `GROUP BY` lookups from `O(n)` full table scans to `O(log n)` tree traversals.
+
+Every index carries a **write amplification** cost: every `INSERT`, `UPDATE` on an indexed column, or `DELETE` must update all affected B+Trees (assisted by the InnoDB Change Buffer for non-unique secondary indexes). Prioritize high-selectivity columns (`cardinality / rows` close to 1) and drop unused or redundant indexes visible in `sys.schema_unused_indexes`.
+
+<TopicAnchor id="m06-p2-topic-composite-indexes" />
+
+#### 2. Composite Indexes: Leftmost Prefix Rule & Covering Indexes
+
+A **composite index** `(a, b, c)` sorts rows first by `a`, then by `b` within equal `a`, then by `c` within equal `(a, b)`. Because of this lexicographical sort, MySQL follows the **leftmost prefix rule**: the index serves queries filtering on `(a)`, `(a, b)`, or `(a, b, c)`, but cannot use the B+Tree order for `WHERE b = 10` alone (unless MySQL 8.0's `Index Skip Scan` applies on very low-cardinality `a`).
+
+A **range predicate** (`>`, `<`, `BETWEEN`) on column `b` stops further B+Tree equality matching on `c`, so put **equality columns first, range columns last** (`(tenant_id, status, created_at)`). When all columns in `SELECT`, `WHERE`, and `ORDER BY` exist inside the index, InnoDB performs a **covering index scan** (`Extra: Using index`) without touching the base table.
+
+<TopicAnchor id="m06-p2-topic-clustered-indexes" />
+
+#### 3. Clustered Indexes: InnoDB Primary Key Organization
+
+<GlossaryTerm definition="An InnoDB B+Tree index whose leaf pages store the entire row data sorted by the Primary Key; every InnoDB table has exactly one clustered index.">Clustered index</GlossaryTerm> means the table *is* the primary key B+Tree: leaf pages hold the full row columns directly alongside the primary key. If you omit an explicit `PRIMARY KEY`, InnoDB picks the first `UNIQUE NOT NULL` index, or generates a hidden 6-byte `DB_ROW_ID` counter shared globally.
+
+Because rows are physically ordered by the PK, **sequential inserts** (`AUTO_INCREMENT` or time-ordered `UUIDv7`) append cleanly at the right edge of the B+Tree with high page fill. By contrast, random `UUIDv4` primary keys scatter inserts across random 16 KB pages, causing frequent page splits, fragmentation, and poor Buffer Pool cache density.
+
+<TopicAnchor id="m06-p2-topic-secondary-indexes" />
+
+#### 4. Secondary Indexes: PK Pointer & Double Lookup Cost
+
+Every non-primary index in InnoDB is a **secondary index** whose leaf nodes store `(indexed_columns, primary_key)` rather than a physical row pointer. This keeps secondary indexes stable when clustered pages split, because secondary entries only need updating if the PK itself changes.
+
+However, a non-covering secondary index query incurs a **double lookup**: InnoDB first traverses the secondary B+Tree to find matching PKs, then probes the **clustered index** B+Tree for each PK to fetch the remaining columns. Keep your `PRIMARY KEY` compact (`BIGINT` = 8 bytes vs. 36-byte `CHAR(36)` UUID) because every single secondary index embeds a copy of the PK in every leaf entry.
+
+<TopicAnchor id="m06-p2-topic-query-optimization" />
+
+#### 5. Query Optimization: SARGable Predicates, Keyset Pagination & Join Order
+
+**Query optimization** focuses on letting the optimizer use indexes and minimize rows examined. Always write **SARGable** predicates (`created_at >= '2026-11-01' AND created_at < '2026-12-01'`) instead of wrapping columns in functions (`DATE(created_at) = ...`), which disables B+Tree range scans unless you create a MySQL 8.0 functional index `((DATE(created_at)))`.
+
+Replace deep `LIMIT 50 OFFSET 100000` (which scans and discards 100,000 rows) with **keyset pagination** (`WHERE (created_at, id) < (?, ?) ORDER BY created_at DESC, id DESC LIMIT 50`). Also avoid `SELECT *` so covering indexes remain eligible, and verify implicit type conversions (comparing a `VARCHAR` column to an integer literal silently forces a full table scan).
+
+<TopicAnchor id="m06-p2-topic-explain" />
+
+#### 6. EXPLAIN: Reading Access Types, Key Selection & Extra Flags
+
+Running `EXPLAIN` (or `EXPLAIN FORMAT=TREE` / `EXPLAIN ANALYZE` in MySQL 8.0.18+) reveals how the optimizer plans to execute a query. The most important columns are `type` (access method, from best to worst: `system`, `const`, `eq_ref`, `ref`, `range`, `index`, `ALL`), `possible_keys`, `key` (chosen index), `rows` (estimated rows examined), and `filtered` (percentage surviving `WHERE`).
+
+Watch the `Extra` column closely: `Using index` is great (covering index), whereas `Using filesort` (extra sort pass in `sort_buffer_size` or disk) and `Using temporary` (internal temp table for `GROUP BY` / `DISTINCT`) signal tuning opportunities. `EXPLAIN ANALYZE` actually executes the query and prints real `actual time` and `loops` per iterator.
+
+<TopicAnchor id="m06-p2-topic-query-execution" />
+
+#### 7. Query Execution: Parser, Optimizer, Volcano Iterators & Joins
+
+During **query execution**, MySQL parses SQL into an AST, resolves table/column privileges, and passes the tree to the cost-based **Query Optimizer**, which estimates I/O and CPU costs using InnoDB index statistics (`mysql.innodb_index_stats`) and MySQL 8.0 histograms. Note that MySQL 8.0 **removed the legacy Query Cache** completely because its global mutex caused severe contention on multicore servers.
+
+The execution engine uses an iterator model (Volcano-style `Init()` / `Read()` in MySQL 8.0) and chooses between **Index Nested-Loop Join** and **Hash Join** (added in MySQL 8.0.18+ for equi-joins lacking usable indexes, replacing the older Block Nested-Loop). Understanding `join_buffer_size` and `sort_buffer_size` prevents unexpected per-session memory spikes or disk spills.
+
+<TopicAnchor id="m06-p2-topic-stored-procedures" />
+
+#### 8. Stored Procedures: Routines, IN/OUT Parameters & Trade-Offs
+
+A **stored procedure** (`CREATE PROCEDURE ...`) is a named SQL/procedural block stored in the data dictionary and executed via `CALL proc_name(...)`. It supports `IN`, `OUT`, and `INOUT` parameters, local variables (`DECLARE`), `IF`/`WHILE` control flow, cursors, and transaction control (`COMMIT` / `ROLLBACK`), whereas stored **functions** (`CREATE FUNCTION`) return a single value for use inside SQL expressions and cannot commit transactions.
+
+In modern backend architectures, keep business logic in version-controlled application services rather than heavy stored procedures, because MySQL procedures lack rich unit-testing/debugging tooling and scale vertically on the primary database CPU. Reserve them for tightly scoped batch maintenance or legacy DBA interfaces.
+
+<TopicAnchor id="m06-p2-topic-triggers" />
+
+#### 9. Triggers: BEFORE/AFTER Row Hooks & Replication Caveats
+
+A **trigger** (`CREATE TRIGGER ... BEFORE|AFTER INSERT|UPDATE|DELETE ON tbl FOR EACH ROW`) automatically executes SQL whenever a row is modified. `BEFORE` triggers can validate or normalize `NEW.col` values before the row is written, while `AFTER` triggers run post-write for audit logging or denormalized counters.
+
+Use triggers sparingly: they add hidden latency to every DML row, cannot issue `COMMIT`/`ROLLBACK`, and are invisible to application developers reading service code. Under `binlog_format = ROW`, primary trigger changes are replicated as row events (so replicas must not re-fire triggers), and `gh-ost` avoids triggers altogether during online schema changes.
+
+<TopicAnchor id="m06-p2-topic-views" />
+
+#### 10. Views: Virtual Tables, MERGE vs. TEMPTABLE & Security
+
+A **view** (`CREATE VIEW v AS SELECT ...`) is a stored query exposed like a virtual table to simplify joins or restrict exposed columns. MySQL evaluates views using either the **`MERGE`** algorithm (folds the view's `WHERE` and `SELECT` directly into the outer query so indexes work normally) or **`TEMPTABLE`** (materializes the view into an internal temporary table first, needed when the view uses `GROUP BY`, `DISTINCT`, `UNION`, or aggregates).
+
+Always specify **`SQL SECURITY INVOKER`** (or audit `DEFINER` carefully) when creating views so permissions are checked against the calling user rather than escalating to a privileged `DEFINER` account. Note that standard MySQL views are not persisted on disk—unlike PostgreSQL materialized views, MySQL requires summary tables or scheduled refreshes if you need precomputed materialization.
+
+<TopicAnchor id="m06-p2-topic-replication" />
+
+#### 11. Replication: Binary Logs, GTIDs, Async vs. Semi-Sync & Group Replication
+
+**MySQL replication** streams changes from a **source** (primary) to one or more **replicas** via the **binary log** (`binlog_format = ROW`). Each replica runs an I/O receiver thread that copies binlog events into a local **relay log**, and an SQL applier thread (or parallel `replica_parallel_workers`) that replays them.
+
+Enable **GTID** (`gtid_mode = ON`) so every transaction gets a globally unique `server_uuid:sequence` identifier, making failover and replica repointing automatic without fragile binlog file/position math. Choose **asynchronous** replication for lowest primary latency, **semi-synchronous** (`rpl_semi_sync`) to wait for at least one replica ACK before returning `COMMIT`, or **Group Replication** (InnoDB Cluster) for Paxos-based multi-node automatic failover.
+
+<TopicAnchor id="m06-p2-topic-partitioning" />
+
+#### 12. Partitioning: RANGE, LIST, HASH & Pruning Mechanics
+
+**Table partitioning** (`PARTITION BY RANGE|LIST|HASH`) splits one logical InnoDB table into multiple physical `.ibd` sub-tables managed transparently by the server. **Partition pruning** allows the optimizer to skip scanning irrelevant partitions when the query includes the partition key in its `WHERE` clause (e.g., `WHERE created_at >= '2026-11-01'`).
+
+Partitioning shines for **time-series retention**: dropping a 30-day-old partition via `ALTER TABLE events DROP PARTITION p_2025_10` reclaims gigabytes in milliseconds with zero row-by-row `DELETE` or undo bloat. Critical MySQL rule: **every unique/primary key on a partitioned table must include all columns of the partitioning expression**, and avoid creating hundreds of partitions per table (keep under ~50–100) to prevent open-file and metadata overhead.
+
+<TopicAnchor id="m06-p2-topic-performance-tuning" />
+
+#### 13. Performance Tuning: Slow Query Log, Performance Schema & Memory Buffers
+
+Effective **performance tuning** starts with measurement: enable the **Slow Query Log** (`slow_query_log = ON`, `long_query_time = 0.2`, `log_queries_not_using_indexes = ON` in staging) and inspect `performance_schema.events_statements_summary_by_digest` (or `sys.statements_with_runtimes_in_95th_percentile`) to rank queries by total latency and rows examined.
+
+Check global vs. per-thread memory carefully: `innodb_buffer_pool_size` (70–80% of RAM) is global and shared, whereas `sort_buffer_size`, `join_buffer_size`, and `read_buffer_size` are **allocated per active session/query**. Over-inflating per-thread buffers causes OOM kills under concurrency spikes.
+
+<TopicAnchor id="m06-p2-topic-connection-management" />
+
+#### 14. Connection Management: Thread-per-Connection, Thread Cache & ProxySQL
+
+Community MySQL defaults to a **one-OS-thread-per-connection** model. While `thread_cache_size` recycles idle threads to save thread creation overhead, having 3,000 active concurrent threads causes severe CPU context-switching and InnoDB mutex contention (`Threads_running` spiking far above `2 * vCPU`).
+
+Cap `max_connections` realistically, configure `wait_timeout` / `interactive_timeout` so abandoned idle clients are reaped, and place **ProxySQL** or **MySQL Router** in front of the cluster. A pool multiplexes thousands of application connections onto a small, stable pool of backend MySQL threads while also handling read/write splitting across replicas.
+
+<TopicAnchor id="m06-p2-topic-backup-and-recovery" />
+
+#### 15. Backup and Recovery: mysqldump, MySQL Shell Dump, XtraBackup & PITR
+
+Backups fall into **logical** (`mysqldump --single-transaction` or parallel **MySQL Shell** `util.dumpInstance()`), which export SQL/TSV for portable restores across versions, and **physical hot backups** (**Percona XtraBackup** or MySQL Enterprise Backup), which copy `.ibd` pages online while streaming InnoDB redo logs—restoring multi-terabyte databases 10x faster than SQL replay.
+
+To achieve **Point-in-Time Recovery (PITR)**, combine a consistent full backup (recording its `GTID` / binlog position) with archived **binary logs**. Restore the full backup first, then replay binary logs with `mysqlbinlog --stop-datetime="..."` right up to the second before an accidental `DROP TABLE` or bad `UPDATE`. Always automate periodic restore drills onto an isolated instance.
+
+</TopicSection>
+
+<TopicSection id="m06-p2-sec-c" letter="C" title="Internal Working & Architecture">
+
+#### Clustered vs. Secondary Index Traversal in InnoDB
+
+In InnoDB, every table's data lives inside the **clustered B+Tree** ordered by `PRIMARY KEY`. A primary-key lookup (`WHERE id = 42`) descends the clustered B+Tree once (typically 3–4 levels for 100M rows) and reads the full row directly from the leaf page.
+
+A **secondary index** (`INDEX (email)`) is a separate B+Tree whose leaf pages contain `(email, id)`. When a query executes `SELECT total_cents FROM orders WHERE email = 'a@b.com'`, InnoDB first descends `idx_email` to retrieve `id = 42`, then descends the clustered B+Tree for `id = 42` to read `total_cents` (**double lookup**). Extending the index to `(email, total_cents)` turns it into a **covering index**, eliminating the second B+Tree descent completely.
+
+<DiagramCard title="Figure 6.3 — InnoDB Clustered vs. Secondary & Covering Index Lookup">
+<svg viewBox="0 0 820 190" xmlns="http://www.w3.org/2000/svg" aria-label="InnoDB clustered index vs secondary index double lookup and covering index shortcut">
+  <defs>
+    <style>{`
+      .m6p2-lbl { font: 600 11px system-ui, sans-serif; fill: var(--token-text-primary); }
+      .m6p2-sub { font: 400 9.5px system-ui, sans-serif; fill: var(--token-text-secondary); }
+      .m6p2-hdr { font: 700 10px system-ui, sans-serif; fill: var(--token-text-inverse); }
+      .m6p2-box { rx: 6; ry: 6; }
+    `}</style>
+    <marker id="arr63" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="var(--token-brand-default)" />
+    </marker>
+    <marker id="arr63g" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="var(--token-success-default)" />
+    </marker>
+  </defs>
+
+  <rect class="m6p2-box" x="6" y="8" width="252" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
+  <rect x="6" y="8" width="252" height="22" rx="6" ry="6" fill="var(--token-brand-muted)" />
+  <text x="132" y="22" text-anchor="middle" class="m6p2-hdr">Secondary Index: idx(email)</text>
+  <rect class="m6p2-box" x="52" y="38" width="160" height="26" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="132" y="55" text-anchor="middle" class="m6p2-lbl">Root Page (email ranges)</text>
+  <path d="M132 64 L132 76" stroke="var(--token-brand-default)" stroke-width="1.6" marker-end="url(#arr63)" />
+  <rect class="m6p2-box" x="28" y="78" width="208" height="26" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="132" y="95" text-anchor="middle" class="m6p2-lbl">Branch Page (a@..m@ | n@..z@)</text>
+  <path d="M132 104 L132 116" stroke="var(--token-brand-default)" stroke-width="1.6" marker-end="url(#arr63)" />
+  <rect class="m6p2-box" x="16" y="118" width="232" height="54" fill="var(--token-surface-raised)" stroke="var(--token-brand-default)" stroke-width="1.2" />
+  <text x="132" y="134" text-anchor="middle" class="m6p2-lbl">Leaf: ('a@b.com', PK=42)</text>
+  <text x="132" y="148" text-anchor="middle" class="m6p2-sub">Stores indexed key + PK only</text>
+  <text x="132" y="162" text-anchor="middle" class="m6p2-sub">Step 1: Get PK=42 (or return if covering)</text>
+
+  <path d="M258 145 L288 70" stroke="var(--token-brand-default)" stroke-width="2" marker-end="url(#arr63)" />
+  <text x="274" y="96" text-anchor="middle" class="m6p2-sub">PK=42</text>
+
+  <rect class="m6p2-box" x="290" y="8" width="276" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
+  <rect x="290" y="8" width="276" height="22" rx="6" ry="6" fill="var(--token-warning-muted)" />
+  <text x="428" y="22" text-anchor="middle" class="m6p2-hdr">Clustered Index (PK B+Tree)</text>
+  <rect class="m6p2-box" x="348" y="38" width="160" height="26" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="428" y="55" text-anchor="middle" class="m6p2-lbl">Root Page (PK 1..10M)</text>
+  <path d="M428 64 L428 76" stroke="var(--token-brand-default)" stroke-width="1.6" marker-end="url(#arr63)" />
+  <rect class="m6p2-box" x="320" y="78" width="216" height="26" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="428" y="95" text-anchor="middle" class="m6p2-lbl">Branch Page (PK 1..500 | 501..1000)</text>
+  <path d="M428 104 L428 116" stroke="var(--token-brand-default)" stroke-width="1.6" marker-end="url(#arr63)" />
+  <rect class="m6p2-box" x="300" y="118" width="256" height="54" fill="var(--token-surface-raised)" stroke="var(--token-warning-default)" stroke-width="1.2" />
+  <text x="428" y="134" text-anchor="middle" class="m6p2-lbl">Leaf: PK=42 → Full Row Data</text>
+  <text x="428" y="148" text-anchor="middle" class="m6p2-sub">email, total_cents, status, DB_TRX_ID</text>
+  <text x="428" y="162" text-anchor="middle" class="m6p2-sub">Step 2: Double lookup fetches row</text>
+
+  <rect class="m6p2-box" x="576" y="8" width="238" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
+  <rect x="576" y="8" width="238" height="22" rx="6" ry="6" fill="var(--token-success-muted)" />
+  <text x="695" y="22" text-anchor="middle" class="m6p2-hdr">Covering Shortcut (Using index)</text>
+  <rect class="m6p2-box" x="588" y="40" width="214" height="52" fill="var(--token-surface-raised)" stroke="var(--token-success-default)" stroke-width="1.2" />
+  <text x="695" y="57" text-anchor="middle" class="m6p2-lbl">idx(email, total_cents)</text>
+  <text x="695" y="71" text-anchor="middle" class="m6p2-sub">Leaf: ('a@b.com', 4900, PK=42)</text>
+  <text x="695" y="84" text-anchor="middle" class="m6p2-sub">0 clustered probes needed!</text>
+  <path d="M695 92 L695 108" stroke="var(--token-success-default)" stroke-width="1.8" marker-end="url(#arr63g)" />
+  <rect class="m6p2-box" x="588" y="110" width="214" height="62" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="695" y="127" text-anchor="middle" class="m6p2-lbl">Result Returned Directly</text>
+  <text x="695" y="142" text-anchor="middle" class="m6p2-sub">Keep PK small (BIGINT 8B)</text>
+  <text x="695" y="156" text-anchor="middle" class="m6p2-sub">Sequential PK avoids page splits</text>
+</svg>
+</DiagramCard>
+
+</TopicSection>
+
+<TopicSection id="m06-p2-sec-d" letter="D" title="Practical Examples (Interactive)">
+
+#### Example 1: InnoDB Clustered & Secondary Index Lookup Simulator (`createInnoDbIndexSimulator`)
+
+This simulator models InnoDB's two B+Trees: a **clustered index** holding full rows keyed by `PK`, and a **secondary index** `(col, ...coveringCols, PK)`. Watch how a non-covering secondary lookup performs two B+Tree lookups (`clusteredReads > 0`), whereas a covering index returns `clusteredReads: 0`.
+
+<CodeBlock lang="javascript" runnable title="InnoDB Clustered vs. Secondary Index Simulator" code={`
+function createInnoDbIndexSimulator() {
+  const clustered = new Map(); // pk -> full row object
+  const secondaryIndexes = new Map(); // indexName -> { cols: string[], entries: Array<{ keyValues, pk }> }
+
+  function insertRow(pk, row) {
+    if (!Number.isInteger(pk) || pk < 1) throw new TypeError("pk must be a positive integer");
+    if (row == null || typeof row !== "object" || Array.isArray(row)) {
+      throw new TypeError("row must be a non-null plain object");
+    }
+    if (clustered.has(pk)) throw new Error("Duplicate primary key: " + pk);
+    clustered.set(pk, { ...row, id: pk });
+
+    for (const idx of secondaryIndexes.values()) {
+      idx.entries.push({
+        keyValues: idx.cols.map((c) => row[c]),
+        pk
+      });
+    }
+  }
+
+  function createSecondaryIndex(name, cols) {
+    if (typeof name !== "string" || name.trim().length === 0) throw new TypeError("Index name required");
+    if (!Array.isArray(cols) || cols.length === 0) throw new TypeError("cols must be a non-empty array");
+    const entries = [];
+    for (const [pk, row] of clustered.entries()) {
+      entries.push({ keyValues: cols.map((c) => row[c]), pk });
+    }
+    secondaryIndexes.set(name, { cols: [...cols], entries });
+  }
+
+  function queryBySecondary(indexName, filterCol, filterVal, selectCols) {
+    const idx = secondaryIndexes.get(indexName);
+    if (!idx) throw new Error("Unknown index: " + indexName);
+    if (!Array.isArray(selectCols) || selectCols.length === 0) {
+      throw new TypeError("selectCols must be a non-empty array");
+    }
+    if (idx.cols[0] !== filterCol) {
+      return { accessType: "ALL", covering: false, secondaryReads: 0, clusteredReads: clustered.size, rows: [] };
+    }
+
+    const indexColSet = new Set([...idx.cols, "id"]);
+    const covering = selectCols.every((c) => indexColSet.has(c));
+
+    let secondaryReads = 0;
+    let clusteredReads = 0;
+    const out = [];
+
+    for (const entry of idx.entries) {
+      secondaryReads++;
+      if (entry.keyValues[0] === filterVal) {
+        if (covering) {
+          const proj = {};
+          for (const c of selectCols) {
+            proj[c] = c === "id" ? entry.pk : entry.keyValues[idx.cols.indexOf(c)];
+          }
+          out.push(proj);
+        } else {
+          clusteredReads++;
+          const full = clustered.get(entry.pk);
+          const proj = {};
+          for (const c of selectCols) proj[c] = full[c];
+          out.push(proj);
+        }
+      }
+    }
+
+    return {
+      accessType: "ref",
+      covering,
+      secondaryReads,
+      clusteredReads,
+      rows: out
+    };
+  }
+
+  return { insertRow, createSecondaryIndex, queryBySecondary };
+}
+
+const db = createInnoDbIndexSimulator();
+db.insertRow(101, { email: "ada@acme.io", totalCents: 4900, status: "paid" });
+db.insertRow(102, { email: "bob@acme.io", totalCents: 1200, status: "pending" });
+db.createSecondaryIndex("idx_email_total", ["email", "totalCents"]);
+
+console.log("Covering lookup:", JSON.stringify(db.queryBySecondary("idx_email_total", "email", "ada@acme.io", ["id", "totalCents"])));
+console.log("Double lookup:", JSON.stringify(db.queryBySecondary("idx_email_total", "email", "ada@acme.io", ["id", "totalCents", "status"])));
+console.log("Broken prefix:", JSON.stringify(db.queryBySecondary("idx_email_total", "totalCents", 4900, ["id"])));
+`} />
+
+#### Example 2: MySQL `EXPLAIN` & Composite Index Access Analyzer (`analyzeMysqlExplain`)
+
+This analyzer inspects a MySQL `EXPLAIN` plan node (`type`, `rows`, `filtered`, `extra`) and surfaces optimization warnings for full table scans (`ALL`), full index scans (`index`), `Using filesort`, `Using temporary`, and low filter selectivity.
+
+<CodeBlock lang="javascript" runnable title="MySQL EXPLAIN Plan Analyzer" code={`
+function analyzeMysqlExplain(plan) {
+  if (plan == null || typeof plan !== "object" || Array.isArray(plan)) {
+    throw new TypeError("plan must be a non-null plain object");
+  }
+  const { type, rows, filtered = 100, extra = "" } = plan;
+  const validTypes = new Set(["system", "const", "eq_ref", "ref", "range", "index", "ALL"]);
+  if (!validTypes.has(type)) throw new TypeError("Invalid EXPLAIN type: " + type);
+  if (!Number.isInteger(rows) || rows < 0) throw new TypeError("rows must be a non-negative integer");
+  if (!Number.isFinite(filtered) || filtered < 0 || filtered > 100) {
+    throw new TypeError("filtered must be between 0 and 100");
+  }
+  if (typeof extra !== "string") throw new TypeError("extra must be a string");
+
+  const findings = [];
+  if (type === "ALL" && rows > 1000) {
+    findings.push("FULL_TABLE_SCAN: Add selective index on WHERE/JOIN columns");
+  } else if (type === "index" && rows > 1000) {
+    findings.push("FULL_INDEX_SCAN: Narrow range or fix leftmost composite prefix");
+  }
+  if (extra.includes("Using filesort")) {
+    findings.push("FILESORT: Align ORDER BY with composite index prefix");
+  }
+  if (extra.includes("Using temporary")) {
+    findings.push("TEMP_TABLE: Align GROUP BY/DISTINCT with index or raise tmp_table_size");
+  }
+  if (filtered < 20 && rows > 500) {
+    findings.push("LOW_FILTER_SELECTIVITY: Extend composite index with trailing filter columns");
+  }
+
+  const extraTokens = extra.split(";").map((s) => s.trim());
+
+  return {
+    type,
+    rows,
+    covering: extraTokens.includes("Using index"),
+    healthy: findings.length === 0,
+    findings
+  };
+}
+
+console.log("Slow plan:", JSON.stringify(analyzeMysqlExplain({ type: "ALL", rows: 250000, filtered: 5, extra: "Using where; Using filesort" })));
+console.log("Optimal plan:", JSON.stringify(analyzeMysqlExplain({ type: "ref", rows: 12, filtered: 100, extra: "Using index" })));
+`} />
+
+#### SQL Example: Covering Composite Index, `EXPLAIN ANALYZE` & Partition Pruning
+
+<CodeBlock lang="sql" title="MySQL 8.0 Composite Index, EXPLAIN ANALYZE & Partitioning" code={`
+-- 1. Equality columns first (tenant_id, status), range/sort column last (created_at)
+CREATE INDEX idx_orders_tenant_status_created
+  ON orders (tenant_id, status, created_at DESC, total_cents);
+
+-- 2. Verify covering index (Using index) & no filesort with EXPLAIN ANALYZE (MySQL 8.0.18+)
+EXPLAIN ANALYZE
+SELECT id, total_cents
+FROM orders
+WHERE tenant_id = 42 AND status = 'paid' AND created_at >= '2026-11-01'
+ORDER BY created_at DESC
+LIMIT 50;
+
+-- 3. Range-partitioned event table (PK includes partition key created_at)
+CREATE TABLE audit_events (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  created_at DATE NOT NULL,
+  payload JSON NOT NULL,
+  PRIMARY KEY (id, created_at)
+) PARTITION BY RANGE (TO_DAYS(created_at)) (
+  PARTITION p2026_10 VALUES LESS THAN (TO_DAYS('2026-11-01')),
+  PARTITION p2026_11 VALUES LESS THAN (TO_DAYS('2026-12-01')),
+  PARTITION p_future VALUES LESS THAN MAXVALUE
+);
+`} />
+
+</TopicSection>
+
+<TopicSection id="m06-p2-sec-e" letter="E" title="Step-by-Step Walkthrough">
+
+#### How `analyzeMysqlExplain` Evaluates a Query Plan
+
+1. **Validate Plan Inputs:** Confirms `type` is one of MySQL's valid access paths (`system` through `ALL`), `rows` is a non-negative integer, and `filtered` falls within `0..100`.
+2. **Detect Full Scans (`ALL` / `index`):** Flags `type === "ALL"` over 1,000 rows as `FULL_TABLE_SCAN` and `type === "index"` as `FULL_INDEX_SCAN` when a leftmost prefix is missing.
+3. **Inspect `Extra` Flags:** Detects `Using filesort` (sort not satisfied by B+Tree order) and `Using temporary` (materialized temp table for grouping), while recording `covering: true` when `Using index` appears.
+4. **Check Post-Index Filter Efficiency:** Flags `filtered < 20` on scans over 500 rows (`LOW_FILTER_SELECTIVITY`), signaling that InnoDB reads many rows only to discard most of them after the clustered lookup.
+
+</TopicSection>
+
+<TopicSection id="m06-p2-sec-f" letter="F" title="Real-World Use Cases">
+
+#### Scenario 1: Eliminating `Using filesort` on Multi-Tenant Dashboards
+
+A SaaS orders endpoint ran `WHERE tenant_id = ? AND status = ? ORDER BY created_at DESC LIMIT 25` against 80M rows, stalling on `Using filesort`. Creating a composite covering index `(tenant_id, status, created_at DESC, total_cents)` dropped p99 latency from 1.4s to 2ms with `Using index`.
+
+#### Scenario 2: Instant Retention Drops with Range Partitioning
+
+An analytics ingestion table growing by 50M rows per month switched from nightly `DELETE` batches (which caused replication lag and undo bloat) to monthly `PARTITION BY RANGE (TO_DAYS(created_at))` partitions. Retiring old months via `ALTER TABLE ... DROP PARTITION` now completes in milliseconds.
+
+#### Scenario 3: Zero-Lag Read Scaling & PITR Protection
+
+An e-commerce cluster runs GTID-based asynchronous replication with ProxySQL splitting `SELECT` traffic across two read replicas and Percona XtraBackup taking nightly physical snapshots plus archived binary logs for sub-minute PITR.
+
+</TopicSection>
+
+<TopicSection id="m06-p2-sec-g" letter="G" title="Common Mistakes">
+
+- **Using Random `UUIDv4` as an InnoDB Primary Key:** Random PKs fragment the clustered B+Tree, bloat every secondary index (which embeds the PK), and thrash Buffer Pool pages. Use `AUTO_INCREMENT BIGINT` or sequential `UUIDv7` (`BINARY(16)`).
+- **Putting Range Columns Before Equality Columns in Composite Indexes:** An index on `(created_at, tenant_id)` cannot use `tenant_id` for a narrow lookup when `created_at` has a `>=` range filter. Always order `(equality_cols, range_or_sort_col)`.
+- **Using `OFFSET` for Deep Pagination:** `LIMIT 20 OFFSET 200000` forces InnoDB to scan and discard 200,000 rows; use keyset cursor pagination instead.
+- **Over-Sizing Per-Thread Buffers (`sort_buffer_size`, `join_buffer_size`):** Setting per-connection buffers to 64 MB globally can exhaust RAM and trigger the OS OOM killer when hundreds of queries run concurrently.
+- **Skipping Restore Drills on Logical or Physical Backups:** Untested backups frequently fail during incidents due to missing binary logs, GTID gaps, or corrupted archive permissions.
+
+</TopicSection>
+
+<TopicSection id="m06-p2-sec-h" letter="H" title="Best Practices">
+
+- Design compact, monotonically increasing primary keys (`BIGINT UNSIGNED AUTO_INCREMENT` or `UUIDv7`) to keep InnoDB clustered and secondary indexes dense.
+- Apply the **Equality-First, Range/Sort-Last** rule on composite indexes and verify `Using index` with `EXPLAIN ANALYZE`.
+- Enable `gtid_mode = ON` and `binlog_format = ROW` across all primary/replica nodes for safe failover and consistent replication.
+- Place **ProxySQL** or **MySQL Router** between application pods and MySQL so `Threads_running` stays proportional to CPU cores.
+- Pair physical hot backups (`Percona XtraBackup` or `MySQL Shell` parallel dumps) with continuous binary log archiving and automated monthly PITR restore tests.
+
+</TopicSection>
+
+<TopicSection id="m06-p2-sec-i" letter="I" title="Performance & Scalability">
+
+- **Memory Allocation Split:** Dedicate 70–80% of host RAM to `innodb_buffer_pool_size` (shared), while keeping per-session buffers (`sort_buffer_size`, `join_buffer_size`) modest (256 KB–4 MB) globally and raising them only per session when needed.
+- **Parallel Replication (`replica_parallel_workers`):** Configure `replica_parallel_type = LOGICAL_CLOCK` with multiple applier workers on MySQL 8.0 replicas so write bursts on the primary do not cause single-threaded replica lag.
+
+</TopicSection>
+
+<TopicSection id="m06-p2-sec-j" letter="J" title="Security Considerations">
+
+- **View & Procedure Privilege Escalation:** Always declare `SQL SECURITY INVOKER` on Views and Stored Procedures unless elevated `DEFINER` privileges are strictly required and audited, preventing low-privilege callers from reading restricted tables through a view.
+- **Replication & Backup Encryption:** Enforce `REQUIRE SSL` / TLS 1.3 on replication user accounts (`CHANGE REPLICATION SOURCE TO ... SOURCE_SSL=1`), and encrypt both XtraBackup/dump archives and archived binary logs with KMS keys.
+
+</TopicSection>
+
+<TopicSection id="m06-p2-sec-k" letter="K" title="Comparisons & Decision Tables">
+
+#### Table K.1 — InnoDB Index Types & Lookup Cost
+
+| Index Type | Leaf Contents | Lookup Cost | Best Use Case |
+| --- | --- | --- | --- |
+| **Clustered (PK)** | PK + full row columns | 1 B+Tree traversal | Primary key lookups & sequential inserts |
+| **Secondary (Non-Covering)** | Indexed cols + PK | 2 B+Tree traversals (double lookup) | Filtering when full row columns are needed |
+| **Covering Composite** | Indexed cols + `SELECT` cols + PK | 1 secondary B+Tree traversal | High-QPS `SELECT` queries (`Using index`) |
+
+#### Table K.2 — MySQL `EXPLAIN` `type` Access Paths (Best to Worst)
+
+| `type` | Meaning | Performance | Action Needed |
+| --- | --- | --- | --- |
+| `system` / `const` | 0 or 1 matching row via PK/`UNIQUE` | Fastest | None |
+| `eq_ref` / `ref` | 1 or few rows per key via index | Fast (OLTP ideal) | Verify `Extra` has no `Using filesort` |
+| `range` | Index range scan (`>`, `BETWEEN`, `IN`) | Good | Keep range narrow; avoid leading wildcards |
+| `index` / `ALL` | Full index scan or full table scan | Slow on large tables | Add selective index or fix leftmost prefix |
+
+#### Table K.3 — MySQL Backup & Replication Options
+
+| Mechanism | Type | Speed / RPO | Best For |
+| --- | --- | --- | --- |
+| **Percona XtraBackup** | Physical hot backup | Very fast; PITR with binlogs | Multi-TB production InnoDB clusters |
+| **MySQL Shell (`util.dumpInstance`)** | Parallel logical dump | Fast; version-portable | Cross-version upgrades & cloud migrations |
+| **GTID Async Replication** | Asynchronous binlog | Lowest primary latency; small RPO | Read-scaling replicas |
+| **Semi-Sync / Group Replication** | ACK / Paxos consensus | Zero-RPO failover; higher write RTT | High-availability primary failover |
+
+</TopicSection>
+
+<TopicSection id="m06-p2-sec-l" letter="L" title="Tips to Remember (Mnemonics & Mental Models)">
+
+- **"Equality First, Range/Sort Last":** Order composite index columns as `(exact =, IN, range >/< or ORDER BY)` so the leftmost prefix stays intact.
+- **"Every Secondary Index Carries the PK":** A bloated 36-byte UUID PK bloats every secondary index leaf page; keep PKs compact and sequential.
+- **"`Using index` = Good; `Using filesort` / `Using temporary` = Check Prefix":** Read `EXPLAIN` `type` and `Extra` together before tuning memory buffers.
+- **"Full Backup + Binary Logs = PITR":** Never rely on snapshots alone; archived binlogs let you recover to the exact second before human error.
+
+</TopicSection>
+
+<TopicSection id="m06-p2-sec-mn" letter="M/N" title="Interview Questions & Detailed Answers">
+
+<InterviewSection lessonId="m06-p2" />
+
+</TopicSection>
+
+<TopicSection id="m06-p2-sec-o" letter="O" title="Practical Exercises">
+
+#### Exercise 1: MySQL Composite Index Prefix Matcher (evaluateCompositeIndexUsage)
+
+<ExerciseCard
+  title="Exercise 1: MySQL Composite Index Prefix Matcher (evaluateCompositeIndexUsage)"
+  prompt={
+    <p>
+      Implement <code>evaluateCompositeIndexUsage(&#123; indexCols, eqCols, rangeCol, selectCols, orderByCols &#125;)</code> to compute the matched leftmost prefix, whether a covering index (<code>Using index</code>) applies, and whether <code>Using filesort</code> is avoided.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function evaluateCompositeIndexUsage({ indexCols, eqCols = [], rangeCol = null, selectCols = [], orderByCols = [] }) {
+  if (!Array.isArray(indexCols) || indexCols.length === 0) throw new TypeError("indexCols must be a non-empty array");
+  if (!Array.isArray(eqCols) || !Array.isArray(selectCols) || !Array.isArray(orderByCols)) {
+    throw new TypeError("eqCols, selectCols, and orderByCols must be arrays");
+  }
+  if (rangeCol !== null && (typeof rangeCol !== "string" || rangeCol.trim().length === 0)) {
+    throw new TypeError("rangeCol must be null or a non-empty string");
+  }
+
+  const eqSet = new Set(eqCols);
+  const matchedPrefix = [];
+  let hitRange = false;
+
+  for (const col of indexCols) {
+    if (eqSet.has(col) && !hitRange) {
+      matchedPrefix.push(col);
+    } else if (rangeCol === col && !hitRange) {
+      matchedPrefix.push(col);
+      hitRange = true;
+    } else {
+      break;
+    }
+  }
+
+  const idxSet = new Set([...indexCols, "id"]);
+  const covering = selectCols.length > 0 && selectCols.every((c) => idxSet.has(c));
+
+  // ORDER BY avoids filesort if orderByCols matches the next index columns after eqPrefix (when no gap)
+  let filesortAvoided = orderByCols.length === 0;
+  if (!filesortAvoided && !hitRange) {
+    const startIdx = matchedPrefix.length;
+    filesortAvoided = orderByCols.every((c, i) => indexCols[startIdx + i] === c);
+  } else if (!filesortAvoided && hitRange && orderByCols.length === 1 && orderByCols[0] === rangeCol) {
+    filesortAvoided = true;
+  }
+
+  return { matchedPrefix, usedIndex: matchedPrefix.length > 0, covering, filesortAvoided };
+}
+
+console.log("Optimal:", JSON.stringify(evaluateCompositeIndexUsage({
+  indexCols: ["tenant_id", "status", "created_at", "total_cents"],
+  eqCols: ["tenant_id", "status"],
+  rangeCol: "created_at",
+  selectCols: ["id", "total_cents"],
+  orderByCols: ["created_at"]
+})));
+console.log("Broken prefix:", JSON.stringify(evaluateCompositeIndexUsage({
+  indexCols: ["tenant_id", "status", "created_at"],
+  eqCols: ["status"],
+  selectCols: ["id", "payload"]
+})));`}
+  />
+</ExerciseCard>
+
+#### Exercise 2: MySQL Connection Pool & Memory Budget Calculator (planMysqlConnections)
+
+<ExerciseCard
+  title="Exercise 2: MySQL Connection Pool & Memory Budget Calculator (planMysqlConnections)"
+  prompt={
+    <p>
+      Implement <code>planMysqlConnections(&#123; hostRamGb, cpuCores, maxConnections, perThreadMb &#125;)</code> returning the recommended Buffer Pool size, worst-case per-thread memory, and whether ProxySQL pooling is required to prevent context-switching/OOM.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function planMysqlConnections({ hostRamGb, cpuCores, maxConnections, perThreadMb = 8 }) {
+  if (!Number.isFinite(hostRamGb) || hostRamGb <= 0) throw new TypeError("hostRamGb must be > 0");
+  if (!Number.isInteger(cpuCores) || cpuCores < 1) throw new TypeError("cpuCores must be >= 1");
+  if (!Number.isInteger(maxConnections) || maxConnections < 1) throw new TypeError("maxConnections must be >= 1");
+  if (!Number.isFinite(perThreadMb) || perThreadMb <= 0) throw new TypeError("perThreadMb must be > 0");
+
+  const bufferPoolGb = Number((hostRamGb * 0.75).toFixed(2));
+  const threadMemGb = Number(((maxConnections * perThreadMb) / 1024).toFixed(2));
+  const remainingGb = Number((hostRamGb - bufferPoolGb - threadMemGb).toFixed(2));
+  const recommendedPoolSize = cpuCores * 2;
+  const needsProxySql = maxConnections > recommendedPoolSize * 4 || remainingGb < 1;
+
+  return {
+    bufferPoolGb,
+    threadMemGb,
+    remainingGb,
+    recommendedPoolSize,
+    needsProxySql,
+    oomRisk: remainingGb <= 0
+  };
+}
+
+console.log("High conn risk:", JSON.stringify(planMysqlConnections({ hostRamGb: 16, cpuCores: 8, maxConnections: 1000, perThreadMb: 8 })));
+console.log("Pooled:", JSON.stringify(planMysqlConnections({ hostRamGb: 64, cpuCores: 16, maxConnections: 64, perThreadMb: 8 })));`}
+  />
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m06-p2-sec-p" letter="P" title="Advanced Challenge">
+
+<Callout variant="warning" title="Production Crisis: Read Replica Lag, Unpruned Partitions & Slow Queries">
+  <p>
+    A high-traffic MySQL 8.0 cluster experiences replica lag spikes above 5 seconds during flash sales, risking stale reads on user dashboards while analytical range queries scan all partitions.
+  </p>
+</Callout>
+
+<ExerciseCard
+  title="Challenge: MySQL Partition Pruning & Replica Lag Router (routeReplicaAndPartition)"
+  prompt={
+    <p>
+      Implement <code>routeReplicaAndPartition(&#123; partitions, queryDay, replicas, maxLagMs, readYourWrites &#125;)</code> to prune partitions by day range and pick either the primary (when <code>readYourWrites</code> is true or all replicas exceed <code>maxLagMs</code>) or the lowest-lag healthy replica.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function routeReplicaAndPartition({ partitions, queryDay, replicas, maxLagMs = 500, readYourWrites = false }) {
+  if (!Array.isArray(partitions) || partitions.length === 0) throw new TypeError("partitions must be a non-empty array");
+  if (!Number.isInteger(queryDay) || queryDay < 0) throw new TypeError("queryDay must be a non-negative integer");
+  if (!Array.isArray(replicas)) throw new TypeError("replicas must be an array");
+  if (!Number.isFinite(maxLagMs) || maxLagMs < 0) throw new TypeError("maxLagMs must be >= 0");
+  if (typeof readYourWrites !== "boolean") throw new TypeError("readYourWrites must be a boolean");
+
+  const prunedPartitions = [];
+  for (const p of partitions) {
+    if (p == null || typeof p.name !== "string" || !Number.isInteger(p.minDay) || !Number.isInteger(p.maxDay)) {
+      throw new TypeError("Each partition requires name, minDay, maxDay");
+    }
+    if (queryDay >= p.minDay && queryDay < p.maxDay) {
+      prunedPartitions.push(p.name);
+    }
+  }
+
+  let targetNode = "primary";
+  let routingReason = readYourWrites ? "read_your_writes_required" : "no_healthy_replica";
+
+  if (!readYourWrites) {
+    const healthy = replicas
+      .filter((r) => r && typeof r.id === "string" && Number.isFinite(r.lagMs) && r.lagMs >= 0 && r.lagMs <= maxLagMs)
+      .sort((a, b) => a.lagMs - b.lagMs);
+    if (healthy.length > 0) {
+      targetNode = healthy[0].id;
+      routingReason = "lowest_lag_replica";
+    }
+  }
+
+  return { targetNode, routingReason, scannedPartitions: prunedPartitions };
+}
+
+console.log("Replica route:", JSON.stringify(routeReplicaAndPartition({
+  partitions: [{ name: "p_oct", minDay: 1, maxDay: 32 }, { name: "p_nov", minDay: 32, maxDay: 62 }],
+  queryDay: 45,
+  replicas: [{ id: "replica-1", lagMs: 1200 }, { id: "replica-2", lagMs: 80 }],
+  maxLagMs: 500
+})));
+console.log("Fallback primary:", JSON.stringify(routeReplicaAndPartition({
+  partitions: [{ name: "p_nov", minDay: 32, maxDay: 62 }],
+  queryDay: 45,
+  replicas: [{ id: "replica-1", lagMs: 1500 }],
+  maxLagMs: 500
+})));`}
+  />
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m06-p2-sec-q" letter="Q" title="Summary & Key Takeaways">
+
+<DiagramCard title="Figure 6.4 — MySQL 8.0 GTID Replication, Partition Pruning & PITR">
+<svg viewBox="0 0 820 190" xmlns="http://www.w3.org/2000/svg" aria-label="MySQL 8.0 GTID replication, ProxySQL read/write split, range partitioning, and XtraBackup PITR">
+  <defs>
+    <style>{`
+      .m64-lbl { font: 600 11px system-ui, sans-serif; fill: var(--token-text-primary); }
+      .m64-sub { font: 400 9.5px system-ui, sans-serif; fill: var(--token-text-secondary); }
+      .m64-hdr { font: 700 10px system-ui, sans-serif; fill: var(--token-text-inverse); }
+      .m64-box { rx: 6; ry: 6; }
+    `}</style>
+    <marker id="arr64" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="var(--token-brand-default)" />
+    </marker>
+  </defs>
+
+  <rect class="m64-box" x="6" y="8" width="166" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
+  <rect x="6" y="8" width="166" height="22" rx="6" ry="6" fill="var(--token-brand-muted)" />
+  <text x="89" y="22" text-anchor="middle" class="m64-hdr">App + ProxySQL Pool</text>
+  <rect class="m64-box" x="16" y="38" width="146" height="36" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="89" y="54" text-anchor="middle" class="m64-lbl">Writes + RYW Reads</text>
+  <text x="89" y="67" text-anchor="middle" class="m64-sub">Multiplexed to Primary</text>
+  <rect class="m64-box" x="16" y="82" width="146" height="36" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="89" y="98" text-anchor="middle" class="m64-lbl">Read-Only Queries</text>
+  <text x="89" y="111" text-anchor="middle" class="m64-sub">Routed if lag &lt; threshold</text>
+  <rect class="m64-box" x="16" y="126" width="146" height="46" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="89" y="143" text-anchor="middle" class="m64-lbl">Thread Budget</text>
+  <text x="89" y="156" text-anchor="middle" class="m64-sub">Threads_running ~ 2x vCPU</text>
+
+  <path d="M172 56 L196 56" stroke="var(--token-brand-default)" stroke-width="2" marker-end="url(#arr64)" />
+
+  <rect class="m64-box" x="198" y="8" width="212" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
+  <rect x="198" y="8" width="212" height="22" rx="6" ry="6" fill="var(--token-success-muted)" />
+  <text x="304" y="22" text-anchor="middle" class="m64-hdr">Primary + GTID Replication</text>
+  <rect class="m64-box" x="208" y="38" width="192" height="40" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="304" y="54" text-anchor="middle" class="m64-lbl">Source Primary (ROW Binlog)</text>
+  <text x="304" y="68" text-anchor="middle" class="m64-sub">gtid_mode=ON · uuid:seq</text>
+  <path d="M304 78 L304 94" stroke="var(--token-brand-default)" stroke-width="1.6" marker-end="url(#arr64)" />
+  <rect class="m64-box" x="208" y="96" width="192" height="36" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="304" y="112" text-anchor="middle" class="m64-lbl">Replica (Relay Log → Workers)</text>
+  <text x="304" y="125" text-anchor="middle" class="m64-sub">LOGICAL_CLOCK parallel apply</text>
+  <rect class="m64-box" x="208" y="138" width="192" height="34" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="304" y="153" text-anchor="middle" class="m64-lbl">Semi-Sync / Group Rep</text>
+  <text x="304" y="165" text-anchor="middle" class="m64-sub">Zero-RPO ACK or Paxos HA</text>
+
+  <rect class="m64-box" x="420" y="8" width="192" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
+  <rect x="420" y="8" width="192" height="22" rx="6" ry="6" fill="var(--token-warning-muted)" />
+  <text x="516" y="22" text-anchor="middle" class="m64-hdr">Range Partitioning</text>
+  <rect class="m64-box" x="430" y="38" width="172" height="36" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="516" y="54" text-anchor="middle" class="m64-lbl">p2026_10 (Pruned ✗)</text>
+  <text x="516" y="67" text-anchor="middle" class="m64-sub">DROP PARTITION in ms</text>
+  <rect class="m64-box" x="430" y="82" width="172" height="36" fill="var(--token-surface-raised)" stroke="var(--token-brand-default)" stroke-width="1.2" />
+  <text x="516" y="98" text-anchor="middle" class="m64-lbl">p2026_11 (Scanned ✓)</text>
+  <text x="516" y="111" text-anchor="middle" class="m64-sub">WHERE created_at matches</text>
+  <rect class="m64-box" x="430" y="126" width="172" height="46" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="516" y="143" text-anchor="middle" class="m64-lbl">PK Rule</text>
+  <text x="516" y="156" text-anchor="middle" class="m64-sub">All unique keys include part col</text>
+
+  <rect class="m64-box" x="622" y="8" width="192" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
+  <rect x="622" y="8" width="192" height="22" rx="6" ry="6" fill="var(--token-error-muted)" />
+  <text x="718" y="22" text-anchor="middle" class="m64-hdr">Backup &amp; PITR</text>
+  <rect class="m64-box" x="632" y="38" width="172" height="36" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="718" y="54" text-anchor="middle" class="m64-lbl">1. Full Physical Backup</text>
+  <text x="718" y="67" text-anchor="middle" class="m64-sub">Percona XtraBackup (hot)</text>
+  <rect class="m64-box" x="632" y="82" width="172" height="36" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="718" y="98" text-anchor="middle" class="m64-lbl">2. Archived Binary Logs</text>
+  <text x="718" y="111" text-anchor="middle" class="m64-sub">mysqlbinlog --stop-datetime</text>
+  <rect class="m64-box" x="632" y="126" width="172" height="46" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="718" y="143" text-anchor="middle" class="m64-lbl">3. Automated Drills</text>
+  <text x="718" y="156" text-anchor="middle" class="m64-sub">Verify restore before incidents</text>
+</svg>
+</DiagramCard>
+
+#### Key Takeaways
+
+- **Clustered vs. Secondary Indexes:** InnoDB stores rows inside the PK B+Tree; secondary indexes store `(key, PK)` and incur a double lookup unless the index is **covering** (`Using index`).
+- **Composite Index Design:** Put equality columns first and range/sort columns last; keep primary keys compact and sequential (`BIGINT` or `UUIDv7`).
+- **Execution & Optimization:** Use `EXPLAIN ANALYZE` to catch `ALL` scans, `Using filesort`, and `Using temporary`, and replace deep `OFFSET` with keyset pagination.
+- **Replication & Partitioning:** Use `GTID` + `ROW` binlog with `LOGICAL_CLOCK` parallel workers, and use `PARTITION BY RANGE` for instant retention drops.
+- **Pooling & Recovery:** Protect thread and memory budgets with ProxySQL, and test XtraBackup + binary log PITR restores continuously.
+
+</TopicSection>

@@ -1,0 +1,649 @@
+<Callout variant="info" title="Topics Covered in Part 3 (M03-P3)">
+  <p>
+    This part of Module 3 covers 14 backend authentication &amp; API security topics: <strong>Authentication</strong>, <strong>JWT</strong>, <strong>Refresh tokens</strong>, <strong>Session management</strong>, <strong>Authorization</strong>, <strong>RBAC</strong>, <strong>OAuth fundamentals</strong>, <strong>Rate limiting</strong>, <strong>CORS</strong>, <strong>Security</strong>, <strong>Input sanitization</strong>, <strong>SQL injection</strong>, <strong>NoSQL injection</strong>, and <strong>API security</strong>.
+  </p>
+</Callout>
+
+<TopicSection id="m03-p3-sec-a" letter="A" title="Topic Introduction">
+
+#### What is this?
+
+A production backend is exposed to the public internet, where every incoming HTTP request is untrusted until verified. Backend security combines **identity & access control** (**Authentication**, **JWT**, **Refresh tokens**, **Session management**, **Authorization**, **RBAC**, **OAuth fundamentals**) with **perimeter & data-layer defenses** (**Rate limiting**, **CORS**, **Security**, **Input sanitization**, **SQL injection**, **NoSQL injection**, **API security**).
+
+#### Why does it exist & what problem does it solve?
+
+Weak token verification (`alg: "none"`), missing refresh-token revocation, broken object-level authorization (BOLA/IDOR), permissive `CORS` with credentials, unthrottled login endpoints, and string-concatenated SQL or raw MongoDB query objects are the top root causes of real-world data breaches.
+
+#### Where is it used in real-world software?
+
+Every SaaS backend, fintech API, healthcare portal, and OAuth2 identity provider enforces these layers at the API gateway, Express middleware, and database query boundary.
+
+</TopicSection>
+
+<TopicSection id="m03-p3-sec-b" letter="B" title="Fundamentals (Simple Mental Models)">
+
+<TopicAnchor id="m03-p3-topic-authentication" />
+
+#### 1. Authentication: Proving Identity & Hashing Passwords Properly
+
+**Authentication (AuthN)** verifies *who* a caller is using passwords, passkeys (WebAuthn), API keys, or federated OAuth2/OIDC tokens. Never store plaintext or fast-hashed (`MD5`/`SHA-256`) passwords—always hash with a memory-hard adaptive KDF (**Argon2id** or **`scrypt`** / `bcrypt`) and per-user random salt.
+
+Compare secret API keys, webhook HMAC signatures, and session hashes using constant-time comparison (`crypto.timingSafeEqual`) so attackers cannot leak secrets byte-by-byte via response timing side channels.
+
+<TopicAnchor id="m03-p3-topic-jwt" />
+
+#### 2. JWT (JSON Web Tokens): Signed Claims, Not Encrypted Secrets
+
+A **JWT** (`header.payload.signature`) is a compact **signed** token (JWS), **not encrypted**—anyone holding the token can Base64Url-decode the header and payload, so never put passwords, PII, or secrets inside JWT claims.
+
+Always verify the signature against an explicit expected algorithm allowlist (e.g., `["RS256"]` or `["EdDSA"]`, rejecting `alg: "none"` and HMAC key-confusion), and validate `exp` (short TTL like 5–15 min), `iss`, and `aud` on every request.
+
+<TopicAnchor id="m03-p3-topic-refresh-tokens" />
+
+#### 3. Refresh Tokens: Rotation & Reuse Detection
+
+Because short-lived access JWTs cannot be easily revoked mid-TTL without a central lookup, **refresh tokens** (long-lived opaque random tokens stored hashed in Redis/DB and delivered in `HttpOnly; Secure; SameSite` cookies) mint fresh access tokens.
+
+Use **Refresh Token Rotation with Reuse Detection**: every `/auth/refresh` call issues a new refresh token and invalidates the old one. If an already-used refresh token is presented again (indicating theft), revoke the entire **token family** immediately and force re-login.
+
+<TopicAnchor id="m03-p3-topic-session-management" />
+
+#### 4. Session Management: Stateful Server Sessions vs. Stateless Tokens
+
+**Session management** tracks authenticated user state across requests. **Stateful sessions** store a random opaque session ID in an `HttpOnly` cookie backed by Redis/DB—allowing instant server-side revocation on logout, password reset, or suspicious IP changes.
+
+Whether using stateful sessions or short-lived JWTs + rotating refresh tokens, always regenerate session IDs after login (preventing **session fixation**), bind idle and absolute timeouts, and invalidate active sessions on password change.
+
+<TopicAnchor id="m03-p3-topic-authorization" />
+
+#### 5. Authorization: Stopping Broken Object-Level Access (BOLA / IDOR)
+
+**Authorization (AuthZ)** answers *what an authenticated caller is allowed to do*. The #1 API vulnerability in OWASP API Top 10 is **BOLA (Broken Object-Level Authorization / IDOR)**—where User A requests `GET /orders/999` (belonging to User B) and the server checks login (`401`) but forgets to verify ownership.
+
+Always scope database queries by the authenticated tenant/owner (`WHERE id = $1 AND user_id = $2`), never trusting a `userId` or `tenantId` supplied in `req.body` or `req.params`.
+
+<TopicAnchor id="m03-p3-topic-rbac" />
+
+#### 6. RBAC: Roles, Permissions & Principle of Least Privilege
+
+**Role-Based Access Control (RBAC)** decouples endpoints from hardcoded role strings (`if (role === "admin")`) by mapping **Users -> Roles -> Fine-grained Permissions** (e.g., `editor` grants `["post:read", "post:write"]`, while `admin` adds `["post:delete", "user:invite"]`).
+
+Check **permissions** (`requirePermission("invoice:approve")`) at route middleware and combine RBAC with **ABAC** (attribute checks like `invoice.tenantId === user.tenantId`) so a tenant admin can never approve another company's invoices.
+
+<TopicAnchor id="m03-p3-topic-oauth-fundamentals" />
+
+#### 7. OAuth Fundamentals: Delegated Authorization, PKCE & OIDC
+
+**OAuth 2.0** delegates *authorization* (letting App A access your Google Drive via scoped `access_token`s without sharing your password), while **OpenID Connect (OIDC)** adds an `id_token` on top for *authentication*.
+
+Modern SPAs and mobile apps must use the **Authorization Code Flow with PKCE** (Proof Key for Code Exchange) and a random **`state`** parameter (validated on callback to stop CSRF)—never the deprecated Implicit Flow (`response_type=token`) that leaks tokens in URL fragments.
+
+<TopicAnchor id="m03-p3-topic-rate-limiting" />
+
+#### 8. Rate Limiting: Protecting Endpoints From Brute Force & DoS
+
+**Rate limiting** caps request frequency per IP, user ID, or API key using algorithms like **Token Bucket** (allows short bursts while enforcing steady average rate) or **Sliding Window Counter** backed by Redis for multi-instance consistency.
+
+Apply stricter limits on expensive or sensitive routes (`/auth/login`, `/auth/forgot-password`, `/exports`), and return **`429 Too Many Requests`** with standard `Retry-After` and `RateLimit-*` headers.
+
+<TopicAnchor id="m03-p3-topic-cors" />
+
+#### 9. CORS: Browser Same-Origin Exceptions Without Wildcard Traps
+
+**CORS (Cross-Origin Resource Sharing)** is a browser-enforced policy allowing origin `app.example.com` (over HTTPS) to read responses from `api.example.com` only when the server returns matching `Access-Control-Allow-Origin` headers (and handles `OPTIONS` preflight requests).
+
+Never combine **`Access-Control-Allow-Origin: *`** with **`Access-Control-Allow-Credentials: true`** (browsers block it, and dynamically reflecting arbitrary `Origin` headers without an exact allowlist opens every authenticated endpoint to cross-origin theft!). Remember also: CORS only restricts *browsers*, never `curl` or server-to-server scripts.
+
+<TopicAnchor id="m03-p3-topic-security" />
+
+#### 10. Security: Defense-in-Depth & HTTP Security Headers
+
+Backend **security** layers controls so no single failure compromises the system: enforce TLS/HTTPS (`Strict-Transport-Security`), set defensive headers via **`helmet`** (`X-Content-Type-Options: nosniff`, `Content-Security-Policy`, `Referrer-Policy`), run `npm audit` / lockfiles, and run containers as non-root with least-privilege DB credentials.
+
+Keep secrets (`JWT_PRIVATE_KEY`, DB passwords) in a secret manager or runtime environment—never committed to Git or logged in errors.
+
+<TopicAnchor id="m03-p3-topic-input-sanitization" />
+
+#### 11. Input Sanitization: Validation First, Context-Aware Escaping
+
+**Input sanitization** cleans or normalizes untrusted strings *after* strict schema validation: trim whitespace, strip null bytes (`\0`) and ASCII control characters, enforce allowlists on filenames/URLs, and sanitize rich HTML with a maintained parser like **DOMPurify** if HTML is ever required.
+
+Avoid naive regex stripping (e.g., `str.replace("<script>", "")` fails on `<scr<script>ipt>`) and avoid vulnerable nested-quantifier regexes that cause **ReDoS** (Regular Expression Denial of Service).
+
+<TopicAnchor id="m03-p3-topic-sql-injection" />
+
+#### 12. SQL Injection: Parameterized Queries & Identifier Allowlists
+
+**SQL Injection (SQLi)** occurs when untrusted input is concatenated into a SQL string (`"SELECT * FROM users WHERE email = '" + email + "'"`), letting `' OR 1=1 --` hijack the query structure.
+
+The universal defense is **parameterized queries / prepared statements** (`db.query("SELECT id, email FROM users WHERE email = $1", [email])`), where the database driver sends SQL structure and data values separately. Because parameters cannot bind column or table names (`ORDER BY $1`), validate dynamic sort columns against an explicit **allowlist** (`Map`/`Set`).
+
+<TopicAnchor id="m03-p3-topic-nosql-injection" />
+
+#### 13. NoSQL Injection: Blocking Operator Objects & `$where` Execution
+
+**NoSQL Injection** hits document databases like MongoDB when Express parses JSON/query strings into objects containing query operators: `{ email: { $ne: null }, password: { $ne: null } }` bypasses naive `findOne({ email: req.body.email, password: ... })` checks!
+
+Always validate inputs to primitive `string`/`number` types with strict schemas (rejecting nested objects where a string is expected), strip keys starting with `$` or containing `.`, and disable server-side JavaScript operators like `$where`.
+
+<TopicAnchor id="m03-p3-topic-api-security" />
+
+#### 14. API Security: Complete OWASP API Defense Checklist
+
+**API security** ties every backend layer together: enforce strong AuthN and object-level AuthZ (BOLA), validate schemas strictly to block mass assignment, cap payload sizes and pagination `limit`s, rate-limit per tenant/IP, enforce exact-origin CORS allowlists, and use parameterized DB queries.
+
+Continuously monitor `401`, `403`, and `429` anomaly spikes with structured logs (never logging raw tokens or PII), and verify security invariants automatically in CI integration tests.
+
+</TopicSection>
+
+<TopicSection id="m03-p3-sec-c" letter="C" title="Internal Working & Architecture">
+
+#### 1. Rotating Refresh Token Family & RBAC Authorization Flow
+
+Short-lived access JWTs authenticate requests statelessly, while opaque rotating refresh tokens stored hashed on the server detect stolen-token replay and revoke the entire session family.
+
+<DiagramCard caption="Figure 3.5 — Rotating refresh tokens invalidate each used token; presenting an already-rotated token revokes the entire session family.">
+  <svg viewBox="0 0 820 195" role="img" aria-label="JWT verification, rotating refresh token family, and RBAC authorization flow">
+    <rect x="10" y="10" width="800" height="175" rx="10" fill="var(--bg-subtle)" stroke="var(--border)" />
+
+    <rect x="26" y="34" width="175" height="126" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" />
+    <text x="113" y="60" textAnchor="middle" fill="var(--accent-strong)" fontSize="12.5" fontWeight="700" fontFamily="sans-serif">1. Access JWT Check</text>
+    <text x="113" y="88" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">Verify alg, sig, exp</text>
+    <text x="113" y="114" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Reject alg="none"</text>
+    <text x="113" y="138" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">401 if expired</text>
+
+    <line x1="201" y1="97" x2="239" y2="97" stroke="var(--accent)" strokeWidth="2" />
+    <polygon points="239,97 229,92 229,102" fill="var(--accent)" />
+
+    <rect x="243" y="34" width="180" height="126" rx="8" fill="var(--success-soft)" stroke="var(--success)" />
+    <text x="333" y="60" textAnchor="middle" fill="var(--success)" fontSize="12.5" fontWeight="700" fontFamily="sans-serif">2. RBAC + Ownership</text>
+    <text x="333" y="88" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">can("order:read")</text>
+    <text x="333" y="114" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">+ tenantId / userId</text>
+    <text x="333" y="138" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">403 if unauthorized</text>
+
+    <line x1="423" y1="97" x2="461" y2="97" stroke="var(--warning)" strokeWidth="2" />
+    <polygon points="461,97 451,92 451,102" fill="var(--warning)" />
+
+    <rect x="465" y="34" width="165" height="126" rx="8" fill="var(--warning-soft)" stroke="var(--warning)" />
+    <text x="547" y="60" textAnchor="middle" fill="var(--warning)" fontSize="12.5" fontWeight="700" fontFamily="sans-serif">3. Refresh Rotate</text>
+    <text x="547" y="88" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">t1 used -&gt; issue t2</text>
+    <text x="547" y="114" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Mark t1 as consumed</text>
+    <text x="547" y="138" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">HttpOnly cookie</text>
+
+    <line x1="630" y1="97" x2="664" y2="97" stroke="var(--danger)" strokeWidth="2" />
+    <polygon points="664,97 654,92 654,102" fill="var(--danger)" />
+
+    <rect x="668" y="34" width="126" height="126" rx="8" fill="var(--danger-soft)" stroke="var(--danger)" />
+    <text x="731" y="60" textAnchor="middle" fill="var(--danger)" fontSize="12.5" fontWeight="700" fontFamily="sans-serif">4. Reuse Alert</text>
+    <text x="731" y="88" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">t1 replayed!</text>
+    <text x="731" y="114" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Revoke entire</text>
+    <text x="731" y="138" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">token family</text>
+  </svg>
+</DiagramCard>
+
+#### 2. API Security Perimeter: CORS, Rate Limiting & Injection Defense
+
+Before a request ever reaches a database, it passes an exact-origin CORS policy, a token-bucket rate limiter (`429`), strict primitive schema validation (blocking NoSQL `$` operators), and parameterized SQL placeholders (`$1`, `$2`).
+
+<DiagramCard caption="Figure 3.6 — Layered API defense: CORS allowlist + Token Bucket rate limit + strict primitive validation + parameterized SQL/NoSQL queries.">
+  <svg viewBox="0 0 820 175" role="img" aria-label="Layered API security perimeter from CORS to parameterized DB queries">
+    <rect x="10" y="10" width="800" height="155" rx="10" fill="var(--bg-subtle)" stroke="var(--border)" />
+
+    <rect x="28" y="32" width="175" height="110" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" />
+    <text x="115" y="58" textAnchor="middle" fill="var(--accent-strong)" fontSize="12.5" fontWeight="700" fontFamily="sans-serif">1. CORS Allowlist</text>
+    <text x="115" y="86" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">Exact Origin match</text>
+    <text x="115" y="112" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Never * + credentials</text>
+
+    <line x1="203" y1="87" x2="239" y2="87" stroke="var(--accent)" strokeWidth="2" />
+    <polygon points="239,87 229,82 229,92" fill="var(--accent)" />
+
+    <rect x="243" y="32" width="175" height="110" rx="8" fill="var(--warning-soft)" stroke="var(--warning)" />
+    <text x="330" y="58" textAnchor="middle" fill="var(--warning)" fontSize="12.5" fontWeight="700" fontFamily="sans-serif">2. Rate Limiter</text>
+    <text x="330" y="86" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">Token Bucket</text>
+    <text x="330" y="112" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">429 + Retry-After</text>
+
+    <line x1="418" y1="87" x2="454" y2="87" stroke="var(--warning)" strokeWidth="2" />
+    <polygon points="454,87 444,82 444,92" fill="var(--warning)" />
+
+    <rect x="458" y="32" width="165" height="110" rx="8" fill="var(--bg-surface)" stroke="var(--border-strong)" />
+    <text x="540" y="58" textAnchor="middle" fill="var(--text-primary)" fontSize="12.5" fontWeight="700" fontFamily="sans-serif">3. Type Sanitizer</text>
+    <text x="540" y="86" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">Block $ne / $where</text>
+    <text x="540" y="112" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Primitive strings only</text>
+
+    <line x1="623" y1="87" x2="659" y2="87" stroke="var(--success)" strokeWidth="2" />
+    <polygon points="659,87 649,82 649,92" fill="var(--success)" />
+
+    <rect x="663" y="32" width="131" height="110" rx="8" fill="var(--success-soft)" stroke="var(--success)" />
+    <text x="728" y="58" textAnchor="middle" fill="var(--success)" fontSize="12.5" fontWeight="700" fontFamily="sans-serif">4. SQL Params</text>
+    <text x="728" y="86" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">WHERE id = $1</text>
+    <text x="728" y="112" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">+ Sort allowlist</text>
+  </svg>
+</DiagramCard>
+
+</TopicSection>
+
+<TopicSection id="m03-p3-sec-d" letter="D" title="Practical Examples (Interactive)">
+
+#### Example 1: `scrypt` Password Verification, Parameterized SQL & Strict CORS (TypeScript Reference)
+
+<CodeBlock
+  lang="typescript"
+  code={`import crypto from "node:crypto";
+import { promisify } from "node:util";
+import type { NextFunction, Request, Response } from "express";
+
+const scryptAsync = promisify(crypto.scrypt);
+
+export async function verifyPasswordScrypt(password: string, saltHex: string, expectedHashHex: string): Promise<boolean> {
+  const derived = (await scryptAsync(password, Buffer.from(saltHex, "hex"), 64)) as Buffer;
+  const expected = Buffer.from(expectedHashHex, "hex");
+  return derived.length === expected.length && crypto.timingSafeEqual(derived, expected);
+}
+
+const ALLOWED_ORIGINS = new Set(["https:" + "//app.example.com"]);
+
+export function strictCorsMiddleware(req: Request, res: Response, next: NextFunction) {
+  const origin = req.get("origin");
+  if (origin) {
+    if (!ALLOWED_ORIGINS.has(origin)) {
+      return res.status(403).json({ error: "Origin not allowed" });
+    }
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    res.setHeader("Vary", "Origin");
+  }
+  if (req.method === "OPTIONS") return res.status(204).end();
+  next();
+}
+
+export async function findTenantOrder(
+  db: { query: (sql: string, params: unknown[]) => Promise<{ rows: unknown[] }> },
+  orderId: string,
+  tenantId: string
+) {
+  // Parameterized query prevents SQLi AND enforces tenant ownership (prevents BOLA/IDOR)
+  const result = await db.query(
+    "SELECT id, status, total_cents FROM orders WHERE id = $1 AND tenant_id = $2",
+    [orderId, tenantId]
+  );
+  return result.rows[0] ?? null;
+}`}
+/>
+
+#### Example 2: Rotating Refresh Token Store With Reuse Detection (`createRefreshTokenStore`)
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// Models refresh token rotation + automatic family revocation on stolen token replay
+function createRefreshTokenStore() {
+  const tokens = new Map(); // tokenId -> { familyId, userId, used: boolean }
+  const revokedFamilies = new Set();
+  let seq = 0;
+
+  return {
+    issueInitial(userId) {
+      if (typeof userId !== "string" || !userId.trim()) throw new TypeError("userId required");
+      const familyId = "fam_" + (++seq);
+      const token = "rt_" + (++seq);
+      tokens.set(token, { familyId, userId, used: false });
+      return { token, familyId };
+    },
+    rotate(token) {
+      if (typeof token !== "string" || !tokens.has(token)) {
+        return { ok: false, reason: "Unknown refresh token" };
+      }
+      const record = tokens.get(token);
+      if (revokedFamilies.has(record.familyId)) {
+        return { ok: false, reason: "Session family revoked" };
+      }
+      if (record.used) {
+        // Replay detected: revoke the entire family immediately
+        revokedFamilies.add(record.familyId);
+        return { ok: false, reason: "Token reuse detected; family revoked" };
+      }
+      record.used = true;
+      const nextToken = "rt_" + (++seq);
+      tokens.set(nextToken, { familyId: record.familyId, userId: record.userId, used: false });
+      return { ok: true, token: nextToken, familyId: record.familyId };
+    },
+    isFamilyActive(familyId) {
+      return !revokedFamilies.has(familyId);
+    }
+  };
+}
+
+const store = createRefreshTokenStore();
+const init = store.issueInitial("usr-1");
+const rot1 = store.rotate(init.token);
+const replay = store.rotate(init.token); // attacker replays old token!
+console.log("Rotated ok?", rot1.ok, "| Replay blocked?", !replay.ok, "| Family active?", store.isFamilyActive(init.familyId));`}
+/>
+
+#### Example 3: Token-Bucket Rate Limiter & Strict CORS Policy (`createRateLimiter`, `evaluateCors`)
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// Models Token-Bucket rate limiter and strict exact-origin CORS evaluation
+function createRateLimiter({ capacity, refillPerMs }) {
+  if (!Number.isInteger(capacity) || capacity < 1) throw new TypeError("capacity must be integer >= 1");
+  if (typeof refillPerMs !== "number" || !Number.isFinite(refillPerMs) || refillPerMs <= 0) {
+    throw new TypeError("refillPerMs must be positive finite number");
+  }
+  const buckets = new Map();
+
+  return {
+    allow(key, nowMs) {
+      if (typeof key !== "string" || !key.trim()) throw new TypeError("key required");
+      if (typeof nowMs !== "number" || !Number.isFinite(nowMs) || nowMs < 0) throw new TypeError("invalid nowMs");
+      const entry = buckets.get(key) || { tokens: capacity, lastMs: nowMs };
+      const elapsed = Math.max(0, nowMs - entry.lastMs);
+      const refilled = Math.min(capacity, entry.tokens + elapsed * refillPerMs);
+      if (refilled < 1) {
+        buckets.set(key, { tokens: refilled, lastMs: nowMs });
+        return { allowed: false, retryAfterMs: Math.ceil((1 - refilled) / refillPerMs) };
+      }
+      buckets.set(key, { tokens: refilled - 1, lastMs: nowMs });
+      return { allowed: true, remaining: Math.floor(refilled - 1) };
+    }
+  };
+}
+
+function evaluateCors(origin, allowlist) {
+  if (!(allowlist instanceof Set)) throw new TypeError("allowlist must be a Set");
+  if (!origin) return { allow: true, headers: {} }; // non-browser / same-origin
+  if (origin === "null" || !allowlist.has(origin)) {
+    return { allow: false, status: 403 };
+  }
+  return {
+    allow: true,
+    headers: {
+      "Access-Control-Allow-Origin": origin,
+      "Access-Control-Allow-Credentials": "true",
+      Vary: "Origin"
+    }
+  };
+}
+
+const limiter = createRateLimiter({ capacity: 2, refillPerMs: 0.001 });
+console.log("Req 1:", limiter.allow("ip:1", 1000).allowed, "| Req 2:", limiter.allow("ip:1", 1000).allowed, "| Req 3:", limiter.allow("ip:1", 1000).allowed);
+const origins = new Set(["https:" + "//app.acme.dev"]);
+console.log("CORS null origin blocked?", !evaluateCors("null", origins).allow, "| Evil blocked?", !evaluateCors("https:" + "//evil.dev", origins).allow);`}
+/>
+
+#### Example 4: Parameterized SQL Query Builder & NoSQL Filter Guard (`buildOrderSearchSql`, `sanitizeNoSqlFilter`)
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// Models SQLi defense (bound params + sort allowlist) & NoSQLi defense (blocking $ operators)
+const SORT_COLUMNS = new Map([
+  ["createdAt", "created_at"],
+  ["totalCents", "total_cents"]
+]);
+
+function buildOrderSearchSql({ tenantId, status, sortBy = "createdAt" }) {
+  if (typeof tenantId !== "string" || !tenantId.trim()) throw new TypeError("tenantId required");
+  if (typeof status !== "string" || !status.trim()) throw new TypeError("status required");
+  const column = SORT_COLUMNS.get(sortBy);
+  if (!column) throw new RangeError("Unsupported sort column: " + sortBy);
+  return {
+    sql: "SELECT id, status, total_cents FROM orders WHERE tenant_id = $1 AND status = $2 ORDER BY " + column + " DESC",
+    params: [tenantId.trim(), status.trim()]
+  };
+}
+
+function sanitizeNoSqlFilter(input, allowedFields) {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    throw new TypeError("Filter must be a plain object");
+  }
+  const safe = Object.create(null);
+  for (const field of allowedFields) {
+    if (!Object.hasOwn(input, field)) continue;
+    const val = input[field];
+    if (typeof val !== "string" && typeof val !== "number" && typeof val !== "boolean") {
+      throw new TypeError("Disallowed non-primitive filter value for " + field);
+    }
+    safe[field] = val;
+  }
+  return safe;
+}
+
+console.log("SQL:", buildOrderSearchSql({ tenantId: "t-1", status: "paid' OR 1=1--", sortBy: "totalCents" }));
+console.log("Safe NoSQL:", sanitizeNoSqlFilter({ email: "a@b.dev", extra: 1 }, ["email"]));`}
+/>
+
+</TopicSection>
+
+<TopicSection id="m03-p3-sec-e" letter="E" title="Step-by-Step Walkthrough">
+
+Trace **`createRefreshTokenStore`** (**Example 2**) when a refresh token is stolen and replayed:
+
+1. **Initial Login (`issueInitial`):** Creates `fam_1` and returns `rt_1` (`used: false`).
+2. **Legitimate Refresh (`rotate("rt_1")`):** Marks `rt_1.used = true` and issues `rt_2` in the same family `fam_1`.
+3. **Attacker Replays `rt_1`:** `rotate("rt_1")` sees `record.used === true`, adds `fam_1` to `revokedFamilies`, and rejects with `"Token reuse detected; family revoked"`.
+4. **Immediate Containment:** Even `rt_2` (the legitimate user's current token) now fails with `"Session family revoked"`, forcing clean re-authentication.
+
+</TopicSection>
+
+<TopicSection id="m03-p3-sec-f" letter="F" title="Real-World Use Cases">
+
+#### Scenario 1: Eliminating BOLA / IDOR Across a Multi-Tenant Billing API
+
+**Problem:** An endpoint `GET /v1/invoices/:id` checks `req.user` (valid JWT) and queries `WHERE id = $1`, allowing any authenticated customer to download another company's PDFs by incrementing invoice IDs.
+
+**Production Solution:** Enforce both RBAC permission (`requirePermission("invoice:read")`) and tenant scoping inside every SQL query (`WHERE id = $1 AND tenant_id = $2` using `req.user.tenantId` from the verified token, never `req.query.tenantId`).
+
+#### Scenario 2: Stopping Credential Stuffing & MongoDB Operator Injection on `/login`
+
+**Problem:** Attackers send `{ email: { $ne: null }, password: { $ne: null } }` and hammer `/login` at 2,000 req/s.
+
+**Production Solution:** Put a strict Redis token-bucket rate limiter (`429` + `Retry-After`) in front of `/login`, validate `email` and `password` strictly as non-empty `string` primitives before querying, and verify passwords via `scrypt`/`Argon2id` + `timingSafeEqual`.
+
+</TopicSection>
+
+<TopicSection id="m03-p3-sec-g" letter="G" title="Common Mistakes">
+
+- **Accepting `alg: "none"` or skipping `iss`/`aud`/`exp` checks in JWT verification:** Allows forged tokens to pass authentication.
+- **Putting sensitive PII or roles without re-checking DB state on critical mutations:** Stale JWT claims stay valid until `exp` expires.
+- **Reflecting any `req.headers.origin` in `Access-Control-Allow-Origin` with `Allow-Credentials: true`:** Lets any malicious website read authenticated API responses.
+- **Concatenating `ORDER BY ${req.query.sort}` into SQL strings:** Opens SQL injection even when `WHERE` clauses are parameterized.
+- **Passing unvalidated `req.body` objects directly to MongoDB `findOne()`:** Enables `$ne`/`$gt`/`$regex` NoSQL operator injection.
+
+</TopicSection>
+
+<TopicSection id="m03-p3-sec-h" letter="H" title="Best Practices">
+
+- **Hash passwords with `Argon2id` or `scrypt`**, and compare secrets/HMACs with `crypto.timingSafeEqual`.
+- **Keep access JWTs short-lived (5–15 min)** and back long sessions with rotating `HttpOnly; Secure; SameSite` refresh tokens + reuse detection.
+- **Enforce RBAC + object ownership (`tenant_id`/`user_id`)** in the service/repository query layer on every endpoint.
+- **Use `helmet` security headers**, parameterized SQL + sort allowlists, strict primitive schemas for NoSQL, and token-bucket rate limits on auth routes.
+
+</TopicSection>
+
+<TopicSection id="m03-p3-sec-i" letter="I" title="Performance & Scalability">
+
+- **Stateless JWT Verification vs. Session Store Lookups:** Verifying an `EdDSA`/`RS256` JWT takes microseconds in CPU without a Redis round-trip per request, while Redis-backed refresh/revocation lists only get hit on refresh or sensitive account changes.
+- **Distributed Rate Limiting:** Store rate-limiter buckets in **Redis** (using atomic Lua scripts or sorted sets) rather than in-process `Map`s once you scale beyond 1 Node instance.
+- **`scrypt` / `Argon2id` Offload:** Memory-hard password hashing is intentionally CPU-expensive (~50–100ms); keep concurrency bounded or run in `worker_threads` so login bursts do not starve the event loop.
+
+</TopicSection>
+
+<TopicSection id="m03-p3-sec-j" letter="J" title="Security Considerations">
+
+- **OAuth2 PKCE + `state`:** Always enforce PKCE (`S256`) and verify a cryptographic `state` parameter on OAuth callbacks to block authorization-code interception and login CSRF.
+- **Never Trust `Origin: "null"` in CORS:** Sandboxed `<iframe>`s send `Origin: null`—reject `"null"` in CORS allowlists.
+- **Prepared Statements + Least-Privilege DB Roles:** Run your API with a DB user that has `SELECT`/`INSERT`/`UPDATE` on app tables only (never superuser), paired with parameterized queries.
+
+</TopicSection>
+
+<TopicSection id="m03-p3-sec-k" letter="K" title="Comparisons & Decision Tables">
+
+#### 1. Stateful Sessions vs. Short-Lived JWT + Rotating Refresh Tokens
+
+| Dimension | Stateful Session Cookie | Access JWT + Rotating Refresh Token |
+| --- | --- | --- |
+| **Revocation Speed** | Instant (delete Redis/DB row) | Access JWT lives until `exp` (5–15m); refresh revoked instantly |
+| **Cross-Service Auth** | Requires shared session store or introspection | Any microservice verifies signature with public key |
+| **Storage** | `HttpOnly; Secure; SameSite` cookie | Memory (access) + `HttpOnly` cookie (refresh) |
+
+#### 2. SQL Injection vs. NoSQL Injection Defenses
+
+| Threat | Root Cause | Mandatory Defense |
+| --- | --- | --- |
+| **SQL Injection** | String concatenation in SQL (`WHERE` or `ORDER BY`) | Parameterized queries (`$1, $2`) + `Map`/`Set` allowlist for sort columns |
+| **NoSQL Injection** | Unvalidated JSON objects (`$ne`, `$gt`, `$where`) | Strict primitive type validation (`typeof === "string"`) + disable `$where` |
+
+#### 3. Rate Limiting Algorithms
+
+| Algorithm | Burst Behavior | Memory / Redis Cost | Best For |
+| --- | --- | --- | --- |
+| **Fixed Window** | 2x burst at window edge | Very low (1 counter) | Coarse internal quotas |
+| **Token Bucket** | Controlled burst up to `capacity` | Low (`tokens`, `lastMs`) | Public APIs & login endpoints |
+| **Sliding Window Log** | Smooth, no boundary spike | Higher (timestamps list) | Strict security-critical endpoints |
+
+</TopicSection>
+
+<TopicSection id="m03-p3-sec-l" letter="L" title="Tips to Remember (Mnemonics & Mental Models)">
+
+- **"JWTs are signed, not secret; short `exp` + explicit `alg` allowlist always."**
+- **"Rotate refresh tokens; if an old one is replayed, burn the whole family."**
+- **"AuthN (`401`) != AuthZ (`403`); scope every query by `tenant_id`/`user_id` to kill BOLA."**
+- **"Parameterized values (`$1`) + allowlisted column names = zero SQLi; primitives only = zero NoSQLi."**
+
+</TopicSection>
+
+<TopicSection id="m03-p3-sec-mn" letter="M/N" title="Interview Questions & Detailed Answers">
+
+<InterviewSection lessonId="m03-p3" />
+
+</TopicSection>
+
+<TopicSection id="m03-p3-sec-o" letter="O" title="Practical Exercises">
+
+<ExerciseCard
+  title="Exercise 1: JWT Claims Verifier & RBAC Guard (verifyJwtClaims, hasPermission)"
+  prompt={
+    <p>
+      Implement <code>verifyJwtClaims(tokenObj, options)</code> enforcing an explicit algorithm allowlist (blocking <code>"none"</code>), <code>iss</code>, <code>aud</code>, and <code>exp &gt; nowSec</code>, plus <code>hasPermission(userRoles, roleMap, needed)</code> for RBAC checks.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function verifyJwtClaims(tokenObj, { allowedAlgs, issuer, audience, nowSec }) {
+  if (!tokenObj || typeof tokenObj !== "object" || !tokenObj.header || !tokenObj.payload) {
+    throw new TypeError("Invalid token structure");
+  }
+  const { alg } = tokenObj.header;
+  if (!Array.isArray(allowedAlgs) || alg === "none" || !allowedAlgs.includes(alg)) {
+    return { valid: false, reason: "Disallowed JWT algorithm" };
+  }
+  if (typeof nowSec !== "number" || !Number.isFinite(nowSec)) {
+    throw new TypeError("nowSec must be a finite number");
+  }
+  const { exp } = tokenObj.payload;
+  const { iss, aud } = tokenObj.payload;
+  if (iss !== issuer || aud !== audience) {
+    return { valid: false, reason: "Issuer or audience mismatch" };
+  }
+  if (typeof exp !== "number" || !Number.isFinite(exp) || exp <= nowSec) {
+    return { valid: false, reason: "Token expired" };
+  }
+  return { valid: true, sub: tokenObj.payload.sub };
+}
+
+function hasPermission(userRoles, rolePermissions, needed) {
+  if (!Array.isArray(userRoles) || !(rolePermissions instanceof Map) || typeof needed !== "string" || !needed) {
+    throw new TypeError("Invalid RBAC arguments");
+  }
+  return userRoles.some((role) => rolePermissions.get(role)?.has(needed));
+}
+
+const roles = new Map([["viewer", new Set(["orders:read"])], ["admin", new Set(["orders:read", "orders:write"])]]);
+const noneCheck = verifyJwtClaims({ header: { alg: "none" }, payload: { iss: "auth", aud: "api", exp: 2000 } }, { allowedAlgs: ["RS256"], issuer: "auth", audience: "api", nowSec: 1000 });
+const okCheck = verifyJwtClaims({ header: { alg: "RS256" }, payload: { iss: "auth", aud: "api", exp: 2000, sub: "u1" } }, { allowedAlgs: ["RS256"], issuer: "auth", audience: "api", nowSec: 1000 });
+console.log("alg:none blocked?", !noneCheck.valid, "| RS256 ok?", okCheck.valid, "| Admin write?", hasPermission(["admin"], roles, "orders:write"));`}
+  />
+</ExerciseCard>
+
+<ExerciseCard
+  title="Exercise 2: Constant-Time Comparator & Control-Char Input Sanitizer (constantTimeEqual, sanitizeInput)"
+  prompt={
+    <p>
+      Implement <code>constantTimeEqual(a, b)</code> using fixed-time XOR accumulation without early character exit, and <code>sanitizeInput(raw, maxLen)</code> stripping ASCII control characters and trimming safely.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function constantTimeEqual(a, b) {
+  if (typeof a !== "string" || typeof b !== "string") {
+    throw new TypeError("Both inputs must be strings");
+  }
+  let diff = a.length ^ b.length;
+  const len = Math.max(a.length, b.length);
+  for (let i = 0; i < len; i++) {
+    const ca = i < a.length ? a.charCodeAt(i) : 0;
+    const cb = i < b.length ? b.charCodeAt(i) : 0;
+    diff |= ca ^ cb;
+  }
+  return diff === 0;
+}
+
+function sanitizeInput(raw, maxLen = 120) {
+  if (typeof raw !== "string") throw new TypeError("Input must be a string");
+  if (!Number.isInteger(maxLen) || maxLen < 1) throw new TypeError("maxLen must be integer >= 1");
+  let out = "";
+  for (let i = 0; i < raw.length; i++) {
+    const code = raw.charCodeAt(i);
+    if (code <= 31 || code === 127) continue;
+    out += raw[i];
+  }
+  return out.trim().slice(0, maxLen);
+}
+
+console.log("Match?", constantTimeEqual("sig_abc123", "sig_abc123"), "| Mismatch?", !constantTimeEqual("sig_abc123", "sig_abc999"));
+console.log("Sanitized:", sanitizeInput("  hello" + String.fromCharCode(0, 10) + "world  ", 20));`}
+  />
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m03-p3-sec-p" letter="P" title="Advanced Challenge">
+
+<Callout variant="warn" title="Senior Challenge: Securing a Multi-Tenant SaaS API After a Pen-Test">
+  <p>
+    A security audit flagged four critical issues in your Node.js/Express backend: (1) <code>GET /orders/:id</code> leaks cross-tenant records (BOLA), (2) <code>ORDER BY</code> concatenates <code>req.query.sort</code>, (3) CORS reflects any <code>Origin</code> with <code>Allow-Credentials: true</code>, and (4) stolen refresh tokens remain valid for 30 days.
+  </p>
+  <p>
+    <strong>Your Task:</strong> Design the end-to-end fix across AuthN/AuthZ, rotating refresh token families, CORS allowlisting, SQL sort allowlists, and Redis rate limiting.
+  </p>
+</Callout>
+
+<ExerciseCard
+  title="Reference Architecture Notes"
+  prompt={null}
+  buttonLabel="Reveal Approach"
+  hideLabel="Hide Approach"
+>
+  <ol>
+    <li>Enforce RBAC permissions in middleware and scope every repository SQL query with <code>WHERE id = $1 AND tenant_id = $2</code> from the verified JWT (never from request params), eliminating BOLA and SQLi (plus a <code>Map</code> allowlist for <code>ORDER BY</code>).</li>
+    <li>Replace arbitrary CORS reflection with an exact <code>Set</code> allowlist (rejecting <code>"null"</code>) and add Redis token-bucket rate limits on auth and export routes.</li>
+    <li>Implement rotating refresh tokens in <code>HttpOnly</code> cookies with family reuse detection so any replayed token revokes the entire session family immediately.</li>
+  </ol>
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m03-p3-sec-q" letter="Q" title="Summary & Key Takeaways">
+
+- **AuthN & Tokens:** Hash passwords with `Argon2id`/`scrypt`, compare secrets in constant time, enforce strict JWT `alg`/`iss`/`aud`/`exp` checks, and rotate refresh tokens with family reuse detection.
+- **AuthZ & RBAC:** Stop BOLA/IDOR by checking fine-grained RBAC permissions AND scoping every DB query by `tenant_id`/`user_id`.
+- **Perimeter Security:** Enforce exact-origin CORS allowlists (never `*` + credentials or `"null"`), Redis token-bucket rate limits (`429`), and `helmet` headers.
+- **Injection Defense:** Use parameterized SQL (`$1`) + allowlisted sort columns, validate NoSQL filters to primitive types (`$` operators blocked), and sanitize control chars without ReDoS regexes.
+
+</TopicSection>

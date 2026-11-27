@@ -139,7 +139,7 @@ try {
   assert.equal(availMod1Topics.length, 47);
 
   const emptyComboTopics = syllabusModules
-    .filter((m) => m.category === "databases")
+    .filter((m) => m.category === "ai")
     .flatMap((m) => m.topics)
     .filter((t) => t.status === "available");
   assert.equal(emptyComboTopics.length, 0);

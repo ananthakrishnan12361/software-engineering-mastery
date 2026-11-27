@@ -1,0 +1,499 @@
+<Callout variant="info" title="Topics Covered in Part 2 (M04-P2)">
+  <p>
+    This part of Module 4 covers 6 foundational relational schema design topics: <strong>Normalization</strong>, <strong>Denormalization</strong>, <strong>1NF</strong>, <strong>2NF</strong>, <strong>3NF</strong>, and <strong>BCNF overview</strong>.
+  </p>
+</Callout>
+
+<TopicSection id="m04-p2-sec-a" letter="A" title="Topic Introduction">
+
+#### What is this?
+
+**Normalization** is the systematic process of structuring relational tables to eliminate redundant data and prevent **insert, update, and delete anomalies** using formal rules (**1NF**, **2NF**, **3NF**, **BCNF**). **Denormalization** is the intentional, measured reversal of normalization—duplicating derived or joined columns to speed up hot read queries at the cost of extra write coordination.
+
+#### Why does it exist & what problem does it solve?
+
+Storing a customer's `email` and `address` on every single row of `orders` wastes storage and creates **anomalies**: updating an address requires updating 500 rows (if one fails, data is inconsistent), deleting the last order wipes out the customer's record entirely, and you cannot insert a new customer before they buy something.
+
+#### Where is it used in real-world software?
+
+Every relational OLTP schema (e-commerce, banking, SaaS multi-tenant apps) starts normalized to **3NF/BCNF** for correctness and selectively denormalizes hot read paths (such as `orders.total_cents`, materialized views, or read-model counters) only after measuring real query bottlenecks.
+
+</TopicSection>
+
+<TopicSection id="m04-p2-sec-b" letter="B" title="Fundamentals (Simple Mental Models)">
+
+<TopicAnchor id="m04-p2-topic-normalization" />
+
+#### 1. Normalization: Eliminating Redundancy & Data Anomalies
+
+**Normalization** organizes attributes into tables so every fact is stored in **one canonical place**. By decomposing mixed-concept tables along **functional dependencies** (`A -> B`, meaning knowing `A` uniquely determines `B`), you eliminate three classic bugs: **insertion anomalies** (cannot add a product without an order), **update anomalies** (changing a price leaves stale copies elsewhere), and **deletion anomalies** (deleting an order erases product metadata).
+
+In practice, most production OLTP schemas target **3NF** or **BCNF** as the default baseline.
+
+<TopicAnchor id="m04-p2-topic-denormalization" />
+
+#### 2. Denormalization: Intentional Read Speed vs. Write Complexity
+
+**Denormalization** intentionally re-introduces controlled redundancy—for example, caching `item_count` or `total_cents` on `orders`, storing a snapshot of `unit_price_cents` on `order_items` (which is also a business snapshot!), or maintaining a summary read table—to avoid expensive multi-table `JOIN`s or `COUNT(*)`/`SUM()` scans.
+
+Never denormalize blindly upfront: every duplicated column must have a clear **consistency mechanism** (single-transaction update, DB trigger, or async outbox rebuild) so reads never drift out of sync with the source of truth.
+
+<TopicAnchor id="m04-p2-topic-1nf" />
+
+#### 3. 1NF (First Normal Form): Atomic Values & No Repeating Groups
+
+A table is in **First Normal Form (1NF)** when every column holds **atomic (indivisible) scalar values**, there are **no repeating column groups** (`tag1, tag2, tag3` or comma-separated `"sql,node,react"`), and every row is uniquely identifiable by a Primary Key.
+
+Violating 1NF forces ugly `LIKE '%tag%'` scans, breaks foreign-key integrity, and makes counting or updating a single item error-prone—fix it by moving repeating items into a child table (`post_tags`).
+
+<TopicAnchor id="m04-p2-topic-2nf" />
+
+#### 4. 2NF (Second Normal Form): Eliminating Partial Dependencies
+
+A table is in **Second Normal Form (2NF)** when it is in **1NF** and **every non-key column depends on the ENTIRE Primary Key**—never on just *part* of a composite key (**partial dependency**).
+
+For example, in `order_items(order_id, product_id, quantity, product_name)`, the composite PK is `(order_id, product_id)`, yet `product_name` depends only on `product_id`! Moving `product_name` to `products` achieves 2NF and stops duplicating product names on every line item.
+
+<TopicAnchor id="m04-p2-topic-3nf" />
+
+#### 5. 3NF (Third Normal Form): Eliminating Transitive Dependencies
+
+A table is in **Third Normal Form (3NF)** when it is in **2NF** and **no non-key column depends on another non-key column** (**transitive dependency**: `PK -> A -> B`).
+
+For instance, in `orders(id, customer_id, customer_email)`, `id -> customer_id -> customer_email` means `customer_email` depends transitively on `id` via `customer_id`. Moving `customer_email` to `customers` achieves **3NF** (*"the key, the whole key, and nothing but the key"*).
+
+<TopicAnchor id="m04-p2-topic-bcnf-overview" />
+
+#### 6. BCNF Overview (Boyce-Codd Normal Form): Every Determinant Is a Candidate Key
+
+**BCNF** is a slightly stricter version of **3NF**: for every non-trivial functional dependency `X -> Y`, `X` **must be a superkey** (a candidate key). While 3NF allows an anomaly when a non-key attribute determines *part* of a composite candidate key, BCNF closes that edge case completely.
+
+A classic example is `course_instructors(student_id, course_id, instructor_id)` where each instructor teaches only one course (`instructor_id -> course_id`): splitting `(instructor_id, course_id)` and `(student_id, instructor_id)` satisfies BCNF.
+
+</TopicSection>
+
+<TopicSection id="m04-p2-sec-c" letter="C" title="Internal Working & Architecture">
+
+#### 1. Normal Form Progression (`1NF -> 2NF -> 3NF -> BCNF`)
+
+Each normal form removes a progressively subtler form of redundancy: repeating lists (`1NF`), partial key dependencies (`2NF`), transitive non-key dependencies (`3NF`), and non-superkey determinants (`BCNF`).
+
+<DiagramCard caption="Figure 4.3 — Each normal form eliminates a specific structural anomaly: 1NF atomicity, 2NF full-key dependence, 3NF non-transitive dependence, and BCNF superkey determinants.">
+  <svg viewBox="0 0 820 185" role="img" aria-label="Normal form progression from 1NF to BCNF">
+    <rect x="10" y="10" width="800" height="165" rx="10" fill="var(--bg-subtle)" stroke="var(--border)" />
+
+    <rect x="26" y="34" width="170" height="116" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" />
+    <text x="111" y="60" textAnchor="middle" fill="var(--accent-strong)" fontSize="13" fontWeight="700" fontFamily="sans-serif">1NF (Atomic)</text>
+    <text x="111" y="88" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">No CSV / repeating</text>
+    <text x="111" y="114" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Scalar cells + PK</text>
+
+    <line x1="196" y1="92" x2="232" y2="92" stroke="var(--accent)" strokeWidth="2" />
+    <polygon points="232,92 222,87 222,97" fill="var(--accent)" />
+
+    <rect x="236" y="34" width="175" height="116" rx="8" fill="var(--bg-surface)" stroke="var(--border-control)" />
+    <text x="323" y="60" textAnchor="middle" fill="var(--text-primary)" fontSize="13" fontWeight="700" fontFamily="sans-serif">2NF (Full Key)</text>
+    <text x="323" y="88" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">No partial key dep</text>
+    <text x="323" y="114" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Depends on whole PK</text>
+
+    <line x1="411" y1="92" x2="447" y2="92" stroke="var(--success)" strokeWidth="2" />
+    <polygon points="447,92 437,87 437,97" fill="var(--success)" />
+
+    <rect x="451" y="34" width="175" height="116" rx="8" fill="var(--success-soft)" stroke="var(--success)" />
+    <text x="538" y="60" textAnchor="middle" fill="var(--success)" fontSize="13" fontWeight="700" fontFamily="sans-serif">3NF (Nothing Else)</text>
+    <text x="538" y="88" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">No transitive dep</text>
+    <text x="538" y="114" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">No PK -&gt; A -&gt; B</text>
+
+    <line x1="626" y1="92" x2="662" y2="92" stroke="var(--warning)" strokeWidth="2" />
+    <polygon points="662,92 652,87 652,97" fill="var(--warning)" />
+
+    <rect x="666" y="34" width="128" height="116" rx="8" fill="var(--warning-soft)" stroke="var(--warning)" />
+    <text x="730" y="60" textAnchor="middle" fill="var(--warning)" fontSize="13" fontWeight="700" fontFamily="sans-serif">BCNF (Strict)</text>
+    <text x="730" y="88" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">X -&gt; Y =&gt;</text>
+    <text x="730" y="114" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">X is superkey</text>
+  </svg>
+</DiagramCard>
+
+#### 2. Normalized Write Integrity vs. Selective Denormalization
+
+Normalized tables store a single source of truth; selective denormalization trades write coordination (updating `orders.total_cents` atomically in the same transaction) to turn `O(k)` item scans into `O(1)` header reads.
+
+<DiagramCard caption="Figure 4.4 — Keep normalized tables as the source of truth and maintain denormalized read columns inside the same ACID transaction.">
+  <svg viewBox="0 0 820 175" role="img" aria-label="Normalized source of truth vs denormalized read optimization trade-off">
+    <rect x="10" y="10" width="800" height="155" rx="10" fill="var(--bg-subtle)" stroke="var(--border)" />
+
+    <rect x="28" y="30" width="365" height="115" rx="8" fill="var(--success-soft)" stroke="var(--success)" />
+    <text x="210" y="56" textAnchor="middle" fill="var(--success)" fontSize="13.5" fontWeight="700" fontFamily="sans-serif">Normalized Baseline (3NF / BCNF)</text>
+    <text x="210" y="84" textAnchor="middle" fill="var(--text-primary)" fontSize="11.5" fontFamily="monospace">Single source of truth per fact</text>
+    <text x="210" y="110" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Zero update anomalies; fast writes; requires JOINs</text>
+
+    <rect x="427" y="30" width="365" height="115" rx="8" fill="var(--warning-soft)" stroke="var(--warning)" />
+    <text x="609" y="56" textAnchor="middle" fill="var(--warning)" fontSize="13.5" fontWeight="700" fontFamily="sans-serif">Selective Denormalization</text>
+    <text x="609" y="84" textAnchor="middle" fill="var(--text-primary)" fontSize="11.5" fontFamily="monospace">Cached total_cents / materialized view</text>
+    <text x="609" y="110" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Fast O(1) reads; requires TX/trigger sync</text>
+  </svg>
+</DiagramCard>
+
+</TopicSection>
+
+<TopicSection id="m04-p2-sec-d" letter="D" title="Practical Examples (Interactive)">
+
+#### Example 1: Decomposing an Unnormalized Table Into 3NF + Historical Price Snapshot (SQL Reference)
+
+<CodeBlock
+  lang="sql"
+  code={`-- BEFORE (Unnormalized): repeating tags CSV, partial product_name dep, transitive customer_email dep
+-- CREATE TABLE raw_orders (order_id BIGINT, product_id BIGINT, product_name TEXT,
+--   customer_id BIGINT, customer_email TEXT, tags_csv TEXT, qty INT);
+
+-- AFTER (3NF): each entity owns its attributes; order_items stores a historical unit_price snapshot
+CREATE TABLE customers (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  email TEXT NOT NULL UNIQUE
+);
+
+CREATE TABLE products (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  name TEXT NOT NULL,
+  current_price_cents BIGINT NOT NULL CHECK (current_price_cents >= 0)
+);
+
+CREATE TABLE product_tags (
+  product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  tag TEXT NOT NULL,
+  PRIMARY KEY (product_id, tag) -- 1NF: atomic tags instead of tags_csv
+);
+
+CREATE TABLE orders (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  customer_id BIGINT NOT NULL REFERENCES customers(id) ON DELETE RESTRICT,
+  -- Selective denormalized summary maintained in the same transaction as order_items writes
+  cached_total_cents BIGINT NOT NULL DEFAULT 0 CHECK (cached_total_cents >= 0)
+);
+
+CREATE TABLE order_items (
+  order_id BIGINT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE RESTRICT,
+  quantity INTEGER NOT NULL CHECK (quantity > 0),
+  unit_price_cents BIGINT NOT NULL CHECK (unit_price_cents >= 0),
+  PRIMARY KEY (order_id, product_id)
+);`}
+/>
+
+#### Example 2: Functional Dependency & Normal Form Classifier (`classifyTableNormalForm`)
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// Models 1NF, 2NF, 3NF, and BCNF checks given primaryKey, candidateKeys, and functional dependencies
+function classifyTableNormalForm({ hasAtomicColumns, primaryKey, candidateKeys = [primaryKey], dependencies }) {
+  if (typeof hasAtomicColumns !== "boolean") throw new TypeError("hasAtomicColumns must be boolean");
+  if (!Array.isArray(primaryKey) || primaryKey.length === 0) throw new TypeError("primaryKey must be non-empty array");
+  if (!Array.isArray(dependencies)) throw new TypeError("dependencies must be an array");
+  if (!hasAtomicColumns) return { highestForm: "UNF", reason: "Non-atomic or repeating column groups violate 1NF" };
+
+  const keyAttrs = new Set(candidateKeys.flat());
+  const nonTrivialDeps = dependencies.map((dep) => {
+    if (!Array.isArray(dep.lhs) || !dep.rhs) throw new TypeError("Each dependency requires lhs[] and rhs");
+    const lhsSet = new Set(dep.lhs);
+    const isSuperkey = candidateKeys.some((ck) => ck.every((k) => lhsSet.has(k)));
+    return { dep, lhsSet, isSuperkey, isTrivial: lhsSet.has(dep.rhs) };
+  }).filter((item) => !item.isTrivial);
+
+  // Check 2NF: non-key attribute depending on a proper subset of any composite candidate key
+  for (const { dep, lhsSet, isSuperkey } of nonTrivialDeps) {
+    const rhsIsNonKey = !keyAttrs.has(dep.rhs);
+    const lhsStrictSubsetOfCandidateKey =
+      !isSuperkey &&
+      lhsSet.size > 0 &&
+      candidateKeys.some((ck) => lhsSet.size < ck.length && [...lhsSet].every((a) => ck.includes(a)));
+    if (rhsIsNonKey && lhsStrictSubsetOfCandidateKey) {
+      return { highestForm: "1NF", reason: "Partial dependency (" + dep.lhs.join(",") + " -> " + dep.rhs + ") violates 2NF" };
+    }
+  }
+
+  // Check 3NF: non-superkey determinant determining a non-key (non-prime) attribute
+  for (const { dep, isSuperkey } of nonTrivialDeps) {
+    const rhsIsNonKey = !keyAttrs.has(dep.rhs);
+    if (!isSuperkey && rhsIsNonKey) {
+      return { highestForm: "2NF", reason: "Transitive dependency (" + dep.lhs.join(",") + " -> " + dep.rhs + ") violates 3NF" };
+    }
+  }
+
+  // Check BCNF: every non-trivial determinant lhs must be a superkey
+  for (const { dep, isSuperkey } of nonTrivialDeps) {
+    if (!isSuperkey) {
+      return { highestForm: "3NF", reason: "Determinant (" + dep.lhs.join(",") + ") is not a superkey (violates BCNF)" };
+    }
+  }
+
+  return { highestForm: "BCNF", reason: "All determinants are superkeys" };
+}
+
+console.log("CSV tags:", classifyTableNormalForm({ hasAtomicColumns: false, primaryKey: ["id"], dependencies: [] }));
+console.log("Partial dep:", classifyTableNormalForm({ hasAtomicColumns: true, primaryKey: ["order_id", "product_id"], dependencies: [{ lhs: ["product_id"], rhs: "product_name" }] }));
+console.log("Transitive dep:", classifyTableNormalForm({ hasAtomicColumns: true, primaryKey: ["id"], dependencies: [{ lhs: ["customer_id"], rhs: "customer_email" }] }));
+console.log("Clean 3NF/BCNF:", classifyTableNormalForm({ hasAtomicColumns: true, primaryKey: ["id"], dependencies: [{ lhs: ["id"], rhs: "customer_id" }] }));`}
+/>
+
+#### Example 3: Normalized vs. Denormalized Cache Sync Simulator (`createSyncedOrderStore`)
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// Models why denormalized totals require atomic updates and how drift happens if skipped
+function createSyncedOrderStore() {
+  const orders = new Map(); // orderId -> { cachedTotalCents, items: [] }
+
+  return {
+    createOrder(orderId) {
+      if (!Number.isInteger(orderId) || orderId < 1) throw new TypeError("orderId must be positive integer");
+      orders.set(orderId, { cachedTotalCents: 0, items: [] });
+    },
+    addItem(orderId, { qty, unitPriceCents, syncCache = true }) {
+      const ord = orders.get(orderId);
+      if (!ord) throw new Error("Order not found");
+      if (!Number.isInteger(qty) || qty < 1 || !Number.isInteger(unitPriceCents) || unitPriceCents < 0) {
+        throw new TypeError("Invalid item qty or price");
+      }
+      ord.items.push({ qty, unitPriceCents });
+      if (syncCache) ord.cachedTotalCents += qty * unitPriceCents;
+    },
+    inspect(orderId) {
+      const ord = orders.get(orderId);
+      if (!ord) throw new Error("Order not found");
+      const normalizedSum = ord.items.reduce((sum, it) => sum + it.qty * it.unitPriceCents, 0);
+      return {
+        cachedTotalCents: ord.cachedTotalCents,
+        normalizedSum,
+        inSync: ord.cachedTotalCents === normalizedSum
+      };
+    }
+  };
+}
+
+const store = createSyncedOrderStore();
+store.createOrder(1);
+store.addItem(1, { qty: 2, unitPriceCents: 1500, syncCache: true });
+console.log("Synced:", store.inspect(1));
+store.addItem(1, { qty: 1, unitPriceCents: 500, syncCache: false }); // simulated bug skipping cache update
+console.log("Drifted:", store.inspect(1));`}
+/>
+
+</TopicSection>
+
+<TopicSection id="m04-p2-sec-e" letter="E" title="Step-by-Step Walkthrough">
+
+Trace **`classifyTableNormalForm`** (**Example 2**) on `order_items(order_id, product_id, product_name)`:
+
+1. **1NF Check:** `hasAtomicColumns === true`, so scalar atomicity passes.
+2. **2NF Check:** `primaryKey` is composite (`["order_id", "product_id"]`, length `2`). Dependency `["product_id"] -> "product_name"` has `lhs.length (1) < 2` and `"product_id"` is in `pkSet`, while `"product_name"` is non-key. The checker stops and reports `highestForm: "1NF"` (2NF violated!).
+3. **3NF & BCNF Checks:** Once `product_name` moves to `products`, the checker scans for non-key transitive chains (`customer_id -> customer_email` -> reports `2NF`) and finally verifies every determinant is a superkey (`BCNF`).
+
+</TopicSection>
+
+<TopicSection id="m04-p2-sec-f" letter="F" title="Real-World Use Cases">
+
+#### Scenario 1: Preserving Historical Invoice Prices Without Violating 3NF
+
+**Problem:** An `order_items` table references `products.price_cents`. When the catalog team raises a product's price from \$20 to \$25, past customer invoices suddenly show \$25!
+
+**Production Solution:** Copying `unit_price_cents` onto `order_items` at purchase time is **not** redundant denormalization—it is a distinct temporal fact (*"price at time of purchase"*), whereas `products.current_price_cents` represents the live catalog price. Both belong in a clean 3NF schema.
+
+#### Scenario 2: Speeding Up a Dashboard Feed With Selective Denormalization
+
+**Problem:** A SaaS feed lists 50 posts per page and runs `COUNT(*)` on `post_likes` and `post_comments` for every post, causing slow query plans at 10M likes.
+
+**Production Solution:** Keep `post_likes` and `post_comments` normalized as the source of truth, and add `like_count` / `comment_count` integer columns on `posts` updated atomically inside the same DB transaction (or via batched background reconciliation).
+
+</TopicSection>
+
+<TopicSection id="m04-p2-sec-g" letter="G" title="Common Mistakes">
+
+- **Storing comma-separated IDs or tags (`"1,2,3"`) in a `TEXT` column:** Violates 1NF, breaks foreign keys, and forces slow substring scans.
+- **Denormalizing every table before measuring performance:** Multiplies write bugs, stale totals, and migration pain for zero measurable gain.
+- **Forgetting to update denormalized caches on `DELETE` and `UPDATE`:** Developers often increment `like_count` on `INSERT` but forget to decrement on `DELETE`.
+- **Confusing historical snapshots (`order_items.unit_price_cents`) with denormalization:** Snapshotting immutable point-in-time facts is proper domain modeling, not redundancy.
+
+</TopicSection>
+
+<TopicSection id="m04-p2-sec-h" letter="H" title="Best Practices">
+
+- **Normalize to 3NF/BCNF by default** for all core OLTP entities.
+- **Denormalize only proven read bottlenecks** (backed by `EXPLAIN ANALYZE` or p95 telemetry), and document the exact sync mechanism (transaction, trigger, or materialized view).
+- **Use junction tables** (`product_tags`, `order_items`) instead of CSV strings or `tag1, tag2, tag3` columns.
+- **Separate live catalog attributes from historical transaction snapshots** explicitly in column names (`current_price_cents` vs. `unit_price_cents`).
+
+</TopicSection>
+
+<TopicSection id="m04-p2-sec-i" letter="I" title="Performance & Scalability">
+
+- **Write Amplification vs. Read Amplification:** Normalized schemas make writes small and atomic (`UPDATE customers SET email = ...` touches 1 row), while denormalized schemas speed up reads (`SELECT total_cents FROM orders` avoids joining `order_items`) at the cost of extra write locks.
+- **PostgreSQL Materialized Views / Read Replicas:** Before duplicating columns across OLTP tables, consider indexed **Materialized Views** (`REFRESH MATERIALIZED VIEW CONCURRENTLY`) or analytical read replicas.
+- **Smaller Rows in Buffer Pool:** Normalized tables avoid repeating long strings (`customer_name`, `address`) across millions of child rows, keeping more hot index and data pages cached in RAM.
+
+</TopicSection>
+
+<TopicSection id="m04-p2-sec-j" letter="J" title="Security Considerations">
+
+- **Single Canonical PII Location:** Storing `email`, `phone`, or `ssn` in one normalized `users` table makes GDPR deletion, masking, and access control auditable in one place rather than scattered across 12 denormalized tables.
+- **Preventing Drift in Denormalized Authorization Fields:** Never cache mutable permission/role flags (`is_admin`) in denormalized secondary tables without atomic sync—stale copies can leave revoked users authorized.
+
+</TopicSection>
+
+<TopicSection id="m04-p2-sec-k" letter="K" title="Comparisons & Decision Tables">
+
+#### 1. Normal Forms Cheat Sheet
+
+| Normal Form | Core Rule | Typical Violation Example | Fix |
+| --- | --- | --- | --- |
+| **1NF** | Atomic values, no repeating groups | `tags = "js,sql"` or `phone1, phone2` | Move to child table `user_phones` |
+| **2NF** | 1NF + no partial key dependency | `(order_id, product_id) -> product_name` | Move `product_name` to `products` |
+| **3NF** | 2NF + no transitive non-key dependency | `order_id -> customer_id -> customer_email` | Move `customer_email` to `customers` |
+| **BCNF** | Every determinant `X -> Y` is a superkey | Non-key `instructor_id -> course_id` in composite key | Split `(instructor_id, course_id)` |
+
+#### 2. Normalization vs. Denormalization Trade-Offs
+
+| Dimension | Normalized (3NF / BCNF) | Denormalized |
+| --- | --- | --- |
+| **Write Consistency** | High (single source of truth) | Harder (must sync all copies) |
+| **Storage Footprint** | Compact | Larger (duplicated values) |
+| **Read Speed (Simple Joins)** | Fast with proper indexes | Slightly faster (fewer joins) |
+| **Read Speed (Heavy Aggregations)** | Slower (`COUNT`/`SUM` over child rows) | Very fast (`O(1)` precomputed column) |
+
+#### 3. Denormalization Sync Strategies
+
+| Strategy | Freshness | Write Overhead | Best Fit |
+| --- | --- | --- | --- |
+| **Same-Transaction App Update** | Immediate (ACID) | Moderate (extra SQL update + row lock) | Order totals, account balances, low-write counters |
+| **Database Trigger** | Immediate (ACID) | High (hidden lock contention on hot parents) | Legacy apps where multiple writers bypass one service |
+| **Materialized View (`REFRESH CONCURRENTLY`)** | Scheduled / Stale | Zero on OLTP writes; burst on refresh | Dashboards, reporting summaries, analytics |
+| **Outbox + Async Worker / CDC** | Eventual (ms–sec) | Low on OLTP writes | Cross-service read models, search indexes, high-throughput feeds |
+
+</TopicSection>
+
+<TopicSection id="m04-p2-sec-l" letter="L" title="Tips to Remember (Mnemonics & Mental Models)">
+
+- **"1NF = Atomic cells; 2NF = Whole key; 3NF = Nothing but the key; BCNF = Every determinant is a key."**
+- **"Normalize until it hurts, denormalize until it works."**
+- **"If you duplicate a column, write down how it stays in sync on INSERT, UPDATE, and DELETE."**
+- **"Price at time of purchase is a historical fact, not denormalization."**
+
+</TopicSection>
+
+<TopicSection id="m04-p2-sec-mn" letter="M/N" title="Interview Questions & Detailed Answers">
+
+<InterviewSection lessonId="m04-p2" />
+
+</TopicSection>
+
+<TopicSection id="m04-p2-sec-o" letter="O" title="Practical Exercises">
+
+<ExerciseCard
+  title="Exercise 1: 1NF Repeating-Group Splitter (normalizeToFirstNf)"
+  prompt={
+    <p>
+      Implement <code>normalizeToFirstNf(rows)</code> that converts unnormalized rows like <code>&#123; id: 1, tagsCsv: "sql, node, sql" &#125;</code> into normalized atomic rows <code>&#123; id, tag &#125;</code>, trimming whitespace and deduplicating tags per entity without mutating input.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function normalizeToFirstNf(rows) {
+  if (!Array.isArray(rows)) throw new TypeError("rows must be an array");
+  const out = [];
+  for (const row of rows) {
+    if (!row || typeof row !== "object" || !Number.isInteger(row.id) || typeof row.tagsCsv !== "string") {
+      throw new TypeError("Each row must have integer id and string tagsCsv");
+    }
+    const seen = new Set();
+    for (const rawTag of row.tagsCsv.split(",")) {
+      const tag = rawTag.trim().toLowerCase();
+      if (tag && !seen.has(tag)) {
+        seen.add(tag);
+        out.push({ id: row.id, tag });
+      }
+    }
+  }
+  return out;
+}
+
+console.log("1NF rows:", normalizeToFirstNf([{ id: 1, tagsCsv: "SQL, node, sql" }, { id: 2, tagsCsv: "react" }]));`}
+  />
+</ExerciseCard>
+
+<ExerciseCard
+  title="Exercise 2: 3NF Transitive Dependency Detector (findTransitiveViolations)"
+  prompt={
+    <p>
+      Implement <code>findTransitiveViolations(&#123; keyColumns, dependencies &#125;)</code> returning all <code>&#123; via, target &#125;</code> pairs where a non-key column determines another non-key column (3NF violation).
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function findTransitiveViolations({ keyColumns, dependencies }) {
+  if (!Array.isArray(keyColumns) || keyColumns.length === 0) throw new TypeError("keyColumns required");
+  if (!Array.isArray(dependencies)) throw new TypeError("dependencies must be array");
+  const keys = new Set(keyColumns);
+  const violations = [];
+
+  for (const dep of dependencies) {
+    if (!dep || typeof dep.from !== "string" || typeof dep.to !== "string") {
+      throw new TypeError("Each dependency must have string from and to");
+    }
+    if (!keys.has(dep.from) && !keys.has(dep.to)) {
+      violations.push({ via: dep.from, target: dep.to });
+    }
+  }
+  return violations;
+}
+
+console.log("Violations:", findTransitiveViolations({
+  keyColumns: ["order_id"],
+  dependencies: [
+    { from: "order_id", to: "customer_id" },
+    { from: "customer_id", to: "customer_email" },
+    { from: "customer_id", to: "customer_city" }
+  ]
+}));`}
+  />
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m04-p2-sec-p" letter="P" title="Advanced Challenge">
+
+<Callout variant="warn" title="Senior Challenge: Refactoring an Anomaly-Ridden Analytics/OLTP Hybrid Table">
+  <p>
+    A legacy <code>bookings</code> table stores <code>(booking_id, user_id, user_name, user_email, hotel_id, hotel_city, amenities_csv, total_cents)</code>. Updating a user's email requires scanning millions of bookings, and searching amenities uses slow <code>LIKE '%pool%'</code> queries.
+  </p>
+  <p>
+    <strong>Your Task:</strong> Decompose this table cleanly to <strong>3NF/BCNF</strong>, and explain where (if anywhere) you would keep selective denormalization and how you would keep it consistent.
+  </p>
+</Callout>
+
+<ExerciseCard
+  title="Reference Architecture Notes"
+  prompt={null}
+  buttonLabel="Reveal Approach"
+  hideLabel="Hide Approach"
+>
+  <ol>
+    <li>Split into <code>users(id, name, email)</code>, <code>hotels(id, city)</code>, and <code>hotel_amenities(hotel_id, amenity)</code> (eliminating 1NF CSV groups and 3NF transitive dependencies).</li>
+    <li>Keep <code>bookings(id, user_id, hotel_id, booked_price_cents)</code> referencing <code>users</code> and <code>hotels</code> via Foreign Keys, storing <code>booked_price_cents</code> as an immutable point-in-time snapshot.</li>
+    <li>Only if dashboard reads prove a bottleneck, maintain a separate denormalized summary or indexed Materialized View updated transactionally or via Change Data Capture (CDC).</li>
+  </ol>
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m04-p2-sec-q" letter="Q" title="Summary & Key Takeaways">
+
+- **Normal Forms:** **1NF** enforces atomic scalar columns; **2NF** removes partial dependencies on composite keys; **3NF** removes transitive non-key dependencies; **BCNF** requires every determinant to be a superkey.
+- **Anomalies:** Normalization prevents insertion, update, and deletion anomalies by storing each fact once.
+- **Denormalization:** Apply selectively only for proven read bottlenecks, paired with atomic transaction/trigger/CDC synchronization.
+- **Snapshots vs. Redundancy:** Recording immutable historical values (like `unit_price_cents` on `order_items`) is proper temporal modeling, not a normalization violation.
+
+</TopicSection>

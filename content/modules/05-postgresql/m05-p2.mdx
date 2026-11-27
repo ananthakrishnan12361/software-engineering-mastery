@@ -1,0 +1,611 @@
+<Callout variant="info" title="Topics Covered in Part 2 (M05-P2)">
+  <p>
+    This second part of Module 5 covers 16 PostgreSQL SQL mastery topics: <strong>SQL</strong>, <strong>SELECT</strong>, <strong>INSERT</strong>, <strong>UPDATE</strong>, <strong>DELETE</strong>, <strong>JOIN</strong>, <strong>INNER JOIN</strong>, <strong>LEFT JOIN</strong>, <strong>RIGHT JOIN</strong>, <strong>FULL JOIN</strong>, <strong>CROSS JOIN</strong>, <strong>Self joins</strong>, <strong>Subqueries</strong>, <strong>CTEs</strong>, <strong>Recursive CTEs</strong>, and <strong>Window functions</strong>.
+  </p>
+</Callout>
+
+<TopicSection id="m05-p2-sec-a" letter="A" title="Topic Introduction">
+
+#### What is this?
+
+**PostgreSQL SQL mastery** covers the declarative query and data-manipulation language used to read (`SELECT`), write (`INSERT`, `UPDATE`, `DELETE`, `ON CONFLICT`), combine (`INNER`, `LEFT`, `RIGHT`, `FULL`, `CROSS`, and self `JOIN`s), nest (`Subqueries`, `LATERAL`, `CTEs`, `WITH RECURSIVE`), and analyze (`Window functions`) relational data.
+
+#### Why does it exist & what problem does it solve?
+
+Writing N+1 loops in application code wastes network round-trips and memory. Knowing SQL's exact logical execution order, null-safe `EXISTS` vs. `NOT IN` semantics, PostgreSQL-specific `DISTINCT ON` and `RETURNING`, `WITH RECURSIVE` tree traversal, and `OVER (PARTITION BY ...)` window frames lets you express complex reporting, upserts, and hierarchical queries in a single round-trip.
+
+#### Where is it used in real-world software?
+
+Every backend API, analytics pipeline, permissions engine (org-chart/folder trees), leaderboard, and billing ledger uses these SQL constructs daily inside PostgreSQL.
+
+</TopicSection>
+
+<TopicSection id="m05-p2-sec-b" letter="B" title="Fundamentals (Simple Mental Models)">
+
+<TopicAnchor id="m05-p2-topic-sql" />
+
+#### 1. SQL: Logical Query Execution Order & PostgreSQL Dialect
+
+Although we *write* `SELECT` first, <GlossaryTerm definition="Structured Query Language: declarative set-based language executed in logical order FROM -> WHERE -> GROUP BY -> HAVING -> WINDOW -> SELECT -> ORDER BY -> LIMIT.">SQL</GlossaryTerm> executes logically in this order: `FROM` / `JOIN` -> `WHERE` -> `GROUP BY` -> `HAVING` -> `WINDOW` -> `SELECT` -> `DISTINCT` -> `ORDER BY` -> `LIMIT`/`OFFSET`.
+
+Understanding this order explains why a column alias defined in `SELECT` works in `ORDER BY` but fails in `WHERE`, and why `WHERE` filters rows *before* window functions run.
+
+<TopicAnchor id="m05-p2-topic-select" />
+
+#### 2. SELECT: Projection, Filtering, DISTINCT ON, Grouping & Sorting
+
+`SELECT` projects expressions, filters rows with `WHERE`, aggregates groups with `GROUP BY` + `HAVING`, and orders results with `ORDER BY` + `LIMIT`. Always prefer keyset pagination (`WHERE id > $last_id ORDER BY id LIMIT 50`) over large `OFFSET` scans.
+
+PostgreSQL also offers `DISTINCT ON (expr)`, which returns the *first* row per group according to `ORDER BY`—making "latest order per customer" queries concise and fast.
+
+<TopicAnchor id="m05-p2-topic-insert" />
+
+#### 3. INSERT: Multi-Row Inserts, RETURNING & Upserts (ON CONFLICT)
+
+`INSERT INTO ... VALUES (...), (...)` batches multiple rows in a single network round-trip, and PostgreSQL's `RETURNING id, created_at` eliminates a follow-up `SELECT` query to read generated keys or timestamps. You can also populate tables from another query using `INSERT INTO target SELECT ...`.
+
+For idempotent writes, `INSERT ... ON CONFLICT (unique_col) DO UPDATE SET ...` (or `DO NOTHING`) resolves unique-index collisions atomically inside the database engine, using the `EXCLUDED` pseudo-row to avoid race conditions between checking existence and inserting.
+
+<TopicAnchor id="m05-p2-topic-update" />
+
+#### 4. UPDATE: Conditional Updates, FROM Joins & RETURNING
+
+`UPDATE` modifies matching rows by creating new MVCC tuple versions (`xmax` on old, `xmin` on new). Always include a `WHERE` clause (and optimistic `version` check if needed) so you never overwrite unrelated rows.
+
+PostgreSQL supports `UPDATE target SET col = src.val FROM src WHERE target.id = src.id RETURNING target.*` to enrich or sync rows from another table in one statement.
+
+<TopicAnchor id="m05-p2-topic-delete" />
+
+#### 5. DELETE: Filtered Deletes, USING Joins & TRUNCATE vs. DELETE
+
+`DELETE FROM orders WHERE status = 'expired' RETURNING id` removes matching rows transactionally by stamping `xmax` on each heap tuple and supports `USING other_table` for join-based deletes. Always test the `WHERE` predicate with a `SELECT` first or wrap it in an explicit transaction before committing.
+
+When wiping an *entire* table, `TRUNCATE TABLE` deallocates data pages immediately in minimal WAL rather than marking millions of individual MVCC dead tuples. However, `TRUNCATE` acquires an `ACCESS EXCLUSIVE` lock and cannot filter with `WHERE` or return deleted rows via `RETURNING`.
+
+<TopicAnchor id="m05-p2-topic-join" />
+
+#### 6. JOIN: Relational Combination & Physical Join Algorithms
+
+<GlossaryTerm definition="Relational operator combining rows from two or more tables using a join predicate, executed physically via Nested Loop, Hash Join, or Merge Join.">JOIN</GlossaryTerm> stitches normalized tables back together at query time using a matching condition (`ON a.id = b.a_id`). Always specify explicit `ON` predicates so you never introduce an accidental Cartesian product.
+
+Logically a join filters a Cartesian product, while physically PostgreSQL's planner chooses between **Nested Loop** (great for small/indexed lookups), **Hash Join** (great for large unsorted equi-joins), and **Merge Join** (great for pre-sorted inputs).
+
+<TopicAnchor id="m05-p2-topic-inner-join" />
+
+#### 7. INNER JOIN: Intersection of Matching Rows
+
+`INNER JOIN` (the default when you write `JOIN`) emits a row **only when both tables satisfy the `ON` predicate**. Any row in either table without a matching partner on the other side is excluded from the result set, and `NULL` join keys never match each other under SQL three-valued logic.
+
+Use `INNER JOIN` when every child row must have a valid parent—for example, joining `order_items` to `orders` and `products`—and verify foreign-key indexes exist on the join columns.
+
+<TopicAnchor id="m05-p2-topic-left-join" />
+
+#### 8. LEFT JOIN: Preserving Left Rows & Avoiding WHERE Trap
+
+`LEFT JOIN` (`LEFT OUTER JOIN`) keeps **every row from the left table** and fills columns from the right table with `NULL` when no match exists. It is ideal for finding orphans (`WHERE right.id IS NULL`) or optional relationships.
+
+**Classic trap:** putting a filter on the right table inside `WHERE` (e.g., `WHERE o.status = 'paid'`) discards the `NULL`-padded rows and silently turns `LEFT JOIN` into `INNER JOIN`—place optional filters inside the `ON` clause instead.
+
+<TopicAnchor id="m05-p2-topic-right-join" />
+
+#### 9. RIGHT JOIN: Preserving Right Rows (and Rewriting as LEFT JOIN)
+
+`RIGHT JOIN` (`RIGHT OUTER JOIN`) is the exact mirror image of `LEFT JOIN`: it keeps every row from the right table and pads unmatched columns from the left table with `NULL`s. Filtering left-table columns in `WHERE` carries the same outer-join collapse trap as `LEFT JOIN`.
+
+In production codebases, engineers almost always rewrite `A RIGHT JOIN B` as `B LEFT JOIN A` so multi-join queries read consistently top-to-bottom from the primary driving table.
+
+<TopicAnchor id="m05-p2-topic-full-join" />
+
+#### 10. FULL JOIN: Retaining Unmatched Rows From Both Sides
+
+`FULL JOIN` (`FULL OUTER JOIN`) preserves **all rows from both the left and right tables**, padding whichever side lacks a matching partner with `NULL`s. Unlike `INNER` or `LEFT` joins, neither table can silently drop unmatched records.
+
+It is especially useful in financial data reconciliation—such as comparing `ledger_exports` against `bank_statements` (`WHERE l.id IS NULL OR b.id IS NULL`)—to surface missing or mismatched entries on either side in a single scan.
+
+<TopicAnchor id="m05-p2-topic-cross-join" />
+
+#### 11. CROSS JOIN: Cartesian Product & Generating Series/Grids
+
+`CROSS JOIN` pairs every row from table A with every row from table B (`|A| × |B|` output rows) with no `ON` condition. Because output size grows multiplicatively, accidental `CROSS JOIN`s on large tables quickly exhaust memory and disk temp space.
+
+Used intentionally, `CROSS JOIN` with `generate_series(...)` cleanly builds complete `date_bucket × tenant` reporting grids before `LEFT JOIN`ing sparse event metrics so zero-activity days still appear.
+
+<TopicAnchor id="m05-p2-topic-self-joins" />
+
+#### 12. Self Joins: Comparing Rows Within the Same Table
+
+A **self join** joins a table to itself using two distinct table aliases (`employees e LEFT JOIN employees mgr ON e.manager_id = mgr.id`) so rows in the same relation can be compared or linked. Without distinct aliases, column references become ambiguous.
+
+Self joins solve single-hop parent/manager lookups, finding duplicate email records, and detecting overlapping reservation intervals (`a.id < b.id AND a.start_at < b.end_at AND a.end_at > b.start_at`) within one table.
+
+<TopicAnchor id="m05-p2-topic-subqueries" />
+
+#### 13. Subqueries: Scalar, IN/EXISTS, Correlated & LATERAL
+
+A **subquery** nests one `SELECT` inside another (`WHERE`, `FROM`, or `SELECT` list). **Uncorrelated** subqueries run once, whereas **correlated** subqueries reference outer columns (`WHERE EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = c.id)`).
+
+Prefer `EXISTS` / `NOT EXISTS` over `IN` / `NOT IN`: `NOT IN` returns **zero rows** if the subquery yields even one `NULL`. PostgreSQL's `CROSS JOIN LATERAL (...)` allows a `FROM`-clause subquery to reference preceding tables for clean Top-N-per-group queries.
+
+<TopicAnchor id="m05-p2-topic-ctes" />
+
+#### 14. CTEs (Common Table Expressions): Readability, Materialization & Writable CTEs
+
+A **CTE** (`WITH active_users AS (...)`) names an intermediate result set to break complex queries into readable top-down steps. PostgreSQL also supports **writable CTEs** (`WITH deleted AS (DELETE ... RETURNING *) INSERT INTO archive ...`) to move rows atomically in one statement.
+
+Since PostgreSQL 12, non-recursive CTEs referenced once are **inlined** (`NOT MATERIALIZED`) by default so outer `WHERE` filters and indexes push down; add `AS MATERIALIZED` explicitly if you want an optimization fence.
+
+<TopicAnchor id="m05-p2-topic-recursive-ctes" />
+
+#### 15. Recursive CTEs: Traversing Trees, Org Charts & Graphs Safely
+
+`WITH RECURSIVE` evaluates an **anchor query** (`UNION ALL` **recursive term** referencing itself) repeatedly until a step produces zero new rows—ideal for org charts, category trees, and bills of materials.
+
+On cyclic graphs, always include a depth cap (`WHERE depth < 20`) or PostgreSQL 14+'s `CYCLE id SET is_cycle USING path` clause (or `NOT (id = ANY(path))`) to prevent infinite loops.
+
+<TopicAnchor id="m05-p2-topic-window-functions" />
+
+#### 16. Window Functions: OVER (PARTITION BY ... ORDER BY ...) & Frame Clauses
+
+<GlossaryTerm definition="SQL functions (ROW_NUMBER, RANK, DENSE_RANK, SUM() OVER) that compute aggregates or rankings across a sliding window of rows without collapsing row granularity.">Window functions</GlossaryTerm> compute rankings (`ROW_NUMBER()`, `RANK()`, `DENSE_RANK()`), running totals (`SUM(amount) OVER (PARTITION BY acct ORDER BY id)`), and neighbor lookups (`LAG()`, `LEAD()`) **without collapsing rows** like `GROUP BY`.
+
+Be careful with the default frame when `ORDER BY` is present (`RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW`, which groups peer ties together); specify `ROWS BETWEEN ...` when you need strict row-by-row running totals.
+
+</TopicSection>
+
+<TopicSection id="m05-p2-sec-c" letter="C" title="Internal Working & Architecture">
+
+Every SQL query follows a strict logical pipeline before the planner picks physical join and window operators.
+
+<DiagramCard caption="Figure 5.3 — Logical SQL Execution Order: FROM/JOIN and WHERE filter rows before GROUP BY, WINDOW, SELECT aliases, and ORDER BY/LIMIT.">
+  <svg viewBox="0 0 820 190" width="100%" role="img" aria-label="Logical SQL execution order pipeline">
+    <rect x="8" y="10" width="804" height="170" rx="12" fill="var(--bg-subtle)" stroke="var(--border)" />
+    <text x="410" y="34" textAnchor="middle" fill="var(--text-primary)" fontSize="13" fontWeight="700" fontFamily="sans-serif">Logical SQL Execution Order (Not Written Order)</text>
+
+    <rect x="24" y="54" width="132" height="58" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" />
+    <text x="90" y="79" textAnchor="middle" fill="var(--accent-strong)" fontSize="11" fontWeight="700" fontFamily="sans-serif">1. FROM / JOIN</text>
+    <text x="90" y="97" textAnchor="middle" fill="var(--text-secondary)" fontSize="10" fontFamily="sans-serif">Combine sources</text>
+
+    <line x1="156" y1="83" x2="180" y2="83" stroke="var(--accent)" strokeWidth="2" />
+    <polygon points="180,83 172,79 172,87" fill="var(--accent)" />
+
+    <rect x="184" y="54" width="132" height="58" rx="8" fill="var(--bg-surface)" stroke="var(--border-control)" />
+    <text x="250" y="79" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontWeight="700" fontFamily="sans-serif">2. WHERE</text>
+    <text x="250" y="97" textAnchor="middle" fill="var(--text-secondary)" fontSize="10" fontFamily="sans-serif">Filter raw rows</text>
+
+    <line x1="316" y1="83" x2="340" y2="83" stroke="var(--accent)" strokeWidth="2" />
+    <polygon points="340,83 332,79 332,87" fill="var(--accent)" />
+
+    <rect x="344" y="54" width="144" height="58" rx="8" fill="var(--bg-surface)" stroke="var(--border-control)" />
+    <text x="416" y="79" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontWeight="700" fontFamily="sans-serif">3. GROUP / HAVING</text>
+    <text x="416" y="97" textAnchor="middle" fill="var(--text-secondary)" fontSize="10" fontFamily="sans-serif">Aggregate + filter</text>
+
+    <line x1="488" y1="83" x2="512" y2="83" stroke="var(--accent)" strokeWidth="2" />
+    <polygon points="512,83 504,79 504,87" fill="var(--accent)" />
+
+    <rect x="516" y="54" width="128" height="58" rx="8" fill="var(--success-soft)" stroke="var(--success)" />
+    <text x="580" y="79" textAnchor="middle" fill="var(--success)" fontSize="11" fontWeight="700" fontFamily="sans-serif">4. WINDOW</text>
+    <text x="580" y="97" textAnchor="middle" fill="var(--text-secondary)" fontSize="10" fontFamily="sans-serif">OVER() partitions</text>
+
+    <line x1="644" y1="83" x2="668" y2="83" stroke="var(--success)" strokeWidth="2" />
+    <polygon points="668,83 660,79 660,87" fill="var(--success)" />
+
+    <rect x="672" y="54" width="124" height="58" rx="8" fill="var(--success-soft)" stroke="var(--success)" />
+    <text x="734" y="79" textAnchor="middle" fill="var(--success)" fontSize="11" fontWeight="700" fontFamily="sans-serif">5. SELECT / LIMIT</text>
+    <text x="734" y="97" textAnchor="middle" fill="var(--text-secondary)" fontSize="10" fontFamily="sans-serif">Aliases + ORDER</text>
+
+    <text x="410" y="148" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Why SELECT aliases fail in WHERE (step 2 runs before step 5) but work in ORDER BY</text>
+  </svg>
+</DiagramCard>
+
+<DiagramCard caption="Figure 5.4 — JOIN Row Retention vs. Window Function Partitioning (keeping row granularity while computing partition ranks and running totals).">
+  <svg viewBox="0 0 820 190" width="100%" role="img" aria-label="JOIN row retention and window function partitioning">
+    <rect x="8" y="10" width="804" height="170" rx="12" fill="var(--bg-subtle)" stroke="var(--border)" />
+
+    <rect x="24" y="26" width="376" height="138" rx="10" fill="var(--accent-soft)" stroke="var(--accent)" />
+    <text x="212" y="48" textAnchor="middle" fill="var(--accent-strong)" fontSize="12" fontWeight="700" fontFamily="sans-serif">JOIN Retention Summary</text>
+    <text x="212" y="76" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">INNER: A ∩ B (matched only)</text>
+    <text x="212" y="98" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">LEFT:  All A + matching B (NULL pad)</text>
+    <text x="212" y="120" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">FULL:  All A + All B (NULL pad both)</text>
+    <text x="212" y="142" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="monospace">CROSS: A × B (Cartesian product)</text>
+
+    <rect x="420" y="26" width="376" height="138" rx="10" fill="var(--success-soft)" stroke="var(--success)" />
+    <text x="608" y="48" textAnchor="middle" fill="var(--success)" fontSize="12" fontWeight="700" fontFamily="sans-serif">Window Function Partitioning</text>
+    <text x="608" y="76" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">PARTITION BY dept ORDER BY sal DESC</text>
+    <text x="608" y="98" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">eng: [180k rk=1, 180k rk=1, 150k rk=3]</text>
+    <text x="608" y="120" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">sales: [140k rk=1, 120k rk=2]</text>
+    <text x="608" y="142" textAnchor="middle" fill="var(--success)" fontSize="11" fontFamily="sans-serif">All 5 input rows preserved in output</text>
+  </svg>
+</DiagramCard>
+
+</TopicSection>
+
+<TopicSection id="m05-p2-sec-d" letter="D" title="Practical Examples (Interactive)">
+
+#### Example 1: PostgreSQL Upsert, Recursive CTE & Window Analytics (SQL)
+
+<CodeBlock
+  lang="sql"
+  code={`-- 1. Atomic Upsert with RETURNING
+INSERT INTO daily_metrics (metric_date, tenant_id, hits)
+VALUES ('2026-11-27', 42, 1)
+ON CONFLICT (metric_date, tenant_id)
+DO UPDATE SET hits = daily_metrics.hits + EXCLUDED.hits
+RETURNING metric_date, tenant_id, hits;
+
+-- 2. Recursive CTE org-chart traversal with cycle protection
+WITH RECURSIVE org_tree AS (
+  SELECT id, name, manager_id, 0 AS depth, ARRAY[id] AS path
+  FROM employees
+  WHERE manager_id IS NULL
+  UNION ALL
+  SELECT e.id, e.name, e.manager_id, t.depth + 1, t.path || e.id
+  FROM employees e
+  JOIN org_tree t ON e.manager_id = t.id
+  WHERE NOT (e.id = ANY(t.path)) AND t.depth < 20
+)
+SELECT id, name, depth FROM org_tree ORDER BY depth, id;
+
+-- 3. Window ranking & strict row-frame running total
+SELECT dept, emp_name, salary,
+       DENSE_RANK() OVER (PARTITION BY dept ORDER BY salary DESC) AS dense_rk,
+       SUM(salary) OVER (
+         PARTITION BY dept ORDER BY salary DESC, emp_name
+         ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+       ) AS running_dept_payroll
+FROM employees;`}
+/>
+
+#### Example 2: Relational JOIN Simulator (`executeJoin`)
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// Models INNER, LEFT, RIGHT, FULL, and CROSS joins in JavaScript
+function executeJoin({ leftRows, rightRows, type, leftKey, rightKey }) {
+  if (!Array.isArray(leftRows) || !Array.isArray(rightRows)) throw new TypeError("rows must be arrays");
+  const allowed = new Set(["INNER", "LEFT", "RIGHT", "FULL", "CROSS"]);
+  if (!allowed.has(type)) throw new TypeError("Invalid join type: " + type);
+  if (type !== "CROSS" && (!leftKey || !rightKey)) throw new TypeError("leftKey and rightKey required");
+
+  const out = [];
+  if (type === "CROSS") {
+    for (const l of leftRows) {
+      for (const r of rightRows) out.push({ left: l, right: r });
+    }
+    return out;
+  }
+
+  const matchedRightIdx = new Set();
+  for (const l of leftRows) {
+    let anyMatch = false;
+    rightRows.forEach((r, idx) => {
+      if (l[leftKey] !== null && l[leftKey] !== undefined && l[leftKey] === r[rightKey]) {
+        anyMatch = true;
+        matchedRightIdx.add(idx);
+        out.push({ left: l, right: r });
+      }
+    });
+    if (!anyMatch && (type === "LEFT" || type === "FULL")) {
+      out.push({ left: l, right: null });
+    }
+  }
+
+  if (type === "RIGHT" || type === "FULL") {
+    rightRows.forEach((r, idx) => {
+      if (!matchedRightIdx.has(idx)) out.push({ left: null, right: r });
+    });
+  }
+  return out;
+}
+
+const users = [{ id: 1, name: "Ada" }, { id: 2, name: "Linus" }];
+const orders = [{ id: 10, userId: 1, total: 90 }, { id: 11, userId: 99, total: 40 }];
+console.log("INNER:", executeJoin({ leftRows: users, rightRows: orders, type: "INNER", leftKey: "id", rightKey: "userId" }));
+console.log("LEFT:", executeJoin({ leftRows: users, rightRows: orders, type: "LEFT", leftKey: "id", rightKey: "userId" }));
+console.log("FULL:", executeJoin({ leftRows: users, rightRows: orders, type: "FULL", leftKey: "id", rightKey: "userId" }));`}
+/>
+
+#### Example 3: Window Ranking & Running Total Evaluator (`evaluateWindowFunctions`)
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// Computes ROW_NUMBER, RANK, DENSE_RANK, and ROWS-frame runningTotal per department partition
+function evaluateWindowFunctions(rows) {
+  if (!Array.isArray(rows)) throw new TypeError("rows must be an array");
+
+  const byDept = new Map();
+  for (const row of rows) {
+    if (!row || typeof row.dept !== "string" || !Number.isFinite(row.salary)) {
+      throw new TypeError("Each row requires dept (string) and finite salary");
+    }
+    if (!byDept.has(row.dept)) byDept.set(row.dept, []);
+    byDept.get(row.dept).push({ ...row });
+  }
+
+  const result = [];
+  for (const [, group] of byDept.entries()) {
+    group.sort((a, b) => b.salary - a.salary || String(a.name).localeCompare(String(b.name)));
+    let runningTotal = 0;
+    let rank = 1;
+    let denseRank = 1;
+
+    group.forEach((row, idx) => {
+      if (idx > 0 && row.salary < group[idx - 1].salary) {
+        rank = idx + 1;
+        denseRank += 1;
+      }
+      runningTotal += row.salary;
+      result.push({
+        ...row,
+        rowNumber: idx + 1,
+        rank,
+        denseRank,
+        runningTotal
+      });
+    });
+  }
+  return result;
+}
+
+console.log(
+  "Windowed:",
+  evaluateWindowFunctions([
+    { name: "Alice", dept: "eng", salary: 180 },
+    { name: "Bob", dept: "eng", salary: 180 },
+    { name: "Cara", dept: "eng", salary: 150 },
+    { name: "Dan", dept: "sales", salary: 140 }
+  ])
+);`}
+/>
+
+</TopicSection>
+
+<TopicSection id="m05-p2-sec-e" letter="E" title="Step-by-Step Walkthrough">
+
+Let us trace how `evaluateWindowFunctions` processes the `"eng"` partition (`Alice: 180`, `Bob: 180`, `Cara: 150`):
+
+1. **Partitioning**: Rows are grouped into `byDept` buckets (`"eng"` has 3 rows, `"sales"` has 1 row), mirroring `PARTITION BY dept`.
+2. **Ordering**: Inside `"eng"`, rows sort by `salary DESC, name ASC`: `Alice (180)`, `Bob (180)`, `Cara (150)`.
+3. **Peer Ties & Running Total**:
+   - `Alice`: `rowNumber = 1`, `rank = 1`, `denseRank = 1`, `runningTotal = 180`.
+   - `Bob` (tie with `Alice`): `rowNumber = 2`, `rank = 1`, `denseRank = 1`, `runningTotal = 360`.
+   - `Cara` (`150 < 180`): `rank` jumps to `idx + 1 = 3`, `denseRank` increments to `2`, and `runningTotal = 510`.
+
+</TopicSection>
+
+<TopicSection id="m05-p2-sec-f" letter="F" title="Real-World Use Cases">
+
+#### Scenario 1: Top-N Per Tenant Leaderboard via `DENSE_RANK()` or `LATERAL`
+
+Instead of firing 500 queries per tenant, a single `SELECT * FROM (SELECT ..., DENSE_RANK() OVER (PARTITION BY tenant_id ORDER BY score DESC) AS rk FROM scores) t WHERE rk <= 3` returns top performers across all tenants in one pass.
+
+#### Scenario 2: Idempotent Webhook Ingestion with `ON CONFLICT`
+
+Stripe/GitHub webhooks arrive out of order and duplicate on retries; `INSERT INTO webhook_events (...) VALUES (...) ON CONFLICT (provider_event_id) DO NOTHING RETURNING id` deduplicates safely without distributed locks.
+
+</TopicSection>
+
+<TopicSection id="m05-p2-sec-g" letter="G" title="Common Mistakes">
+
+- **Filtering a `LEFT JOIN`'s right table in `WHERE`:** Putting `WHERE o.status = 'paid'` drops all `NULL`-padded rows and silently degrades `LEFT JOIN` to `INNER JOIN`.
+- **Using `NOT IN (SELECT nullable_col FROM ...)`:** A single `NULL` in the subquery makes `x NOT IN (1, 2, NULL)` evaluate to `UNKNOWN` for every row, returning zero rows; always use `NOT EXISTS`.
+- **Using `OFFSET` for deep pagination:** `OFFSET 100000 LIMIT 20` scans and discards 100,020 rows; use keyset pagination (`WHERE (created_at, id) < ($1, $2)`).
+
+</TopicSection>
+
+<TopicSection id="m05-p2-sec-h" letter="H" title="Best Practices">
+
+- Prefer `EXISTS` / `NOT EXISTS` over `IN` / `NOT IN` when checking subquery membership on nullable columns.
+- Use `RETURNING` on `INSERT`, `UPDATE`, and `DELETE` to avoid extra round-trip `SELECT`s.
+- Always guard `WITH RECURSIVE` queries with both a path cycle check (`NOT (id = ANY(path))` or `CYCLE`) and a `depth` cap.
+
+</TopicSection>
+
+<TopicSection id="m05-p2-sec-i" letter="I" title="Performance & Scalability">
+
+- **PostgreSQL 12+ CTE Inlining:** Single-use non-recursive CTEs inline automatically into the outer query plan, letting `WHERE` predicates use indexes; force `MATERIALIZED` only when you intentionally want to cache an expensive sub-result referenced multiple times.
+- **Window Sorting:** Window functions trigger a `Sort` node unless an existing index matches `(partition_cols, order_cols)`—add composite indexes covering frequent `PARTITION BY ... ORDER BY ...` reporting queries.
+
+</TopicSection>
+
+<TopicSection id="m05-p2-sec-j" letter="J" title="Security Considerations">
+
+- **Parameterized Queries Always:** Never concatenate user strings into `SELECT`, `INSERT`, or `ORDER BY` clauses; bind values with `$1, $2` parameters and allowlist dynamic sort columns.
+- **Recursive Depth DoS:** An unguarded `WITH RECURSIVE` over user-editable parent links can spin CPU infinitely if someone creates a cycle; enforce `depth < max` and `statement_timeout`.
+
+</TopicSection>
+
+<TopicSection id="m05-p2-sec-k" letter="K" title="Comparisons & Decision Tables">
+
+#### 1. JOIN Types & Null-Handling Behavior
+
+| Join Type | Emits Matched Pairs | Keeps Unmatched Left | Keeps Unmatched Right | Typical Use Case |
+| --- | --- | --- | --- | --- |
+| **`INNER JOIN`** | Yes | No | No | Required parent/child relationships |
+| **`LEFT JOIN`** | Yes | Yes (`NULL` right) | No | Optional enrichment or orphan detection (`IS NULL`) |
+| **`RIGHT JOIN`** | Yes | No | Yes (`NULL` left) | Mirror of `LEFT JOIN` (usually rewritten as `LEFT`) |
+| **`FULL JOIN`** | Yes | Yes | Yes | Two-way reconciliation / diffing |
+| **`CROSS JOIN`** | All `|A| × |B|` | N/A | N/A | Date × tenant reporting grids |
+
+#### 2. Subqueries vs. CTEs vs. Window Functions
+
+| Construct | Output Granularity | Key Advantage | Watch-Out |
+| --- | --- | --- | --- |
+| **`EXISTS` / `LATERAL`** | Driven by outer query | Short-circuits; null-safe (`NOT EXISTS`) | `NOT IN` breaks if subquery returns `NULL` |
+| **CTE (`WITH`)** | Named intermediate table | Clean modular SQL; supports writable `DELETE`/`INSERT` | Add `NOT MATERIALIZED` if referenced >1x and needing pushdown |
+| **Window (`OVER`)** | Preserves every input row | Ranks & running totals without self-joins | Default `ORDER BY` frame is `RANGE` (groups ties), not `ROWS` |
+
+#### 3. Ranking & Framing Window Functions
+
+| Function / Frame | Behavior on Ties (`180, 180, 150`) | Typical Use |
+| --- | --- | --- |
+| **`ROW_NUMBER()`** | `1, 2, 3` (arbitrary tie-break unless deterministic `ORDER BY`) | Deduplication / strict pagination |
+| **`RANK()`** | `1, 1, 3` (leaves gap after tie) | Competition standings |
+| **`DENSE_RANK()`** | `1, 1, 2` (no gaps) | Top-N distinct salary tiers per group |
+| **`ROWS BETWEEN ...`** | Strict physical row count | Accurate row-by-row running sums |
+
+</TopicSection>
+
+<TopicSection id="m05-p2-sec-l" letter="L" title="Tips to Remember (Mnemonics & Mental Models)">
+
+- **"Logical SQL order: `FROM` -> `WHERE` -> `GROUP BY` -> `HAVING` -> `WINDOW` -> `SELECT` -> `ORDER BY` -> `LIMIT`."**
+- **"Never put a right-table filter in `WHERE` after a `LEFT JOIN`—put it in `ON`."**
+- **"Always use `NOT EXISTS` instead of `NOT IN` when `NULL`s are possible."**
+- **"`GROUP BY` collapses rows; `OVER (...)` keeps every row."**
+
+</TopicSection>
+
+<TopicSection id="m05-p2-sec-mn" letter="M/N" title="Interview Questions & Detailed Answers">
+
+<InterviewSection lessonId="m05-p2" />
+
+</TopicSection>
+
+<TopicSection id="m05-p2-sec-o" letter="O" title="Practical Exercises">
+
+#### Exercise 1: Cycle-Safe Recursive Hierarchy Traversal (traverseRecursiveHierarchy)
+
+<ExerciseCard
+  title="Exercise 1: Cycle-Safe Recursive Hierarchy Traversal (traverseRecursiveHierarchy)"
+  prompt={
+    <p>
+      Implement <code>traverseRecursiveHierarchy(&#123; nodes, rootId, maxDepth &#125;)</code> modeling PostgreSQL <code>WITH RECURSIVE</code> with cycle detection (skipping any node already in the current ancestor path) and a <code>maxDepth</code> cap.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function traverseRecursiveHierarchy({ nodes, rootId, maxDepth = 10 }) {
+  if (!Array.isArray(nodes)) throw new TypeError("nodes must be an array");
+  if (!Number.isInteger(maxDepth) || maxDepth < 0) throw new TypeError("maxDepth must be >= 0");
+
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  const root = byId.get(rootId);
+  if (!root) return [];
+
+  const childrenByParent = new Map();
+  for (const n of nodes) {
+    if (!childrenByParent.has(n.parentId)) childrenByParent.set(n.parentId, []);
+    childrenByParent.get(n.parentId).push(n);
+  }
+
+  const out = [];
+  const queue = [{ node: root, depth: 0, path: new Set([root.id]) }];
+
+  while (queue.length > 0) {
+    const { node, depth, path } = queue.shift();
+    out.push({ id: node.id, name: node.name, depth });
+    if (depth >= maxDepth) continue;
+
+    for (const child of childrenByParent.get(node.id) || []) {
+      if (path.has(child.id)) continue; // Cycle guard: NOT (id = ANY(path))
+      const nextPath = new Set(path);
+      nextPath.add(child.id);
+      queue.push({ node: child, depth: depth + 1, path: nextPath });
+    }
+  }
+  return out;
+}
+
+console.log(
+  "Org tree:",
+  traverseRecursiveHierarchy({
+    rootId: 1,
+    nodes: [
+      { id: 1, parentId: null, name: "CEO" },
+      { id: 2, parentId: 1, name: "VP Eng" },
+      { id: 3, parentId: 2, name: "Staff Eng" },
+      { id: 1, parentId: 3, name: "CEO" } // cycle edge ignored
+    ]
+  })
+);`}
+  />
+</ExerciseCard>
+
+#### Exercise 2: Atomic Upsert Batch Simulator (applyUpsertBatch)
+
+<ExerciseCard
+  title="Exercise 2: Atomic Upsert Batch Simulator (applyUpsertBatch)"
+  prompt={
+    <p>
+      Implement <code>applyUpsertBatch(&#123; existingRows, incomingRows &#125;)</code> modeling PostgreSQL <code>INSERT ... ON CONFLICT (id) DO UPDATE SET hits = existing.hits + EXCLUDED.hits RETURNING ...</code> without mutating input arrays.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function applyUpsertBatch({ existingRows, incomingRows }) {
+  if (!Array.isArray(existingRows) || !Array.isArray(incomingRows)) {
+    throw new TypeError("existingRows and incomingRows must be arrays");
+  }
+
+  const table = new Map();
+  for (const r of existingRows) {
+    if (!r || r.id === undefined || !Number.isInteger(r.hits) || r.hits < 0) {
+      throw new TypeError("Each row requires id and non-negative integer hits");
+    }
+    table.set(r.id, { ...r });
+  }
+
+  const returning = [];
+  for (const inc of incomingRows) {
+    if (!inc || inc.id === undefined || !Number.isInteger(inc.hits) || inc.hits < 0) {
+      throw new TypeError("Each incoming row requires id and non-negative integer hits");
+    }
+    if (table.has(inc.id)) {
+      const prev = table.get(inc.id);
+      const updated = { ...prev, hits: prev.hits + inc.hits };
+      table.set(inc.id, updated);
+      returning.push({ action: "UPDATE", row: updated });
+    } else {
+      const inserted = { ...inc };
+      table.set(inc.id, inserted);
+      returning.push({ action: "INSERT", row: inserted });
+    }
+  }
+
+  return { rows: [...table.values()], returning };
+}
+
+console.log(
+  "Upsert:",
+  applyUpsertBatch({
+    existingRows: [{ id: "t1", hits: 5 }],
+    incomingRows: [{ id: "t1", hits: 2 }, { id: "t2", hits: 1 }]
+  })
+);`}
+  />
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m05-p2-sec-p" letter="P" title="Advanced Challenge">
+
+<Callout variant="warning" title="Production Query Bug: Missing Tenants, Silent NULLs & Infinite Recursion">
+  <p>
+    A SaaS billing report drops new tenants with zero invoices (<code>LEFT JOIN</code> + <code>WHERE</code> trap), returns 0 rows on an exclusion filter (<code>NOT IN</code> with <code>NULL</code>), and stalls CPU on a cyclic folder tree.
+  </p>
+</Callout>
+
+<ExerciseCard
+  title="Challenge: Refactoring the Reporting & Hierarchy Query Layer"
+  prompt={
+    <p>
+      Refactor the query layer using <code>ON</code>-clause filtering, <code>NOT EXISTS</code>, <code>WITH RECURSIVE</code> cycle/depth guards, <code>DENSE_RANK()</code> Top-N partitioning, and <code>ON CONFLICT DO UPDATE</code>. Compare your solution with Interview Question 10 in Section M/N.
+    </p>
+  }
+/>
+
+</TopicSection>
+
+<TopicSection id="m05-p2-sec-q" letter="Q" title="Summary & Key Takeaways">
+
+- **Logical SQL execution order** (`FROM` -> `WHERE` -> `GROUP BY` -> `HAVING` -> `WINDOW` -> `SELECT` -> `ORDER BY` -> `LIMIT`) governs aliases, outer join filters, and window timing.
+- **`INSERT ... ON CONFLICT ... DO UPDATE RETURNING`** enables atomic single-round-trip upserts, while `TRUNCATE` clears whole tables without per-row MVCC tombstones.
+- **Prefer `NOT EXISTS` over `NOT IN`** on nullable columns, and rewrite `RIGHT JOIN` as `LEFT JOIN` for readability.
+- **`WITH RECURSIVE` (with cycle/depth guards) and Window Functions (`PARTITION BY ... ROWS BETWEEN ...`)** solve hierarchies and Top-N/running-total analytics cleanly in one query.
+
+</TopicSection>

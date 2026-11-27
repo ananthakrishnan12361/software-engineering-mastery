@@ -1,0 +1,900 @@
+<Callout variant="info" title="Topics Covered in Part 1 (M08-P1)">
+  <p>
+    This first part of Module 8 covers 8 index-foundation topics: <strong>Why indexes exist</strong>, <strong>How indexes work</strong>, <strong>B-Tree</strong>, <strong>B+ Tree</strong>, <strong>Hash indexes</strong>, <strong>Clustered indexes</strong>, <strong>Non-clustered indexes</strong>, and <strong>Unique indexes</strong>. Composite, covering, partial and other specialised index types follow in Part 2.
+  </p>
+</Callout>
+
+<TopicSection id="m08-p1-sec-a" letter="A" title="Topic Introduction">
+
+#### What is this?
+
+A **database index** is a separate, ordered (or hashed) data structure that maps column values to the location of the rows that hold them. It works like the index at the back of a book: instead of reading every page to find a word, you look the word up in a small sorted list and jump straight to the right page. In relational engines the structure is almost always a **B+ Tree** stored in the same fixed-size pages (8 KB or 16 KB) as the table itself, which means it is cached by the same buffer pool and protected by the same write-ahead log.
+
+#### Why does it exist & what problem does it solve?
+
+Without an index, the only way to answer `WHERE email = 'ann@example.com'` is a **full table scan**: read every page, test every row. That costs work proportional to the table size, so a query that takes 2 ms on 10,000 rows takes minutes on 500 million rows. An index turns that into a handful of page reads (usually 3 or 4, even for hundreds of millions of rows) because each level of the tree discards almost all remaining candidates. Indexes also give you **sorted output** and **cheap uniqueness checks** as a side effect.
+
+#### Where is it used in real-world software?
+
+Every production database depends on indexes: primary keys and foreign keys in e-commerce schemas, `email` and `username` lookups in authentication, `created_at` ranges in reporting and audit logs, tenant-scoped queries in SaaS, and unique constraints that stop duplicate payments or double bookings. PostgreSQL, MySQL/InnoDB, SQL Server and MongoDB all build their default indexes on B-Tree family structures, so the mental model in this module transfers across engines.
+
+</TopicSection>
+
+<TopicSection id="m08-p1-sec-b" letter="B" title="Fundamentals (Simple Mental Models)">
+
+<TopicAnchor id="m08-p1-topic-why-indexes-exist" />
+
+#### 1. Why Indexes Exist: Avoiding Full Scans
+
+Tables are stored as pages of rows in no particular order, so finding a row by value means reading pages until you hit it. Work grows linearly with table size: the cost model is roughly `pages = rows / rowsPerPage`. An index replaces that with a logarithmic walk whose depth grows by one level only when the table grows by a factor of the fan-out (hundreds or thousands). The price is paid elsewhere: extra disk space, slower `INSERT`/`UPDATE`/`DELETE` (every index must be maintained), and a planner decision on every query.
+
+An index is not free speed. A sequential scan reads pages in order, which disks and operating systems do very fast, while an index probe followed by row fetches is **random I/O**. When a predicate matches a large share of the table (there is no fixed threshold; it depends on row width, hardware and caching), the planner rightly chooses the scan. The runnable cost model in Example 2 shows an index winning by about 4,000 times for a point lookup and losing for a predicate that matches half the table.
+
+<TopicAnchor id="m08-p1-topic-how-indexes-work" />
+
+#### 2. How Indexes Work: Sorted Keys, Pointers and Seeks
+
+Each index entry is a pair: the **key** (one or more column values) and a **row locator** (a primary key value, a page and slot number, or the row itself). Entries are kept in key order inside pages. A lookup starts at the **root page**, uses binary search inside the page to pick the child whose key range contains the search value, repeats until it reaches a **leaf page**, and then follows the locator to the row. A range query performs one seek to the lower bound and then reads neighbouring leaf entries in order until the upper bound.
+
+Indexes must stay consistent with the table. An `INSERT` adds an entry to every index on the table; a `DELETE` removes (or marks) them; an `UPDATE` of an indexed column is effectively a delete plus an insert in that index. When a target leaf page is full, the engine **splits** it, which costs extra writes and can leave pages half empty. The planner decides whether to use an index from **statistics** (row counts and value histograms), so stale statistics can make a perfectly good index look useless.
+
+<TopicAnchor id="m08-p1-topic-b-tree" />
+
+#### 3. B-Tree: Balanced, Wide, Shallow Search Trees
+
+A **B-Tree** (Bayer and McCreight, 1972) is a self-balancing search tree designed for block storage. Each node is one disk page holding many sorted keys and one child pointer per gap between keys, so every node has dozens to thousands of children instead of two. All leaves sit at the same depth, which guarantees every lookup reads the same number of pages: `O(log_f N)` where `f` is the fan-out. Inserts that overflow a node split it and push a separator key up; deletes that underflow a node merge or borrow from a sibling, so the tree stays balanced without ever being rebuilt.
+
+Because keys are ordered, a B-Tree index supports far more than equality: `=`, `<`, `<=`, `>`, `>=`, `BETWEEN`, `IN`, prefix matches such as `LIKE 'abc%'` (subject to collation and operator class), `ORDER BY` without a separate sort, and `MIN`/`MAX` in one probe. It cannot help `LIKE '%abc'` or a predicate that wraps the column in a function (`WHERE LOWER(email) = ...`) unless you build an expression index. In the original B-Tree, internal nodes also carry row data; production databases use the B+ Tree refinement below.
+
+<TopicAnchor id="m08-p1-topic-b-plus-tree" />
+
+#### 4. B+ Tree: Data in Leaves, Linked for Range Scans
+
+A **B+ Tree** keeps **all row locators (or rows) in the leaves** and uses internal nodes purely as routing signposts. Because internal nodes hold only keys and child pointers, more of them fit in a page, so the fan-out is higher and the tree is shallower. The leaves are chained with sibling pointers, so a range scan never climbs back up the tree: it seeks once and walks right. Every lookup, hit or miss, costs exactly the tree height, which makes latency predictable.
+
+InnoDB, SQL Server and PostgreSQL's `btree` access method are all B+ Tree variants even though their documentation says "B-tree" (PostgreSQL adds right-links and high keys for concurrency). With a 16 KB page and roughly 14 bytes per internal entry (an 8-byte key plus child pointer and record overhead; the exact figure varies by engine), a node holds on the order of 1,000 children, so three levels can address up to about a billion leaf entries in theory; real pages are not full, so plan for fewer. When a leaf splits, the first key of the new right leaf is **copied** up to the parent; when an internal node splits, its middle key **moves** up. Example 1 implements exactly these rules.
+
+<TopicAnchor id="m08-p1-topic-hash-indexes" />
+
+#### 5. Hash Indexes: O(1) Equality, Nothing Else
+
+A **hash index** applies a hash function to the key, uses the result to choose a **bucket**, and stores the row locator in that bucket (colliding keys share a chain or overflow page). An equality lookup touches one bucket, so the average cost is constant regardless of table size, and there is no tree to descend. The structure must **resize** as it fills, because chains lengthen as the load factor rises.
+
+The trade-off is that hashing destroys order. A hash index cannot serve `<`, `>`, `BETWEEN`, prefix `LIKE`, or `ORDER BY`, and it cannot answer a composite lookup that supplies only part of the key. Engine support differs: PostgreSQL has hash indexes (crash-safe since version 10, equality only, no uniqueness); the MySQL MEMORY engine supports them, but InnoDB ignores a requested `USING HASH` and builds a B-Tree (it keeps an internal **adaptive hash index** in memory that you do not create); SQL Server offers hash indexes only on memory-optimized tables with a fixed `BUCKET_COUNT`; MongoDB offers hashed indexes mainly for equality and hashed sharding.
+
+<TopicAnchor id="m08-p1-topic-clustered-indexes" />
+
+#### 6. Clustered Indexes: The Table Is the Index
+
+A **clustered index** stores the full row inside the leaf level of the B+ Tree, ordered by the clustering key, so the table and the index are the same structure. There can be only one per table because rows can be stored in only one order. InnoDB always clusters on the **primary key** (falling back to the first `UNIQUE NOT NULL` index, then a hidden 6-byte row id). SQL Server clusters on the primary key by default, but you can choose another column with `CREATE CLUSTERED INDEX`. PostgreSQL has no maintained clustered index: its tables are **heaps**, and the `CLUSTER` command only rewrites the table once in index order.
+
+Clustering makes primary-key lookups and primary-key range scans very cheap, because the row is found at the leaf with no second hop. It also shapes write behaviour. Sequential keys (identity columns, time-ordered ids) append to the rightmost leaf and keep pages dense, while random keys such as UUIDv4 insert all over the tree, causing page splits, fragmentation and a larger working set. Because secondary indexes in clustered engines store the clustering key, a wide clustering key (for example a long string) bloats every other index on the table.
+
+<TopicAnchor id="m08-p1-topic-non-clustered-indexes" />
+
+#### 7. Non-Clustered (Secondary) Indexes: A Second Tree Pointing Back
+
+A **non-clustered** (secondary) index is a separate B+ Tree whose leaves hold the indexed columns plus a **row locator**. The locator depends on the engine: InnoDB stores the **primary key value**, SQL Server stores the **clustering key** (or a row id for a heap), and PostgreSQL stores a **TID** (heap page number and slot). A table can have many of them, and each one is kept in sync on every write.
+
+A lookup through a secondary index is therefore a two-step process: seek the secondary tree to find the locator, then fetch the row. In InnoDB the second step is a full clustered-index seek per matching row, so an index that matches 50 rows costs about `secondaryHeight + 50 * clusteredHeight` page reads, as Exercise 2 computes. The way to avoid the second step is a **covering index**, whose leaf already contains every column the query needs (SQL Server and PostgreSQL 11+ spell this `INCLUDE`; MySQL adds the columns to the key). Part 2 covers composite and covering design in depth.
+
+<TopicAnchor id="m08-p1-topic-unique-indexes" />
+
+#### 8. Unique Indexes: Constraints Enforced by the Tree
+
+A **unique index** is an ordinary B+ Tree that refuses to store a second entry with the same key. On every insert or update of the key, the engine probes the index, and if the value exists the statement fails (MySQL error `1062`, PostgreSQL SQLSTATE `23505`, SQL Server error `2601` or `2627`). A `PRIMARY KEY` is a unique index plus `NOT NULL`. Because the check happens inside the index with proper locking, it is the only reliable way to prevent duplicates: an application-level "select then insert" check has a race window in which two sessions both see "not found".
+
+Details differ between engines and matter in production. PostgreSQL and MySQL allow **multiple NULLs** in a unique index (PostgreSQL 15 adds `NULLS NOT DISTINCT` to change that), while SQL Server treats NULLs as equal and allows only one. Case-insensitive collations (MySQL 8.0's default `utf8mb4_0900_ai_ci`) make `'Ann'` and `'ann'` duplicates, while PostgreSQL's default collations do not. Two sessions inserting the same new key serialise: the second waits for the first to commit (then fails) or roll back (then succeeds).
+
+</TopicSection>
+
+<TopicSection id="m08-p1-sec-c" letter="C" title="Internal Working & Architecture">
+
+#### Anatomy of a B+ Tree Index Lookup
+
+Every node of the tree is one page. The root and upper internal pages are touched by nearly every query, so they stay permanently hot in the buffer pool; in practice only the lowest internal level and the leaves cause real disk reads. A point lookup reads one page per level. A range scan reads one page per level to reach the lower bound and then follows leaf-to-leaf pointers, reading leaf pages sequentially. Figure 8.1 shows a tiny tree: the root routes by a single separator key, internal nodes route again, and the sorted leaves are chained.
+
+<DiagramCard title="Figure 8.1 — B+ Tree: Routing Nodes, Sorted Leaves and the Leaf Chain">
+<svg viewBox="0 0 820 190" xmlns="http://www.w3.org/2000/svg" aria-label="B+ Tree diagram with a root node, two internal nodes and four linked leaf nodes, plus a rules panel">
+  <defs>
+    <style>{`
+      .m8-label { font: 600 11px/1.3 system-ui, sans-serif; fill: var(--token-text-primary); }
+      .m8-sub   { font: 400 9.5px/1.3 system-ui, sans-serif; fill: var(--token-text-secondary); }
+      .m8-hdr   { font: 700 10px system-ui, sans-serif; fill: var(--token-text-inverse); }
+      .m8-box   { rx: 6; ry: 6; }
+    `}</style>
+    <marker id="arr8" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--token-brand-default)"/></marker>
+  </defs>
+
+  <path d="M270 38 L155 62" stroke="var(--token-border-default)" stroke-width="1.4" fill="none"/>
+  <path d="M270 38 L385 62" stroke="var(--token-border-default)" stroke-width="1.4" fill="none"/>
+  <path d="M155 92 L80 118" stroke="var(--token-border-default)" stroke-width="1.4" fill="none"/>
+  <path d="M155 92 L200 118" stroke="var(--token-border-default)" stroke-width="1.4" fill="none"/>
+  <path d="M385 92 L320 118" stroke="var(--token-border-default)" stroke-width="1.4" fill="none"/>
+  <path d="M385 92 L440 118" stroke="var(--token-border-default)" stroke-width="1.4" fill="none"/>
+
+  <rect class="m8-box" x="215" y="8" width="110" height="30" fill="var(--token-brand-muted)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <text x="270" y="27" text-anchor="middle" class="m8-label">Root: 40</text>
+
+  <rect class="m8-box" x="100" y="62" width="110" height="30" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <text x="155" y="81" text-anchor="middle" class="m8-label">Internal: 20</text>
+  <rect class="m8-box" x="330" y="62" width="110" height="30" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <text x="385" y="81" text-anchor="middle" class="m8-label">Internal: 60</text>
+
+  <rect class="m8-box" x="30" y="118" width="100" height="34" fill="var(--token-success-muted)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <text x="80" y="139" text-anchor="middle" class="m8-label">5 · 12</text>
+  <rect class="m8-box" x="150" y="118" width="100" height="34" fill="var(--token-success-muted)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <text x="200" y="139" text-anchor="middle" class="m8-label">20 · 31</text>
+  <rect class="m8-box" x="270" y="118" width="100" height="34" fill="var(--token-success-muted)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <text x="320" y="139" text-anchor="middle" class="m8-label">40 · 48</text>
+  <rect class="m8-box" x="390" y="118" width="100" height="34" fill="var(--token-success-muted)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <text x="440" y="139" text-anchor="middle" class="m8-label">60 · 77</text>
+
+  <path d="M131 135 L148 135" stroke="var(--token-brand-default)" stroke-width="2" marker-end="url(#arr8)"/>
+  <path d="M251 135 L268 135" stroke="var(--token-brand-default)" stroke-width="2" marker-end="url(#arr8)"/>
+  <path d="M371 135 L388 135" stroke="var(--token-brand-default)" stroke-width="2" marker-end="url(#arr8)"/>
+
+  <text x="260" y="172" text-anchor="middle" class="m8-sub">Leaf chain: sibling pointers make range scans sequential</text>
+
+  <rect class="m8-box" x="560" y="8" width="252" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2"/>
+  <rect x="560" y="8" width="252" height="20" rx="6" ry="6" fill="var(--token-brand-default)"/>
+  <text x="686" y="22" text-anchor="middle" class="m8-hdr">B+ Tree Rules</text>
+  <text x="572" y="52" class="m8-sub">Internal nodes: routing keys only</text>
+  <text x="572" y="76" class="m8-sub">Leaves: every key + row locator</text>
+  <text x="572" y="100" class="m8-sub">All leaves at the same depth</text>
+  <text x="572" y="124" class="m8-sub">Fan-out: hundreds per 8-16 KB page</text>
+  <text x="572" y="148" class="m8-sub">Height 3-4 covers millions of rows</text>
+  <text x="572" y="172" class="m8-sub">Lookup cost = height, hit or miss</text>
+</svg>
+</DiagramCard>
+
+#### Page Splits, Fill Factor and Write Cost
+
+When an insert lands in a full leaf, the engine allocates a new page, moves roughly half of the entries into it, and inserts a separator into the parent; if the parent is full it splits too, and a split of the root adds one level to the whole tree. Random inserts leave pages about 70 percent full on average, while sequential appends fill pages almost completely. PostgreSQL's `fillfactor` for B-Tree indexes defaults to 90 and InnoDB reserves space through `innodb_fill_factor`, trading storage for fewer splits on update-heavy indexes.
+
+#### Concurrency and Durability of Index Changes
+
+Index modifications are logged in the same write-ahead log as table changes (PostgreSQL WAL, InnoDB redo log, SQL Server transaction log), so a crash recovers table and indexes together. Readers use short page latches (PostgreSQL's B-Tree also uses right-links), and row-versioning engines (PostgreSQL, InnoDB, and SQL Server under RCSI or SNAPSHOT) use MVCC visibility rules so readers rarely block writers; SQL Server's default READ COMMITTED takes shared locks, so there readers can block writers. The cost you feel is **write amplification**: one logical row change touches the table page plus one page for every index, each producing log records.
+
+</TopicSection>
+
+<TopicSection id="m08-p1-sec-d" letter="D" title="Practical Examples (Interactive)">
+
+#### Example 1: B+ Tree Index Simulator (createBPlusTree)
+
+This runnable simulator builds a real B+ Tree: sorted leaves linked by sibling pointers, leaf splits that copy the separator upward, internal splits that move it upward, and root splits that add a level. Watch how `height` grows only logarithmically while `range` follows the leaf chain instead of re-descending, and call `levels()` to see the keys level by level (inserting 10, 20, 30, 40 into an order-4 tree copies 30 up into the root).
+
+<CodeBlock lang="javascript" runnable title="B+ Tree Index Simulator" code={`
+// createBPlusTree — in-memory B+ Tree: data only in leaves, linked leaf chain, splits grow the tree upward
+function createBPlusTree(order = 4) {
+  if (!Number.isInteger(order) || order < 3 || order > 128) {
+    throw new RangeError("order must be an integer between 3 and 128");
+  }
+  const maxKeys = order - 1;
+  let root = { leaf: true, keys: [], values: [], next: null };
+  let size = 0;
+
+  function checkKey(key) {
+    if (typeof key !== "number" || !Number.isFinite(key)) throw new TypeError("key must be a finite number");
+    return Object.is(key, -0) ? 0 : key;
+  }
+  function lowerBound(keys, key) {
+    let lo = 0;
+    let hi = keys.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (keys[mid] < key) lo = mid + 1;
+      else hi = mid;
+    }
+    return lo;
+  }
+  function childIndex(node, key) {
+    let lo = 0;
+    let hi = node.keys.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (node.keys[mid] <= key) lo = mid + 1;
+      else hi = mid;
+    }
+    return lo;
+  }
+  function findLeaf(key, path) {
+    let node = root;
+    let visited = 1;
+    while (!node.leaf) {
+      const i = childIndex(node, key);
+      if (path) path.push({ node, i });
+      node = node.children[i];
+      visited++;
+    }
+    return { leaf: node, visited };
+  }
+
+  function insert(rawKey, value) {
+    const key = checkKey(rawKey);
+    const path = [];
+    const { leaf } = findLeaf(key, path);
+    const pos = lowerBound(leaf.keys, key);
+    if (leaf.keys[pos] === key) {
+      leaf.values[pos] = value; // upsert: key already indexed
+      return false;
+    }
+    leaf.keys.splice(pos, 0, key);
+    leaf.values.splice(pos, 0, value);
+    size++;
+    if (leaf.keys.length <= maxKeys) return true;
+
+    const mid = Math.ceil(leaf.keys.length / 2);
+    const right = { leaf: true, keys: leaf.keys.splice(mid), values: leaf.values.splice(mid), next: leaf.next };
+    leaf.next = right;
+    let left = leaf;
+    let newNode = right;
+    let upKey = right.keys[0]; // B+ Tree: separator is COPIED up, the key stays in the leaf
+
+    for (;;) {
+      const step = path.pop();
+      if (!step) {
+        root = { leaf: false, keys: [upKey], children: [left, newNode] };
+        break;
+      }
+      step.node.keys.splice(step.i, 0, upKey);
+      step.node.children.splice(step.i + 1, 0, newNode);
+      if (step.node.keys.length <= maxKeys) break;
+      const m = Math.floor(step.node.keys.length / 2);
+      const promoted = step.node.keys[m]; // internal split: separator MOVES up
+      const sibling = { leaf: false, keys: step.node.keys.splice(m + 1), children: step.node.children.splice(m + 1) };
+      step.node.keys.splice(m, 1);
+      left = step.node;
+      newNode = sibling;
+      upKey = promoted;
+    }
+    return true;
+  }
+
+  function search(rawKey) {
+    const key = checkKey(rawKey);
+    const { leaf, visited } = findLeaf(key);
+    const pos = lowerBound(leaf.keys, key);
+    const found = leaf.keys[pos] === key;
+    return { found, value: found ? leaf.values[pos] : undefined, nodesVisited: visited };
+  }
+
+  function range(rawLo, rawHi) {
+    const lo = checkKey(rawLo);
+    const hi = checkKey(rawHi);
+    if (lo > hi) throw new RangeError("lo must be <= hi");
+    const { leaf: start, visited } = findLeaf(lo);
+    const keys = [];
+    let leavesVisited = 0;
+    for (let leaf = start; leaf; leaf = leaf.next) {
+      leavesVisited++;
+      let stop = false;
+      for (let i = 0; i < leaf.keys.length; i++) {
+        if (leaf.keys[i] < lo) continue;
+        if (leaf.keys[i] > hi) { stop = true; break; }
+        keys.push(leaf.keys[i]);
+      }
+      if (stop) break;
+    }
+    return { keys, seekNodes: visited, leavesVisited };
+  }
+
+  function height() {
+    let h = 1;
+    for (let n = root; !n.leaf; n = n.children[0]) h++;
+    return h;
+  }
+
+  function levels() {
+    const out = [];
+    let level = [root];
+    while (level.length > 0) {
+      out.push(level.map((node) => node.keys.join(",")));
+      level = level[0].leaf ? [] : level.flatMap((node) => node.children);
+    }
+    return out;
+  }
+
+  return { insert, search, range, height, levels, size: () => size };
+}
+
+const tree = createBPlusTree(4);
+for (let k = 1; k <= 40; k++) tree.insert(k * 10, "row-" + k);
+console.log("size:", tree.size(), "height:", tree.height());
+const small = createBPlusTree(4);
+for (const k of [10, 20, 30, 40]) small.insert(k, k);
+console.log("levels after 10,20,30,40:", JSON.stringify(small.levels())); // 30 is copied up
+console.log("search 250:", JSON.stringify(tree.search(250)));
+console.log("search 255:", JSON.stringify(tree.search(255)));
+console.log("range 100..160:", JSON.stringify(tree.range(100, 160)));
+
+try { tree.insert(NaN, "x"); } catch (e) { console.log("Error:", e.name, e.message); }
+try { createBPlusTree(2); } catch (e) { console.log("Error:", e.name, e.message); }
+try { tree.range(9, 1); } catch (e) { console.log("Error:", e.name, e.message); }
+`} />
+
+#### Example 2: Index Seek vs Table Scan Cost Model (estimateAccessCost)
+
+This model compares a sequential scan with an index plan using page reads. Random reads (index probes and heap fetches) cost more than sequential reads, which is why a non-selective predicate loses to a scan and why a covering index, which skips heap fetches, wins by two orders of magnitude (about 240 times faster than the scan in the model, against roughly 1.2 times for the same range without covering).
+
+<CodeBlock lang="javascript" runnable title="Index Seek vs Table Scan Cost Model" code={`
+// estimateAccessCost — why indexes exist: compare a sequential scan with an index seek (page-read model)
+function estimateAccessCost(input) {
+  if (input === null || typeof input !== "object" || Array.isArray(input)) {
+    throw new TypeError("input must be a non-null object");
+  }
+  const { totalRows, rowsPerPage, matchingRows, fanout, covering = false, randomCostFactor = 4 } = input;
+  for (const [name, value] of Object.entries({ totalRows, rowsPerPage, fanout })) {
+    if (!Number.isSafeInteger(value) || value < 1) throw new RangeError(name + " must be a positive integer");
+  }
+  if (fanout < 2) throw new RangeError("fanout must be at least 2");
+  if (!Number.isSafeInteger(matchingRows) || matchingRows < 0 || matchingRows > totalRows) {
+    throw new RangeError("matchingRows must be an integer between 0 and totalRows");
+  }
+  if (typeof covering !== "boolean") throw new TypeError("covering must be a boolean");
+  if (typeof randomCostFactor !== "number" || !Number.isFinite(randomCostFactor) || randomCostFactor < 1) {
+    throw new RangeError("randomCostFactor must be a finite number >= 1");
+  }
+
+  const tablePages = Math.ceil(totalRows / rowsPerPage);
+  const seqScanCost = tablePages; // sequential reads cost 1 unit per page
+  let height = 1; // levels needed so that fanout^height >= totalRows (exact integer arithmetic)
+  for (let capacity = fanout; capacity < totalRows && height < 64; capacity *= fanout) height++; // bounded: never loops forever
+  const leafPages = matchingRows === 0 ? 0 : Math.ceil(matchingRows / fanout);
+  const heapFetches = covering ? 0 : Math.min(matchingRows, tablePages);
+  const indexCost = (height + leafPages + heapFetches) * randomCostFactor; // random reads cost more
+
+  return {
+    tablePages,
+    height,
+    seqScanCost,
+    indexCost,
+    choice: indexCost < seqScanCost ? "index" : "seq-scan",
+    speedup: Math.round((seqScanCost / indexCost) * 10) / 10
+  };
+}
+
+const oneRow = estimateAccessCost({ totalRows: 10000000, rowsPerPage: 100, matchingRows: 1, fanout: 200 });
+console.log("point lookup:", JSON.stringify(oneRow));
+const half = estimateAccessCost({ totalRows: 10000000, rowsPerPage: 100, matchingRows: 5000000, fanout: 200 });
+console.log("50% of table:", JSON.stringify(half));
+const cover = estimateAccessCost({ totalRows: 10000000, rowsPerPage: 100, matchingRows: 20000, fanout: 200, covering: true });
+console.log("covering range:", JSON.stringify(cover));
+const heap = estimateAccessCost({ totalRows: 10000000, rowsPerPage: 100, matchingRows: 20000, fanout: 200 });
+console.log("non-covering range:", JSON.stringify(heap));
+
+try { estimateAccessCost({ totalRows: 10, rowsPerPage: 5, matchingRows: 11, fanout: 4 }); } catch (e) { console.log("Error:", e.name, e.message); }
+try { estimateAccessCost(null); } catch (e) { console.log("Error:", e.name, e.message); }
+`} />
+
+#### SQL Example: Creating and Inspecting Indexes Across Engines
+
+<CodeBlock lang="sql" title="Index DDL and Plan Inspection (PostgreSQL, MySQL, SQL Server)" code={`
+-- PostgreSQL: B-Tree (default), a hash index for pure equality, and a unique index
+CREATE INDEX idx_orders_customer ON orders USING btree (customer_id);
+CREATE INDEX idx_sessions_token  ON sessions USING hash (token);       -- equality only
+CREATE UNIQUE INDEX uq_users_email ON users (email);
+EXPLAIN (ANALYZE, BUFFERS) SELECT * FROM orders WHERE customer_id = 42;
+-- Look for: Index Scan using idx_orders_customer (not Seq Scan) and low "Buffers: shared hit/read"
+
+-- MySQL / InnoDB: the table IS the clustered primary-key B+ Tree; secondary entries store the PK
+CREATE TABLE orders (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,   -- clustering key: keep it short and ascending
+  customer_id BIGINT UNSIGNED NOT NULL,
+  created_at DATETIME NOT NULL,
+  KEY idx_orders_customer (customer_id)            -- secondary index (leaf stores customer_id + id)
+) ENGINE=InnoDB;
+EXPLAIN SELECT * FROM orders WHERE customer_id = 42;   -- type: ref, key: idx_orders_customer
+
+-- SQL Server: choose the clustered index explicitly, then add a nonclustered one
+CREATE TABLE dbo.Orders (
+  OrderId BIGINT IDENTITY(1,1) NOT NULL,
+  CustomerId BIGINT NOT NULL,
+  CONSTRAINT PK_Orders PRIMARY KEY CLUSTERED (OrderId)
+);
+CREATE NONCLUSTERED INDEX IX_Orders_Customer ON dbo.Orders (CustomerId);
+SET STATISTICS IO ON;  -- compare logical reads: Index Seek vs Clustered Index Scan
+`} />
+
+</TopicSection>
+
+<TopicSection id="m08-p1-sec-e" letter="E" title="Step-by-Step Walkthrough">
+
+#### How `SELECT * FROM users WHERE email = 'ann@example.com'` Uses a Unique Index
+
+1. **Parse and plan:** The optimizer sees an equality predicate on `email`, finds the unique B+ Tree on `email`, and consults statistics: a unique key means at most one matching row, so an index seek is almost certainly cheaper than scanning every page.
+2. **Descend the tree:** The engine reads the root page (already cached in the buffer pool), binary-searches its separator keys, follows the child pointer, and repeats at each internal level. With a fan-out in the hundreds this takes 3 or 4 page visits even for 100 million rows.
+3. **Probe the leaf:** At the leaf the engine binary-searches the sorted entries. A miss returns immediately; a hit yields the **row locator** (primary key value, clustering key, or heap TID).
+4. **Fetch the row:** In a clustered engine the leaf entry for a primary-key lookup is the row; for a secondary index the engine takes the primary key from the leaf and performs a second seek in the clustered tree. In a PostgreSQL heap it reads the heap page named by the TID and checks MVCC visibility.
+5. **Return and cache:** The row is returned and the touched pages stay in the buffer pool, so repeated lookups of nearby keys are served from memory.
+6. **On the next `INSERT`:** The same tree is probed for the new key to enforce uniqueness before the entry is added, and if the target leaf is full it splits, which is the extra write cost you accept in exchange for the fast reads.
+
+</TopicSection>
+
+<TopicSection id="m08-p1-sec-f" letter="F" title="Real-World Use Cases">
+
+#### Login Lookups by Email or Username
+
+An authentication service runs `WHERE email = ?` on every sign-in. A unique B+ Tree index on a normalised email column turns that into a 3-4 page read and also prevents two accounts sharing one address. Without it, login latency would grow linearly with the user table and eventually time out under a credential-stuffing burst.
+
+#### Time-Range Reporting on an Append-Only Table
+
+A billing system stores 800 million invoice rows and reports on `created_at BETWEEN ...`. A B-Tree on `created_at` seeks once to the start of the range and reads leaf pages sequentially through the chain. Because new rows have increasing timestamps, inserts append to the rightmost leaf and the index stays dense.
+
+#### Session Tokens and Hash Lookups
+
+A cache-like `sessions` table is queried only by exact token and never by range. A hash index (PostgreSQL `USING hash`, or a SQL Server memory-optimized hash index) gives constant-time equality probes. Teams still often choose a plain B-Tree because it also handles `ORDER BY`, supports uniqueness (PostgreSQL hash indexes cannot be unique), and is the engine-tested default.
+
+#### Choosing a Clustering Key for a High-Insert Table
+
+Consider a typical telemetry service on InnoDB that moves its primary key from a random UUIDv4 to a time-ordered key. Random keys insert into the middle of a multi-gigabyte clustered tree, producing constant page splits, a bloated buffer pool and a primary key copied into every secondary index at 16 bytes per entry (36 if stored as text). An ascending key appends to the right edge and keeps both the table and its secondary indexes smaller.
+
+</TopicSection>
+
+<TopicSection id="m08-p1-sec-g" letter="G" title="Common Mistakes">
+
+- **Assuming an index is always used:** The planner chooses by cost. A predicate matching a large share of rows, a stale statistics histogram, a type mismatch (`WHERE varchar_col = 123`) or a function on the column (`WHERE LOWER(email) = ...`) all make the planner scan instead. Confirm with `EXPLAIN`, never by assumption.
+- **Indexing every column "just in case":** Each index adds storage, buffer pool pressure, and write amplification on every `INSERT`/`UPDATE`/`DELETE`. Unused indexes are pure cost; find them with `pg_stat_user_indexes`, `sys.dm_db_index_usage_stats` or the MySQL `sys.schema_unused_indexes` view before dropping.
+- **Using a random UUID as a clustered primary key:** In InnoDB and SQL Server this scatters inserts across the tree and splits pages constantly. Use an ascending key, or a time-ordered UUID format, or cluster on a different column in SQL Server.
+- **Choosing a wide clustering key:** Every secondary index in InnoDB and SQL Server stores the clustering key, so a 36-character string key is repeated in each index entry, inflating all of them.
+- **Enforcing uniqueness in application code only:** A "select, then insert if missing" check races under concurrency and creates duplicates. Define a `UNIQUE` constraint or index and handle the duplicate-key error.
+- **Expecting a hash index to serve ranges or sorting:** Hash indexes only support equality. Using one for a `BETWEEN` or `ORDER BY` query forces a scan or a sort.
+- **Forgetting NULL and collation rules on unique indexes:** Multiple NULLs pass in PostgreSQL and MySQL but not in SQL Server, and a case-insensitive collation treats `Ann` and `ann` as the same key.
+
+</TopicSection>
+
+<TopicSection id="m08-p1-sec-h" letter="H" title="Best Practices">
+
+- **Start from the query, not the column:** Index the predicates, joins and sort orders your hottest queries actually use, and verify each with an execution plan before and after.
+- **Index every foreign key you join or delete by:** Unindexed foreign keys cause full scans on joins and slow cascading deletes (InnoDB creates the index automatically; PostgreSQL and SQL Server do not).
+- **Keep the clustering key short, unique, static and ascending:** A `BIGINT` identity or sequence satisfies all four and keeps secondary indexes small.
+- **Prefer B-Tree unless you can prove otherwise:** It serves equality, ranges, prefixes and ordering. Reach for a hash index only for equality-only workloads on engines that support it well.
+- **Declare uniqueness in the schema:** Use `PRIMARY KEY` and `UNIQUE` constraints, normalise values (trim, lower-case) before they hit the index, and map the duplicate-key error to a clean `409 Conflict` in the API.
+- **Name indexes consistently and document intent:** A convention such as `idx_<table>_<columns>` and `uq_<table>_<columns>` makes plans and migrations readable.
+- **Measure maintenance cost:** Track index size, write latency and unused-index reports regularly, and drop indexes that no query plan has used for a full business cycle.
+
+</TopicSection>
+
+<TopicSection id="m08-p1-sec-i" letter="I" title="Performance & Scalability">
+
+#### Read Path: Height, Caching and I/O Pattern
+
+A lookup costs one page read per level, and fan-out makes the height grow very slowly: one extra level is needed only when the table grows by a factor of roughly the fan-out. Upper levels stay cached, so a point lookup on a 500-million-row table typically needs one or two physical reads. Range scans become sequential reads along the leaf chain, which the operating system can prefetch. A **covering** index avoids the row fetch entirely and often delivers the largest single speed-up.
+
+#### Write Path: Amplification, Splits and Locality
+
+Every index multiplies write work: one row change updates the table plus each index, and each update generates log records. Random keys destroy locality, because each insert dirties a different leaf page and the buffer pool must hold far more of the index to avoid reads. Sequential keys append to one hot right-edge page, which is cheap but can create a **hot-spot** contention point at extreme insert rates; engines mitigate this with latch optimisations or partitioning. Budget for the fact that adding the fifth index to a write-heavy table can cost far more than adding the first.
+
+</TopicSection>
+
+<TopicSection id="m08-p1-sec-j" letter="J" title="Security Considerations">
+
+#### Indexes Can Leak and Enforce
+
+Indexes copy column values into a second structure, so sensitive data stored in an index (emails, national ids, tokens) exists in the index pages, in backups, and in memory, even if the base column is protected by column-level privileges or encryption of the table. Encrypt tablespaces or volumes (InnoDB tablespace encryption, SQL Server TDE, and filesystem or volume encryption for PostgreSQL, which has no built-in TDE) and avoid indexing raw secrets; index a salted hash or a token instead. Unique indexes can reveal existence through timing and error messages: returning "email already registered" lets an attacker enumerate accounts, so use generic responses on public endpoints and rate-limit them.
+
+#### Integrity and Denial-of-Service Angles
+
+A unique index is a security control as well as a performance feature: it is the last line of defence against duplicate payments, double-spent coupons and replayed idempotency keys, so enforce it in the database rather than trusting application checks. Conversely, an attacker who can force queries that cannot use an index (unanchored `LIKE '%x'`, function-wrapped predicates) can trigger full scans and exhaust I/O, so validate and bound search inputs, set statement timeouts, and keep parameterised queries to avoid injection that changes the predicate shape.
+
+</TopicSection>
+
+<TopicSection id="m08-p1-sec-k" letter="K" title="Comparisons & Decision Tables">
+
+#### Table K.1 — B-Tree vs B+ Tree vs Hash Index
+
+| Property | B-Tree (classic) | B+ Tree (what databases use) | Hash index |
+| --- | --- | --- | --- |
+| Row data / locators stored in | Every node | Leaves only | Buckets |
+| Fan-out | Lower (data in internal nodes) | Higher (keys only in internal nodes) | Not applicable |
+| Equality lookup | O(log N) | O(log N), cost always equals height | O(1) average |
+| Range scan / ORDER BY | Needs in-order traversal | Walks the linked leaf chain | Not supported |
+| Prefix match (`LIKE 'ab%'`) | Yes | Yes | No |
+| Resize cost | Splits and merges | Splits and merges | Rehash when load factor grows |
+| Typical use | Textbooks | InnoDB, SQL Server, PostgreSQL `btree` | Equality-only caches and lookups |
+
+#### Table K.2 — Clustered vs Non-Clustered Across Engines
+
+| Aspect | InnoDB (MySQL) | SQL Server | PostgreSQL | MongoDB (WiredTiger) |
+| --- | --- | --- | --- | --- |
+| Table storage | Clustered on primary key | Clustered index or heap | Heap only | Record store keyed by an internal id (optional clustered collections in 5.3+) |
+| Clustered key choice | Primary key, else first `UNIQUE NOT NULL`, else hidden row id | Any column set via `CREATE CLUSTERED INDEX` (defaults to primary key) | None (`CLUSTER` reorders once) | Internal id, or `_id` in a clustered collection |
+| Secondary index leaf holds | Indexed columns + primary key | Indexed columns + clustering key (or RID) | Indexed columns + TID | Indexed fields + record id |
+| Extra lookup per match | Clustered seek | Clustered seek (key lookup) or heap RID fetch | Heap page fetch | Record store fetch |
+| Covering without extra lookup | Composite key or index with the needed columns | `INCLUDE` columns | `INCLUDE` (11+) or index-only scan | Covered query on index fields |
+
+#### Table K.3 — Hash, Unique and NULL Behaviour by Engine
+
+| Topic | PostgreSQL | MySQL / InnoDB | SQL Server | MongoDB |
+| --- | --- | --- | --- | --- |
+| Hash index | `USING hash` (equality only, not unique) | MEMORY engine only; InnoDB uses an internal adaptive hash index | Memory-optimized tables only, fixed `BUCKET_COUNT` | Hashed indexes (equality, hashed sharding) |
+| NULLs in a unique index | Multiple allowed (`NULLS NOT DISTINCT` in 15+) | Multiple allowed | Only one NULL allowed | Missing field counts as null, so only one such document |
+| Duplicate-key error | SQLSTATE `23505` | Error `1062` | Error `2601` / `2627` | Error code `11000` |
+| Default text comparison | Case-sensitive (collation dependent) | Case-insensitive in 8.0 (`utf8mb4_0900_ai_ci`) | Typically case-insensitive (depends on the server collation) | Case-sensitive unless a collation is set |
+
+</TopicSection>
+
+<TopicSection id="m08-p1-sec-l" letter="L" title="Tips to Remember (Mnemonics & Mental Models)">
+
+- **"Book index = B+ Tree":** The back-of-book index is sorted, points to pages, and lets you flip to a range of entries without re-reading the table of contents. The signposts (internal nodes) hold no content; the leaves hold the entries.
+- **"Height, not size":** Lookup cost equals tree height, and height grows only when the table grows by about the fan-out factor. Three or four reads cover hundreds of millions of rows.
+- **"Hash = equals only":** If you cannot phrase the question as `column = value`, a hash index cannot answer it.
+- **"Clustered = the table itself; non-clustered = a phone book pointing back":** A secondary lookup costs an extra hop per match unless the index covers the query.
+- **"Copy up on leaf, move up on internal":** When a leaf splits, the separator is copied to the parent and still lives in the leaf; when an internal node splits, the middle key leaves the node and goes up.
+- **"Short, unique, static, ascending":** The four properties of a good clustering key.
+- **"Unique constraints beat select-then-insert":** Only the index probe is race-free.
+
+</TopicSection>
+
+<TopicSection id="m08-p1-sec-mn" letter="M/N" title="Interview Questions & Detailed Answers">
+
+<InterviewSection lessonId="m08-p1" />
+
+</TopicSection>
+
+<TopicSection id="m08-p1-sec-o" letter="O" title="Practical Exercises">
+
+#### Exercise 1: Hash Index Bucket Simulator (createHashIndex)
+
+<ExerciseCard
+  title="Exercise 1: Hash Index Bucket Simulator (createHashIndex)"
+  prompt={
+    <p>
+      Implement <code>createHashIndex(initialBuckets)</code> with <code>put(key, rowId)</code>, <code>get(key)</code>, <code>range()</code> and <code>stats()</code>. Keys may be strings or finite numbers (and <code>1</code> must differ from <code>"1"</code>), the table must grow when the load factor passes 0.75, and <code>range()</code> must reject because hashing destroys order.
+    </p>
+  }
+>
+
+<CodeBlock lang="javascript" runnable title="Exercise 1: createHashIndex" code={`
+// createHashIndex — equality-only index: O(1) average lookups, no ordering, no range scans
+function createHashIndex(initialBuckets = 8) {
+  if (!Number.isInteger(initialBuckets) || initialBuckets < 1 || initialBuckets > 1048576) {
+    throw new RangeError("initialBuckets must be an integer between 1 and 1048576");
+  }
+  let buckets = Array.from({ length: initialBuckets }, () => []);
+  let entries = 0;
+
+  function normalise(key) {
+    if (typeof key === "string") return "s:" + key;
+    if (typeof key === "number" && Number.isFinite(key)) return "n:" + (Object.is(key, -0) ? 0 : key);
+    throw new TypeError("key must be a string or finite number");
+  }
+  function hash(text) {
+    let h = 0x811c9dc5; // FNV-1a 32-bit
+    for (let i = 0; i < text.length; i++) {
+      h ^= text.charCodeAt(i);
+      h = Math.imul(h, 0x01000193);
+    }
+    return h >>> 0;
+  }
+  function grow() {
+    const old = buckets;
+    buckets = Array.from({ length: old.length * 2 }, () => []);
+    for (const chain of old) {
+      for (const entry of chain) buckets[hash(entry.k) % buckets.length].push(entry);
+    }
+  }
+
+  function put(key, rowId) {
+    const k = normalise(key);
+    if (!Number.isSafeInteger(rowId) || rowId < 0) throw new RangeError("rowId must be a non-negative integer");
+    const chain = buckets[hash(k) % buckets.length];
+    const hit = chain.find((entry) => entry.k === k);
+    if (hit) {
+      if (!hit.rows.includes(rowId)) hit.rows.push(rowId);
+      return;
+    }
+    chain.push({ k, rows: [rowId] });
+    entries++;
+    if (entries / buckets.length > 0.75) grow();
+  }
+  function get(key) {
+    const k = normalise(key);
+    const hit = buckets[hash(k) % buckets.length].find((entry) => entry.k === k);
+    return hit ? hit.rows.slice() : [];
+  }
+  function range() {
+    throw new Error("Hash indexes support equality lookups only; range scans and ORDER BY need a B-Tree");
+  }
+  function stats() {
+    return {
+      buckets: buckets.length,
+      entries,
+      loadFactor: Math.round((entries / buckets.length) * 100) / 100,
+      longestChain: buckets.reduce((max, chain) => Math.max(max, chain.length), 0)
+    };
+  }
+  return { put, get, range, stats };
+}
+
+const idx = createHashIndex(2);
+for (let i = 0; i < 20; i++) idx.put("user-" + i + "@example.com", i);
+console.log("lookup user-7:", JSON.stringify(idx.get("user-7@example.com")));
+console.log("missing:", JSON.stringify(idx.get("nobody@example.com")));
+idx.put(1, 100);
+idx.put("1", 200);
+console.log("number 1 vs string '1':", JSON.stringify([idx.get(1), idx.get("1")]));
+console.log("stats:", JSON.stringify(idx.stats()));
+try { idx.range("a", "z"); } catch (e) { console.log("Error:", e.message); }
+try { idx.put(NaN, 1); } catch (e) { console.log("Error:", e.name, e.message); }
+try { idx.put("k", -1); } catch (e) { console.log("Error:", e.name, e.message); }
+`} />
+
+</ExerciseCard>
+
+#### Exercise 2: Clustered vs Non-Clustered Page Reads (countPageReads)
+
+<ExerciseCard
+  title="Exercise 2: Clustered vs Non-Clustered Page Reads (countPageReads)"
+  prompt={
+    <p>
+      Implement <code>countPageReads(plan)</code> that returns the page reads for a primary-key lookup, a secondary-index lookup and a covering secondary lookup on <code>clustered</code> storage (InnoDB, SQL Server clustered) versus <code>heap</code> storage (PostgreSQL, SQL Server heap). Reject unknown storage or access kinds and non-positive heights.
+    </p>
+  }
+>
+
+<CodeBlock lang="javascript" runnable title="Exercise 2: countPageReads" code={`
+// countPageReads — clustered vs non-clustered lookups: where does the row actually live?
+function countPageReads(plan) {
+  if (plan === null || typeof plan !== "object" || Array.isArray(plan)) {
+    throw new TypeError("plan must be a non-null object");
+  }
+  const { storage, access, indexHeight, clusteredHeight = 0, matches = 1 } = plan;
+  if (storage !== "clustered" && storage !== "heap") throw new TypeError('storage must be "clustered" or "heap"');
+  const ACCESS = ["primary-key", "secondary", "covering-secondary"];
+  if (!ACCESS.includes(access)) throw new TypeError("access must be one of: " + ACCESS.join(", "));
+  if (!Number.isSafeInteger(indexHeight) || indexHeight < 1) throw new RangeError("indexHeight must be a positive integer");
+  if (!Number.isSafeInteger(matches) || matches < 0) throw new RangeError("matches must be a non-negative integer");
+  if (storage === "clustered" && (!Number.isSafeInteger(clusteredHeight) || clusteredHeight < 1)) {
+    throw new RangeError("clusteredHeight must be a positive integer for clustered storage");
+  }
+
+  function safe(reads) {
+    if (!Number.isSafeInteger(reads)) throw new RangeError("page read count exceeds the safe integer range");
+    return reads;
+  }
+
+  if (access === "primary-key") {
+    // Clustered: the leaf IS the row. Heap: the primary-key index points at a heap slot (one extra read).
+    const reads = storage === "clustered" ? indexHeight : indexHeight + (matches > 0 ? 1 : 0);
+    return { pageReads: safe(reads), path: storage === "clustered" ? "PK B+ Tree leaf holds the row" : "PK index -> heap TID" };
+  }
+  if (access === "covering-secondary") {
+    return { pageReads: safe(indexHeight), path: "secondary index leaf already holds every needed column" };
+  }
+  if (storage === "clustered") {
+    // InnoDB / SQL Server clustered: the secondary leaf stores the clustering key, then each match walks the clustered tree.
+    return { pageReads: safe(indexHeight + matches * clusteredHeight), path: "secondary seek -> PK value -> clustered seek per match" };
+  }
+  return { pageReads: safe(indexHeight + matches), path: "secondary seek -> heap TID/RID fetch per match" };
+}
+
+const pk = countPageReads({ storage: "clustered", access: "primary-key", indexHeight: 3, clusteredHeight: 3 });
+const sec = countPageReads({ storage: "clustered", access: "secondary", indexHeight: 3, clusteredHeight: 3, matches: 50 });
+const cov = countPageReads({ storage: "clustered", access: "covering-secondary", indexHeight: 3, clusteredHeight: 3, matches: 50 });
+const heap = countPageReads({ storage: "heap", access: "secondary", indexHeight: 3, matches: 50 });
+console.log("clustered PK:", JSON.stringify(pk));
+console.log("clustered secondary x50:", JSON.stringify(sec));
+console.log("covering secondary x50:", JSON.stringify(cov));
+console.log("heap secondary x50:", JSON.stringify(heap));
+
+try { countPageReads({ storage: "columnar", access: "primary-key", indexHeight: 3 }); } catch (e) { console.log("Error:", e.name, e.message); }
+try { countPageReads({ storage: "clustered", access: "secondary", indexHeight: 3 }); } catch (e) { console.log("Error:", e.name, e.message); }
+try { countPageReads({ storage: "heap", access: "secondary", indexHeight: 0 }); } catch (e) { console.log("Error:", e.name, e.message); }
+`} />
+
+</ExerciseCard>
+
+#### Exercise 3: Predict the B+ Tree Split and the Scan Break-Even
+
+<ExerciseCard
+  title="Exercise 3: Predict the B+ Tree Split and the Scan Break-Even"
+  prompt={
+    <p>
+      (a) In a B+ Tree of order 4 (at most 3 keys per node), insert 10, 20, 30, 40 in that order. Draw the tree and state which key was copied up. (b) A 10-million-row table has 100 rows per page and an index with fan-out 200 and a random-read cost factor of 4. Using the model from Example 2 with a non-covering index, roughly how many matching rows make the sequential scan win?
+    </p>
+  }
+>
+
+<p>
+  <strong>(a)</strong> After inserting 10, 20 and 30 the single leaf is <code>[10, 20, 30]</code>. Inserting 40 overflows it to four keys, so it splits into <code>[10, 20]</code> and <code>[30, 40]</code> and the separator <code>30</code> is <strong>copied</strong> up into a new root. The tree has height 2: root <code>[30]</code> with two linked leaves, and <code>30</code> still lives in the right leaf.
+</p>
+<p>
+  <strong>(b)</strong> The table has 100,000 pages, so the scan costs 100,000 units. The index costs <code>(4 + ceil(m / 200) + m) * 4</code> for <code>m</code> matches. That drops below 100,000 only while <code>m</code> is at most about 24,870, or roughly 0.25 percent of the table. Above that the planner should scan, and a covering index would move the break-even much higher because it removes the <code>m</code> heap fetches.
+</p>
+
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m08-p1-sec-p" letter="P" title="Advanced Challenge">
+
+<Callout variant="warning" title="Production Duplicates: Race Conditions, NULL Semantics and Atomic Updates">
+  <p>
+    Duplicate rows rarely come from a missing check; they come from a check that races, a NULL that bypasses it, or an update that half-applies. A unique index must make the probe and the write one atomic step, treat NULLs according to the engine you target, and leave the index unchanged when an update fails.
+  </p>
+</Callout>
+
+<ExerciseCard
+  title="Challenge: Unique Index Manager (createUniqueIndex)"
+  prompt={
+    <p>
+      Implement <code>createUniqueIndex(&#123; columns, nullsDistinct &#125;)</code> supporting composite keys, <code>insert</code>, <code>update</code> (atomic: a rejected update changes nothing), <code>remove</code> and <code>lookup</code>. With <code>nullsDistinct: true</code> (PostgreSQL/MySQL) any key containing NULL is exempt from the check; with <code>false</code> (SQL Server) NULLs compare equal. Reject missing columns, non-finite numbers and unsafe column names.
+    </p>
+  }
+>
+
+<CodeBlock lang="javascript" runnable title="Advanced Challenge: Unique Index Manager" code={`
+// createUniqueIndex — unique constraint enforcement with NULL semantics, atomic update and removal
+function createUniqueIndex(options) {
+  if (options === null || typeof options !== "object" || Array.isArray(options)) {
+    throw new TypeError("options must be a non-null object");
+  }
+  const { columns: requestedColumns, nullsDistinct = true } = options;
+  if (!Array.isArray(requestedColumns) || requestedColumns.length === 0) throw new TypeError("columns must be a non-empty array");
+  const columns = requestedColumns.slice(); // defensive copy: the definition must not change later
+  const seen = new Set();
+  for (const column of columns) {
+    if (typeof column !== "string" || column.trim().length === 0) throw new TypeError("column names must be non-empty strings");
+    if (column === "__proto__") throw new TypeError("column name is not allowed");
+    if (seen.has(column)) throw new TypeError("duplicate column in index definition: " + column);
+    seen.add(column);
+  }
+  if (typeof nullsDistinct !== "boolean") throw new TypeError("nullsDistinct must be a boolean");
+
+  const byKey = new Map(); // serialized key tuple -> rowId
+  const byRow = new Map(); // rowId -> serialized key tuple (or null when the tuple is exempt because of NULLs)
+
+  function keyFor(row) {
+    if (row === null || typeof row !== "object" || Array.isArray(row)) throw new TypeError("row must be a plain object");
+    const tuple = columns.map((column) => {
+      if (!Object.hasOwn(row, column)) throw new TypeError("row is missing indexed column: " + column);
+      const value = row[column];
+      if (value === null) return null;
+      if (typeof value === "string") return value;
+      if (typeof value === "number" && Number.isFinite(value)) return Object.is(value, -0) ? 0 : value;
+      throw new TypeError("indexed values must be string, finite number or null");
+    });
+    const hasNull = tuple.some((value) => value === null);
+    // SQL Server treats NULLs as equal (only one NULL key); PostgreSQL/MySQL treat NULLs as distinct.
+    return hasNull && nullsDistinct ? null : JSON.stringify(tuple);
+  }
+  function checkRowId(rowId) {
+    if (!Number.isSafeInteger(rowId) || rowId < 0) throw new RangeError("rowId must be a non-negative integer");
+  }
+  function duplicateError() {
+    const error = new Error("Duplicate entry for unique index (" + columns.join(", ") + ")");
+    error.name = "DuplicateKeyError";
+    return error;
+  }
+
+  function insert(rowId, row) {
+    checkRowId(rowId);
+    if (byRow.has(rowId)) throw new Error("rowId already indexed: " + rowId);
+    const key = keyFor(row);
+    if (key !== null && byKey.has(key)) throw duplicateError();
+    if (key !== null) byKey.set(key, rowId);
+    byRow.set(rowId, key);
+  }
+  function remove(rowId) {
+    checkRowId(rowId);
+    if (!byRow.has(rowId)) return false;
+    const key = byRow.get(rowId);
+    if (key !== null) byKey.delete(key);
+    byRow.delete(rowId);
+    return true;
+  }
+  function update(rowId, row) {
+    checkRowId(rowId);
+    if (!byRow.has(rowId)) throw new Error("rowId is not indexed: " + rowId);
+    const oldKey = byRow.get(rowId);
+    const newKey = keyFor(row);
+    const owner = newKey === null ? undefined : byKey.get(newKey);
+    if (owner !== undefined && owner !== rowId) throw duplicateError(); // nothing changed: the update is atomic
+    if (oldKey !== null) byKey.delete(oldKey);
+    if (newKey !== null) byKey.set(newKey, rowId);
+    byRow.set(rowId, newKey);
+  }
+  function lookup(row) {
+    const key = keyFor(row);
+    return key !== null && byKey.has(key) ? byKey.get(key) : null;
+  }
+  return { insert, remove, update, lookup, size: () => byRow.size };
+}
+
+const emailIdx = createUniqueIndex({ columns: ["email"] });
+emailIdx.insert(1, { email: "a@example.com" });
+emailIdx.insert(2, { email: null });
+emailIdx.insert(3, { email: null });
+console.log("size with two NULLs (PostgreSQL/MySQL style):", emailIdx.size());
+try { emailIdx.insert(4, { email: "a@example.com" }); } catch (e) { console.log(e.name + ":", e.message); }
+emailIdx.update(1, { email: "b@example.com" });
+console.log("lookup b:", emailIdx.lookup({ email: "b@example.com" }));
+emailIdx.insert(5, { email: "a@example.com" });
+console.log("old value reusable after update:", emailIdx.lookup({ email: "a@example.com" }));
+
+const sqlServerStyle = createUniqueIndex({ columns: ["email"], nullsDistinct: false });
+sqlServerStyle.insert(1, { email: null });
+try { sqlServerStyle.insert(2, { email: null }); } catch (e) { console.log("SQL Server style:", e.name); }
+
+const composite = createUniqueIndex({ columns: ["tenant", "slug"] });
+composite.insert(1, { tenant: "t1", slug: "home" });
+composite.insert(2, { tenant: "t2", slug: "home" });
+console.log("composite size:", composite.size());
+try { composite.insert(3, { tenant: "t1" }); } catch (e) { console.log("Error:", e.name, e.message); }
+try { createUniqueIndex({ columns: [] }); } catch (e) { console.log("Error:", e.name, e.message); }
+`} />
+
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m08-p1-sec-q" letter="Q" title="Summary & Key Takeaways">
+
+<DiagramCard title="Figure 8.2 — Clustered vs Non-Clustered Lookup Paths and Their Cost">
+<svg viewBox="0 0 820 190" xmlns="http://www.w3.org/2000/svg" aria-label="Lookup paths for clustered and heap storage and a cost summary panel">
+  <defs>
+    <style>{`
+      .m8q-label { font: 600 11px system-ui, sans-serif; fill: var(--token-text-primary); }
+      .m8q-sub   { font: 400 9.5px system-ui, sans-serif; fill: var(--token-text-secondary); }
+      .m8q-hdr   { font: 700 10px system-ui, sans-serif; fill: var(--token-text-inverse); }
+      .m8q-box   { rx: 5; ry: 5; }
+    `}</style>
+    <marker id="arr8q" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--token-brand-default)"/></marker>
+  </defs>
+
+  <rect class="m8q-box" x="4" y="6" width="260" height="176" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2"/>
+  <rect x="4" y="6" width="260" height="20" rx="5" ry="5" fill="var(--token-brand-default)"/>
+  <text x="134" y="19" text-anchor="middle" class="m8q-hdr">Clustered (InnoDB / SQL Server)</text>
+  <rect class="m8q-box" x="14" y="38" width="112" height="46" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <text x="70" y="58" text-anchor="middle" class="m8q-label">Secondary leaf</text>
+  <text x="70" y="72" text-anchor="middle" class="m8q-sub">email → PK 42</text>
+  <path d="M128 61 L150 61" stroke="var(--token-brand-default)" stroke-width="2" marker-end="url(#arr8q)"/>
+  <rect class="m8q-box" x="152" y="38" width="104" height="46" fill="var(--token-success-muted)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <text x="204" y="58" text-anchor="middle" class="m8q-label">Clustered leaf</text>
+  <text x="204" y="72" text-anchor="middle" class="m8q-sub">PK 42 → full row</text>
+  <text x="134" y="108" text-anchor="middle" class="m8q-sub">reads = secondary height</text>
+  <text x="134" y="122" text-anchor="middle" class="m8q-sub">+ clustered height per match</text>
+  <rect class="m8q-box" x="14" y="138" width="242" height="34" fill="var(--token-warning-muted)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <text x="135" y="153" text-anchor="middle" class="m8q-label">Covering index</text>
+  <text x="135" y="165" text-anchor="middle" class="m8q-sub">skips the clustered hop</text>
+
+  <rect class="m8q-box" x="280" y="6" width="260" height="176" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2"/>
+  <rect x="280" y="6" width="260" height="20" rx="5" ry="5" fill="var(--token-brand-default)"/>
+  <text x="410" y="19" text-anchor="middle" class="m8q-hdr">Heap (PostgreSQL / SQL Server heap)</text>
+  <rect class="m8q-box" x="290" y="38" width="112" height="46" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <text x="346" y="58" text-anchor="middle" class="m8q-label">Index leaf</text>
+  <text x="346" y="72" text-anchor="middle" class="m8q-sub">email → TID</text>
+  <path d="M404 61 L426 61" stroke="var(--token-brand-default)" stroke-width="2" marker-end="url(#arr8q)"/>
+  <rect class="m8q-box" x="428" y="38" width="104" height="46" fill="var(--token-success-muted)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <text x="480" y="58" text-anchor="middle" class="m8q-label">Heap page</text>
+  <text x="480" y="72" text-anchor="middle" class="m8q-sub">row at slot n</text>
+  <text x="410" y="108" text-anchor="middle" class="m8q-sub">reads = index height</text>
+  <text x="410" y="122" text-anchor="middle" class="m8q-sub">+ 1 heap read per match</text>
+  <rect class="m8q-box" x="290" y="138" width="242" height="34" fill="var(--token-warning-muted)" stroke="var(--token-border-default)" stroke-width="1"/>
+  <text x="411" y="153" text-anchor="middle" class="m8q-label">Index-only scan</text>
+  <text x="411" y="165" text-anchor="middle" class="m8q-sub">needs a covering index</text>
+
+  <rect class="m8q-box" x="556" y="6" width="260" height="176" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2"/>
+  <rect x="556" y="6" width="260" height="20" rx="5" ry="5" fill="var(--token-success-default)"/>
+  <text x="686" y="19" text-anchor="middle" class="m8q-hdr">Cost Rules of Thumb</text>
+  <text x="568" y="50" class="m8q-sub">PK lookup (clustered): height reads</text>
+  <text x="568" y="74" class="m8q-sub">Secondary lookup: + 1 hop per match</text>
+  <text x="568" y="98" class="m8q-sub">Covering lookup: height reads only</text>
+  <text x="568" y="122" class="m8q-sub">Many matches: planner may scan</text>
+  <text x="568" y="146" class="m8q-sub">Wide clustering key: bigger indexes</text>
+  <text x="568" y="170" class="m8q-sub">Each index: extra cost per write</text>
+</svg>
+</DiagramCard>
+
+#### Key Takeaways
+
+- **An index trades write cost and space for read speed:** It turns a linear scan into a logarithmic walk of 3 or 4 pages, but every index must be maintained on every write, and a non-selective predicate is still faster as a scan.
+- **Databases use B+ Trees, not textbook B-Trees:** Keys-only internal nodes give high fan-out and shallow trees, and the linked leaf chain makes range scans and `ORDER BY` sequential.
+- **Hash indexes answer equality only:** They are constant time on average but cannot serve ranges, prefixes or sorting, and engine support (PostgreSQL, MEMORY, memory-optimized SQL Server tables, MongoDB hashed) varies.
+- **The clustered index is the table:** One per table, and in InnoDB and SQL Server its key is copied into every secondary index, so keep it short, unique, static and ascending.
+- **Secondary indexes cost an extra hop per match** unless they cover the query: a clustered seek in InnoDB and SQL Server, a heap fetch in PostgreSQL.
+- **Unique indexes are the race-free way to enforce uniqueness,** with engine-specific NULL and collation rules you must know before relying on them.
+- **Always verify with the plan:** `EXPLAIN` shows whether the planner actually used the index and what it cost.
+
+</TopicSection>

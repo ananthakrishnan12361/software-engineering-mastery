@@ -1,0 +1,528 @@
+<Callout variant="info" title="Topics Covered in Part 1 (M05-P1)">
+  <p>
+    This first part of Module 5 covers 7 PostgreSQL architecture and storage-engine topics: <strong>PostgreSQL architecture</strong>, <strong>PostgreSQL internals</strong>, <strong>Database storage</strong>, <strong>Pages and tuples</strong>, <strong>MVCC</strong>, <strong>WAL</strong>, and <strong>Transactions</strong>.
+  </p>
+</Callout>
+
+<TopicSection id="m05-p1-sec-a" letter="A" title="Topic Introduction">
+
+#### What is this?
+
+**PostgreSQL architecture and internals** describe how the PostgreSQL server coordinates client connections, shared memory, background workers, query planning, 8 KB slotted heap pages, MVCC tuple headers, Write-Ahead Logging (WAL), and 32-bit transaction IDs (`XID`) on disk and in RAM.
+
+#### Why does it exist & what problem does it solve?
+
+Treating PostgreSQL as a black box works at low traffic, but production failures—like checkpoint I/O storms, massive table bloat, torn pages after a crash, or XID wraparound shutdowns—stem directly from how PostgreSQL manages 8 KB pages, `shared_buffers`, `pg_wal`, and `VACUUM`. Understanding these internals lets you diagnose `EXPLAIN (ANALYZE, BUFFERS)`, tune `fillfactor` and checkpoints, and prevent cluster-wide outages.
+
+#### Where is it used in real-world software?
+
+Backend engineers, SREs, and database architects rely on PostgreSQL internals whenever they size `shared_buffers` and `work_mem`, investigate index-only scan efficiency via the Visibility Map (`vm`), debug `idle in transaction` bloat, or tune high-throughput OLTP clusters.
+
+</TopicSection>
+
+<TopicSection id="m05-p1-sec-b" letter="B" title="Fundamentals (Simple Mental Models)">
+
+<TopicAnchor id="m05-p1-topic-postgresql-architecture" />
+
+#### 1. PostgreSQL Architecture: Postmaster, Backends, Shared Buffers & Background Workers
+
+<GlossaryTerm definition="PostgreSQL's multi-process server model where a supervisor postmaster spawns one backend process per client connection and coordinates shared memory and background workers.">PostgreSQL architecture</GlossaryTerm> uses a **process-per-connection** model rather than threads. A single supervisor process (`postmaster`) listens for TCP/Unix socket connections, forks a dedicated **backend process** per connection, and manages shared memory plus specialized background workers.
+
+Inside shared memory, `shared_buffers` caches 8 KB heap and index pages (typically 25% of host RAM, leaving the rest to the OS page cache), while `wal_buffers` stages outgoing log records. Background workers—**Background Writer**, **Checkpointer**, **WAL Writer**, and **Autovacuum**—flush dirty pages, write checkpoints, and reclaim dead tuples asynchronously.
+
+<TopicAnchor id="m05-p1-topic-postgresql-internals" />
+
+#### 2. PostgreSQL Internals: Query Pipeline (Parser, Rewriter, Planner, Executor)
+
+Every SQL statement flows through four internal stages inside the backend process before touching disk:
+
+1. **Parser:** Tokenizes SQL and builds a raw parse tree, validating syntax.
+2. **Analyzer & Rewriter:** Resolves table/column names from system catalogs (`pg_class`, `pg_attribute`) and expands `VIEW`s or rules into a query tree.
+3. **Planner (Optimizer):** Evaluates access paths (Sequential Scan, Index Scan, Bitmap Scan) and join algorithms (Nested Loop, Hash Join, Merge Join) using `pg_statistic` histograms to choose the lowest-cost plan.
+4. **Executor:** Pulls tuples volcano-style (`Pull`/`Next`) from plan nodes, reading from `shared_buffers` or disk and enforcing MVCC visibility.
+
+<TopicAnchor id="m05-p1-topic-database-storage" />
+
+#### 3. Database Storage: Clusters, Tablespaces, Relations, Forks & 1 GB Segments
+
+A PostgreSQL **database cluster** stores all files inside `$PGDATA` (`base/<db_oid>/<relfilenode>`). Large tables and indexes are automatically split into **1 GB segment files** (`16384`, `16384.1`, `16384.2`) so filesystems with file-size limits never break.
+
+Each relation on disk can have up to four **forks**: the **main fork** (actual data rows/index), **FSM** (`_fsm`, Free Space Map tracking available bytes per 8 KB page), **VM** (`_vm`, Visibility Map marking pages where every tuple is visible to all snapshots, enabling fast Index-Only Scans and skipping clean pages during `VACUUM`), and **init** (`_init` for unlogged tables).
+
+<TopicAnchor id="m05-p1-topic-pages-and-tuples" />
+
+#### 4. Pages and Tuples: 8 KB Slotted Pages, Line Pointers, Heap Tuples & TOAST
+
+PostgreSQL divides every table and index into fixed **8 KB (8192-byte) slotted pages**. A page starts with a 24-byte header (`PageHeaderData`), followed by 4-byte **line pointers** (`ItemIdData`) growing downward, free space in the middle, and **heap tuples** (rows) growing upward from the bottom of the page.
+
+Each row's physical location is its **`ctid`** (`(page_number, line_pointer_offset)`). Because a tuple cannot span multiple 8 KB pages, oversized values (~2 KB+ per tuple, `TOAST_TUPLE_THRESHOLD`) trigger **TOAST** (The Oversized-Attribute Storage Technique), compressing or moving large `TEXT`/`JSONB` columns out-of-line into a companion `pg_toast` table.
+
+<TopicAnchor id="m05-p1-topic-mvcc" />
+
+#### 5. MVCC: Tuple Headers (xmin/xmax), HOT Updates & Visibility Maps
+
+In PostgreSQL's <GlossaryTerm definition="Multi-Version Concurrency Control in PostgreSQL where each heap tuple carries xmin/xmax transaction IDs and HOT updates keep unchanged-index updates on the same 8 KB page.">MVCC</GlossaryTerm> implementation, every heap tuple header stores `xmin` (creating transaction ID) and `xmax` (deleting/updating transaction ID, or `0` if live). An `UPDATE` inserts a new tuple version and sets `xmax` on the old version—meaning **readers never block writers**, though dead tuples accumulate until `VACUUM` marks their space reusable.
+
+If an `UPDATE` modifies no indexed columns and the same 8 KB page has enough free space (often tuned with `fillfactor = 80–90`), PostgreSQL performs a **HOT (Heap-Only Tuple) update**: it links `v1 -> v2` inside the same page and **skips updating all B-tree indexes**, cutting write amplification dramatically.
+
+<TopicAnchor id="m05-p1-topic-wal" />
+
+#### 6. WAL (Write-Ahead Logging): 16 MB Segments, Full-Page Writes & Checkpoints
+
+PostgreSQL's **WAL** (`pg_wal/`, default 16 MB segment files) guarantees crash durability: every change to a heap or index page is appended to WAL and `fsync`ed before `COMMIT` succeeds or before a dirty data page is flushed to disk.
+
+Because OS/disk writes (4 KB) are smaller than PostgreSQL pages (8 KB), a power loss mid-flush can create a **torn page**. To prevent corruption, when `full_page_writes = on`, PostgreSQL logs a **Full-Page Image (FPI)** in WAL the *first* time a page is dirtied after each **checkpoint**. Checkpoints flush all dirty buffers to disk and advance the recovery redo pointer so crash replay stays fast.
+
+<TopicAnchor id="m05-p1-topic-transactions" />
+
+#### 7. Transactions: XIDs, CLOG (`pg_xact`), Wraparound & Freeze
+
+PostgreSQL assigns write transactions an incrementing **32-bit Transaction ID (`XID`)**, recording commit/abort status in **CLOG** (`pg_xact/`, 2 bits per transaction). Because a 32-bit counter wraps around after ~4.29 billion transactions (splitting the circle into ~2.14B past and ~2.14B future XIDs), old live tuples could suddenly appear "in the future" and vanish if left unfrozen.
+
+To prevent **XID wraparound**, `VACUUM` (and aggressive autovacuum at `autovacuum_freeze_max_age`, default 200M) **freezes** old live tuples (`HEAP_XMIN_FROZEN`), making them unconditionally visible to every future transaction regardless of XID age.
+
+</TopicSection>
+
+<TopicSection id="m05-p1-sec-c" letter="C" title="Internal Working & Architecture">
+
+PostgreSQL coordinates per-connection backend processes with shared memory buffers and background flushers, while storing rows inside 8 KB slotted pages that support in-page HOT tuple chains.
+
+<DiagramCard caption="Figure 5.1 — PostgreSQL Multi-Process & Shared Memory Architecture: Backends read/write Shared Buffers and append WAL before Checkpointer/BGWriter flush dirty 8 KB pages to PGDATA.">
+  <svg viewBox="0 0 820 190" width="100%" role="img" aria-label="PostgreSQL process and memory architecture">
+    <rect x="8" y="10" width="804" height="170" rx="12" fill="var(--bg-subtle)" stroke="var(--border)" />
+    <text x="410" y="34" textAnchor="middle" fill="var(--text-primary)" fontSize="13" fontWeight="700" fontFamily="sans-serif">PostgreSQL Process &amp; Memory Architecture</text>
+
+    <rect x="24" y="52" width="180" height="110" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" />
+    <text x="114" y="75" textAnchor="middle" fill="var(--accent-strong)" fontSize="12" fontWeight="700" fontFamily="sans-serif">Postmaster + Backends</text>
+    <text x="114" y="98" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">1 process / client</text>
+    <text x="114" y="118" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Local work_mem</text>
+    <text x="114" y="140" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Parser -&gt; Plan -&gt; Exec</text>
+
+    <line x1="204" y1="107" x2="244" y2="107" stroke="var(--accent)" strokeWidth="2" />
+    <polygon points="244,107 234,102 234,112" fill="var(--accent)" />
+
+    <rect x="248" y="52" width="270" height="110" rx="8" fill="var(--bg-surface)" stroke="var(--border-control)" />
+    <text x="383" y="75" textAnchor="middle" fill="var(--text-primary)" fontSize="12" fontWeight="700" fontFamily="sans-serif">Shared Memory</text>
+    <rect x="264" y="88" width="114" height="58" rx="6" fill="var(--accent-soft)" stroke="var(--accent)" />
+    <text x="321" y="112" textAnchor="middle" fill="var(--accent-strong)" fontSize="11" fontWeight="700" fontFamily="sans-serif">shared_buffers</text>
+    <text x="321" y="132" textAnchor="middle" fill="var(--text-secondary)" fontSize="10" fontFamily="monospace">8 KB pages</text>
+    <rect x="388" y="88" width="114" height="58" rx="6" fill="var(--success-soft)" stroke="var(--success)" />
+    <text x="445" y="112" textAnchor="middle" fill="var(--success)" fontSize="11" fontWeight="700" fontFamily="sans-serif">wal_buffers</text>
+    <text x="445" y="132" textAnchor="middle" fill="var(--text-secondary)" fontSize="10" fontFamily="monospace">CLOG + Locks</text>
+
+    <line x1="518" y1="107" x2="558" y2="107" stroke="var(--success)" strokeWidth="2" />
+    <polygon points="558,107 548,102 548,112" fill="var(--success)" />
+
+    <rect x="562" y="52" width="234" height="110" rx="8" fill="var(--success-soft)" stroke="var(--success)" />
+    <text x="679" y="75" textAnchor="middle" fill="var(--success)" fontSize="12" fontWeight="700" fontFamily="sans-serif">Workers &amp; Disk ($PGDATA)</text>
+    <text x="679" y="98" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="sans-serif">WAL Writer -&gt; pg_wal (16MB)</text>
+    <text x="679" y="118" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="sans-serif">Checkpointer -&gt; base/ (1GB)</text>
+    <text x="679" y="140" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Autovacuum -&gt; FSM / VM</text>
+  </svg>
+</DiagramCard>
+
+<DiagramCard caption="Figure 5.2 — 8 KB Slotted Heap Page & HOT Update Chain: Line pointers grow downward while tuples grow upward; HOT links v1 -> v2 in-page without touching B-tree indexes.">
+  <svg viewBox="0 0 820 190" width="100%" role="img" aria-label="PostgreSQL 8 KB slotted page layout and HOT update">
+    <rect x="8" y="10" width="804" height="170" rx="12" fill="var(--bg-subtle)" stroke="var(--border)" />
+    <text x="410" y="34" textAnchor="middle" fill="var(--text-primary)" fontSize="13" fontWeight="700" fontFamily="sans-serif">8 KB Slotted Page (8192 Bytes) &amp; In-Page HOT Chain</text>
+
+    <rect x="24" y="52" width="136" height="110" rx="8" fill="var(--bg-surface)" stroke="var(--border-control)" />
+    <text x="92" y="78" textAnchor="middle" fill="var(--text-primary)" fontSize="12" fontWeight="700" fontFamily="sans-serif">Page Header</text>
+    <text x="92" y="100" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="monospace">24 bytes</text>
+    <text x="92" y="122" textAnchor="middle" fill="var(--text-secondary)" fontSize="10" fontFamily="monospace">LSN, lower, upper</text>
+
+    <rect x="172" y="52" width="166" height="110" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" />
+    <text x="255" y="78" textAnchor="middle" fill="var(--accent-strong)" fontSize="12" fontWeight="700" fontFamily="sans-serif">Line Pointers -&gt;</text>
+    <text x="255" y="100" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">[1] -&gt; v1 (0,1)</text>
+    <text x="255" y="122" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">[2] -&gt; v2 (0,2)</text>
+    <text x="255" y="144" textAnchor="middle" fill="var(--text-secondary)" fontSize="10" fontFamily="sans-serif">4 bytes each</text>
+
+    <rect x="350" y="52" width="132" height="110" rx="8" fill="var(--bg-surface)" stroke="var(--border)" />
+    <text x="416" y="96" textAnchor="middle" fill="var(--text-secondary)" fontSize="12" fontWeight="700" fontFamily="sans-serif">Free Space</text>
+    <text x="416" y="118" textAnchor="middle" fill="var(--text-secondary)" fontSize="10" fontFamily="sans-serif">Reserved by fillfactor</text>
+
+    <rect x="494" y="52" width="302" height="110" rx="8" fill="var(--success-soft)" stroke="var(--success)" />
+    <text x="645" y="78" textAnchor="middle" fill="var(--success)" fontSize="12" fontWeight="700" fontFamily="sans-serif">&lt;- Heap Tuples (HOT Chain)</text>
+    <text x="645" y="100" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">v2: xmin=205, xmax=0 (live)</text>
+    <text x="645" y="122" textAnchor="middle" fill="var(--warning)" fontSize="11" fontFamily="monospace">v1: xmin=190, xmax=205 -&gt; [2]</text>
+    <text x="645" y="144" textAnchor="middle" fill="var(--success)" fontSize="10" fontFamily="sans-serif">B-tree still points to [1] (0 index writes!)</text>
+  </svg>
+</DiagramCard>
+
+</TopicSection>
+
+<TopicSection id="m05-p1-sec-d" letter="D" title="Practical Examples (Interactive)">
+
+#### Example 1: Inspecting PostgreSQL Storage, `ctid`, MVCC & WAL Internals (SQL)
+
+<CodeBlock
+  lang="sql"
+  code={`-- Inspect physical file path, tuple ctid, MVCC xmin/xmax, and WAL LSN
+CREATE TABLE IF NOT EXISTS accounts (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  balance_cents BIGINT NOT NULL
+) WITH (fillfactor = 80);
+
+INSERT INTO accounts (balance_cents) VALUES (10000);
+
+SELECT ctid, xmin, xmax, id, balance_cents
+FROM accounts;
+
+-- Check physical relation file, current WAL position, and XID freeze age
+SELECT pg_relation_filepath('accounts') AS rel_file,
+       pg_current_wal_lsn() AS wal_lsn,
+       age(datfrozenxid) AS db_xid_age
+FROM pg_database
+WHERE datname = current_database();`}
+/>
+
+#### Example 2: 8 KB Slotted Heap Page & HOT Update Simulator (`createSlottedPage`)
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// Models an 8192-byte PostgreSQL slotted page with 24B header, 4B line pointers, and HOT updates
+function createSlottedPage({ pageSize = 8192, fillfactor = 100 } = {}) {
+  if (!Number.isInteger(pageSize) || pageSize < 256) throw new TypeError("pageSize must be >= 256");
+  if (!Number.isInteger(fillfactor) || fillfactor < 10 || fillfactor > 100) {
+    throw new TypeError("fillfactor must be 10..100");
+  }
+
+  const HEADER_BYTES = 24;
+  const POINTER_BYTES = 4;
+  const TUPLE_HEADER_BYTES = 24;
+  const insertLimit = Math.floor((pageSize - HEADER_BYTES) * (fillfactor / 100)) + HEADER_BYTES;
+
+  let lower = HEADER_BYTES;
+  let upper = pageSize;
+  const slots = []; // { xmin, xmax, payloadBytes, hotNextSlot, indexUpdated }
+
+  function freeBytes() {
+    return upper - lower;
+  }
+
+  function insert(xmin, payloadBytes, { bypassFillfactor = false } = {}) {
+    if (!Number.isInteger(xmin) || xmin < 1) throw new TypeError("xmin must be positive integer");
+    if (!Number.isInteger(payloadBytes) || payloadBytes < 1) throw new TypeError("payloadBytes must be >= 1");
+
+    const needed = POINTER_BYTES + TUPLE_HEADER_BYTES + payloadBytes;
+    const projectedUsed = (lower - HEADER_BYTES + POINTER_BYTES) + (pageSize - upper + TUPLE_HEADER_BYTES + payloadBytes);
+    const maxAllowed = bypassFillfactor ? pageSize - HEADER_BYTES : insertLimit - HEADER_BYTES;
+
+    if (freeBytes() < needed || projectedUsed > maxAllowed) {
+      return { inserted: false, reason: "PageFullOrFillfactorReached", freeBytes: freeBytes() };
+    }
+
+    lower += POINTER_BYTES;
+    upper -= TUPLE_HEADER_BYTES + payloadBytes;
+    const slotNum = slots.length + 1;
+    slots.push({ slotNum, xmin, xmax: 0, payloadBytes, hotNextSlot: null });
+    return { inserted: true, ctid: "(0," + slotNum + ")", freeBytes: freeBytes() };
+  }
+
+  function update(slotNum, xid, newPayloadBytes, indexedColumnChanged = false) {
+    const oldSlot = slots[slotNum - 1];
+    if (!oldSlot || oldSlot.xmax !== 0) throw new Error("Target tuple not live at slot " + slotNum);
+
+    if (indexedColumnChanged) {
+      oldSlot.xmax = xid;
+      return { hot: false, indexWrites: 1, note: "Indexed column changed; must insert new index entry" };
+    }
+
+    const res = insert(xid, newPayloadBytes, { bypassFillfactor: true });
+    if (!res.inserted) {
+      oldSlot.xmax = xid;
+      return { hot: false, indexWrites: 1, note: "Page full; spilled to next heap page" };
+    }
+    oldSlot.xmax = xid;
+    oldSlot.hotNextSlot = slots.length;
+    return { hot: true, indexWrites: 0, ctid: res.ctid, freeBytes: res.freeBytes };
+  }
+
+  return { insert, update, freeBytes, getSlots: () => slots.map((s) => ({ ...s })) };
+}
+
+const page = createSlottedPage({ fillfactor: 80 });
+const r1 = page.insert(100, 120);
+const hotUpdate = page.update(1, 105, 120, false);
+const nonHotUpdate = page.update(2, 110, 120, true);
+console.log("Insert:", r1);
+console.log("HOT update (0 index writes):", hotUpdate);
+console.log("Indexed update:", nonHotUpdate);`}
+/>
+
+#### Example 3: WAL Full-Page Writes & Checkpoint Engine (`createWalAndCheckpointEngine`)
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// Models WAL LSN progression, torn-page FPI protection on first dirty after checkpoint, and CHECKPOINT
+function createWalAndCheckpointEngine({ fullPageWrites = true } = {}) {
+  if (typeof fullPageWrites !== "boolean") throw new TypeError("fullPageWrites must be boolean");
+
+  let nextLsn = 1;
+  let redoLsn = 1;
+  const dirtySinceCheckpoint = new Set();
+  const wal = [];
+
+  return {
+    modifyPage(pageId, xid, deltaDesc) {
+      if (!Number.isInteger(pageId) || pageId < 0) throw new TypeError("pageId must be >= 0");
+      if (!Number.isInteger(xid) || xid < 1) throw new TypeError("xid must be >= 1");
+
+      const needsFpi = fullPageWrites && !dirtySinceCheckpoint.has(pageId);
+      dirtySinceCheckpoint.add(pageId);
+      const lsn = nextLsn++;
+      const record = { lsn, pageId, xid, fpiLogged: needsFpi, desc: deltaDesc };
+      wal.push(record);
+      return record;
+    },
+    checkpoint() {
+      const flushedPages = dirtySinceCheckpoint.size;
+      dirtySinceCheckpoint.clear();
+      redoLsn = nextLsn;
+      const rec = { lsn: nextLsn++, type: "CHECKPOINT", redoLsn, flushedPages };
+      wal.push(rec);
+      return rec;
+    },
+    stats() {
+      return { nextLsn, redoLsn, walLength: wal.length, dirtyPages: dirtySinceCheckpoint.size };
+    }
+  };
+}
+
+const walEngine = createWalAndCheckpointEngine({ fullPageWrites: true });
+console.log("1st touch page 7:", walEngine.modifyPage(7, 10, "UPDATE bal"));
+console.log("2nd touch page 7:", walEngine.modifyPage(7, 11, "UPDATE bal"));
+console.log("Checkpoint:", walEngine.checkpoint());
+console.log("Post-ckpt touch page 7:", walEngine.modifyPage(7, 12, "UPDATE bal"));`}
+/>
+
+</TopicSection>
+
+<TopicSection id="m05-p1-sec-e" letter="E" title="Step-by-Step Walkthrough">
+
+Let us trace how `createSlottedPage` executes `insert`, `HOT update`, and `indexed update`:
+
+1. **Initial insert with `fillfactor = 80`**: `page.insert(100, 120)` checks that `freeBytes()` covers `4 + 24 + 120 = 148` bytes and stays under `80%` of the usable page (`6534` bytes). It advances `lower` by `4` bytes, lowers `upper` by `144` bytes, and returns `ctid: "(0,1)"`.
+2. **HOT update (`indexedColumnChanged = false`)**: `page.update(1, 105, 120, false)` sets `xmax = 105` on slot `1`, bypasses `fillfactor` to use the reserved 20% headroom on the *same* page, writes `v2` at `(0,2)`, sets `oldSlot.hotNextSlot = 2`, and logs **`indexWrites: 0`**.
+3. **Indexed update (`indexedColumnChanged = true`)**: `page.update(2, 110, 120, true)` cannot use HOT because the index key changed, so it marks `xmax = 110` and reports **`indexWrites: 1`**.
+
+</TopicSection>
+
+<TopicSection id="m05-p1-sec-f" letter="F" title="Real-World Use Cases">
+
+#### Scenario 1: Tuning `fillfactor` on Update-Heavy User/Session Tables
+
+Setting `ALTER TABLE user_sessions SET (fillfactor = 75)` reserves 25% of every 8 KB page for in-page HOT updates when `last_seen_at` (an unindexed column) updates thousands of times per second—cutting B-tree index write I/O by over 80%.
+
+#### Scenario 2: Sizing `shared_buffers` & `work_mem` on a Dedicated DB Node
+
+On a 64 GB RAM PostgreSQL host, setting `shared_buffers = 16GB` (25% of RAM) avoids double-caching overhead while leaving ~44 GB for the OS filesystem cache, and capping `work_mem = 16MB` prevents 200 concurrent sort/hash nodes from exhausting RAM.
+
+#### Scenario 3: Diagnosing Index-Only Scans via the Visibility Map
+
+When `EXPLAIN (ANALYZE, BUFFERS)` shows high `Heap Fetches` during an Index-Only Scan, running `VACUUM` updates the `_vm` Visibility Map so PostgreSQL skips reading 8 KB heap pages entirely.
+
+</TopicSection>
+
+<TopicSection id="m05-p1-sec-g" letter="G" title="Common Mistakes">
+
+- **Setting `shared_buffers` to 80% of RAM:** Starves the OS page cache and forces PostgreSQL to manage huge buffer sweeps during checkpoints, degrading throughput.
+- **Setting `work_mem` to 512 MB globally:** Unlike `shared_buffers`, `work_mem` is allocated *per sort/hash operator per query*—100 concurrent queries with 3 joins can allocate `300 * 512 MB = 150 GB` and trigger the Linux OOM killer.
+- **Disabling `full_page_writes` or `autovacuum`:** Turning off `full_page_writes` risks silent torn-page corruption after crashes; turning off `autovacuum` causes runaway bloat and eventual XID wraparound shutdowns.
+
+</TopicSection>
+
+<TopicSection id="m05-p1-sec-h" letter="H" title="Best Practices">
+
+- Start `shared_buffers` at **25% of RAM** (up to ~25–40% on pure OLTP nodes) and tune `work_mem` conservatively (`4–32 MB` globally, raising per-session only for heavy analytics).
+- Keep `full_page_writes = on`, `checkpoint_completion_target = 0.9`, and `max_wal_size` large enough so checkpoints spread I/O smoothly instead of spiking every few minutes.
+- Monitor `age(datfrozenxid)` and `n_dead_tup` in `pg_stat_user_tables` so autovacuum keeps pace with high-churn tables.
+
+</TopicSection>
+
+<TopicSection id="m05-p1-sec-i" letter="I" title="Performance & Scalability">
+
+- **Checkpoint I/O Storms:** Too-small `max_wal_size` triggers frequent checkpoints, which both flush dirty buffers aggressively and force fresh Full-Page Images (FPIs) on the next touch—doubling WAL volume.
+- **TOAST Compression vs. CPU:** Default `EXTENDED` TOAST compresses large `JSONB`/`TEXT` values with `pglz` or `lz4` (`default_toast_compression = lz4` in PG 14+) before spilling out-of-line, saving I/O at minor CPU cost.
+
+</TopicSection>
+
+<TopicSection id="m05-p1-sec-j" letter="J" title="Security Considerations">
+
+- **WAL & Heap Confidentiality:** Both `$PGDATA/base` and `$PGDATA/pg_wal` (including Full-Page Images) contain unencrypted table data unless filesystem/volume encryption is enabled; protect OS permissions (`0700` owned by `postgres`) and encrypt backups.
+- **Superuser & `pg_read_server_files`:** Restrict access to diagnostic extensions (`pageinspect`, `pg_buffercache`) and raw file paths (`pg_relation_filepath`) to DBA roles only.
+
+</TopicSection>
+
+<TopicSection id="m05-p1-sec-k" letter="K" title="Comparisons & Decision Tables">
+
+#### 1. PostgreSQL Shared vs. Per-Backend Memory Areas
+
+| Parameter | Scope | Typical Sizing | Primary Risk if Misconfigured |
+| --- | --- | --- | --- |
+| **`shared_buffers`** | Shared cluster-wide | ~25% of host RAM | Too high starves OS cache; too low increases disk reads |
+| **`wal_buffers`** | Shared WAL staging | 16 MB (auto) – 64 MB | Tiny buffer stalls high-concurrency commits |
+| **`work_mem`** | Per sort/hash node | 4–32 MB | Too high causes OOM; too low spills temp files to disk |
+| **`maintenance_work_mem`** | Per VACUUM / CREATE INDEX | 256 MB – 2 GB | Too low slows `VACUUM` and index builds |
+
+#### 2. PostgreSQL Relation Forks
+
+| Fork Suffix | Name | Purpose |
+| --- | --- | --- |
+| *(none)* | **Main Fork** | Stores 8 KB heap tuples or B-tree/GIN/GiST index pages |
+| **`_fsm`** | **Free Space Map** | Tracks approximate free bytes on each 8 KB page for fast `INSERT` placement |
+| **`_vm`** | **Visibility Map** | Marks all-visible / all-frozen pages to accelerate Index-Only Scans and `VACUUM` |
+| **`_init`** | **Init Fork** | Resets `UNLOGGED` tables cleanly to empty after crash recovery |
+
+#### 3. PostgreSQL TOAST Storage Strategies
+
+| Strategy | Compression | Out-of-Line Spill | Typical Column Types |
+| --- | --- | --- | --- |
+| **`PLAIN`** | No | No | Fixed-size integers, booleans, timestamps |
+| **`EXTENDED`** | Yes | Yes | `TEXT`, `VARCHAR`, `JSONB`, `BYTEA` (default) |
+| **`EXTERNAL`** | No | Yes | Pre-compressed media/blobs (fast substring reads) |
+| **`MAIN`** | Yes | Last resort only | Columns kept inline unless tuple still exceeds ~2 KB |
+
+</TopicSection>
+
+<TopicSection id="m05-p1-sec-l" letter="L" title="Tips to Remember (Mnemonics & Mental Models)">
+
+- **"`shared_buffers` is shared once; `work_mem` multiplies per operator per query."**
+- **"8 KB pages, 16 MB WAL segments, 1 GB relation file chunks."**
+- **"HOT updates = same page + no indexed column changed = 0 index writes."**
+- **"Full-Page Writes protect against 4 KB/8 KB torn pages right after a checkpoint."**
+
+</TopicSection>
+
+<TopicSection id="m05-p1-sec-mn" letter="M/N" title="Interview Questions & Detailed Answers">
+
+<InterviewSection lessonId="m05-p1" />
+
+</TopicSection>
+
+<TopicSection id="m05-p1-sec-o" letter="O" title="Practical Exercises">
+
+#### Exercise 1: TOAST Storage Decision Classifier (classifyToastStorage)
+
+<ExerciseCard
+  title="Exercise 1: TOAST Storage Decision Classifier (classifyToastStorage)"
+  prompt={
+    <p>
+      Implement <code>classifyToastStorage(&#123; tupleBytes, hasVarlena, strategy &#125;)</code> that validates inputs and determines whether PostgreSQL stores the tuple inline, compresses it, or spills it out-of-line to a <code>pg_toast</code> table under <code>PLAIN</code>, <code>EXTENDED</code>, <code>EXTERNAL</code>, or <code>MAIN</code> strategies (using a 2000-byte threshold).
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function classifyToastStorage({ tupleBytes, hasVarlena, strategy = "EXTENDED" }) {
+  if (!Number.isInteger(tupleBytes) || tupleBytes < 1) throw new TypeError("tupleBytes must be positive integer");
+  if (typeof hasVarlena !== "boolean") throw new TypeError("hasVarlena must be boolean");
+  const validStrategies = new Set(["PLAIN", "EXTENDED", "EXTERNAL", "MAIN"]);
+  if (!validStrategies.has(strategy)) throw new TypeError("Invalid TOAST strategy: " + strategy);
+
+  const TOAST_THRESHOLD = 2000;
+  if (!hasVarlena || strategy === "PLAIN" || tupleBytes <= TOAST_THRESHOLD) {
+    if (strategy === "PLAIN" && tupleBytes > 8160) {
+      throw new Error("RowTooLargeForPage: PLAIN column cannot spill to TOAST");
+    }
+    return { storage: "inline", compressed: false, toasted: false };
+  }
+  if (strategy === "EXTERNAL") {
+    return { storage: "out-of-line", compressed: false, toasted: true };
+  }
+  if (strategy === "MAIN") {
+    return { storage: "inline-if-fits-after-compress", compressed: true, toasted: tupleBytes > 4000 };
+  }
+  return { storage: "compress-then-toast", compressed: true, toasted: true };
+}
+
+console.log("Small row:", classifyToastStorage({ tupleBytes: 256, hasVarlena: true, strategy: "EXTENDED" }));
+console.log("Large JSONB:", classifyToastStorage({ tupleBytes: 9500, hasVarlena: true, strategy: "EXTENDED" }));
+console.log("Blob EXTERNAL:", classifyToastStorage({ tupleBytes: 9500, hasVarlena: true, strategy: "EXTERNAL" }));`}
+  />
+</ExerciseCard>
+
+#### Exercise 2: XID Wraparound & Freeze Evaluator (evaluateXidFreeze)
+
+<ExerciseCard
+  title="Exercise 2: XID Wraparound & Freeze Evaluator (evaluateXidFreeze)"
+  prompt={
+    <p>
+      Implement <code>evaluateXidFreeze(&#123; currentXid, tuples, freezeMinAge, autovacuumFreezeMaxAge &#125;)</code> that computes 32-bit modulo XID age for each unfrozen live tuple, returns which tuples need freezing (<code>age &gt;= freezeMinAge</code>), and flags whether an aggressive wraparound autovacuum is triggered (<code>maxAge &gt;= autovacuumFreezeMaxAge</code>).
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function evaluateXidFreeze({ currentXid, tuples, freezeMinAge = 50000000, autovacuumFreezeMaxAge = 200000000 }) {
+  const XID_MOD = 2 ** 32;
+  if (!Number.isInteger(currentXid) || currentXid < 3) throw new TypeError("currentXid must be >= 3");
+  if (!Array.isArray(tuples)) throw new TypeError("tuples must be an array");
+
+  let maxAge = 0;
+  const toFreeze = [];
+
+  for (const t of tuples) {
+    if (!Number.isInteger(t.xmin) || t.xmin < 3) throw new TypeError("tuple xmin must be >= 3");
+    if (t.frozen) continue;
+    const age = (currentXid - t.xmin + XID_MOD) % XID_MOD;
+    if (age > maxAge) maxAge = age;
+    if (age >= freezeMinAge) {
+      toFreeze.push({ id: t.id, xmin: t.xmin, age });
+    }
+  }
+
+  return {
+    maxAge,
+    toFreeze,
+    aggressiveAutovacuumRequired: maxAge >= autovacuumFreezeMaxAge
+  };
+}
+
+console.log(
+  "Freeze report:",
+  evaluateXidFreeze({
+    currentXid: 250000000,
+    tuples: [
+      { id: 1, xmin: 10000000, frozen: false },
+      { id: 2, xmin: 245000000, frozen: false },
+      { id: 3, xmin: 500, frozen: true }
+    ]
+  })
+);`}
+  />
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m05-p1-sec-p" letter="P" title="Advanced Challenge">
+
+<Callout variant="warning" title="Production Incident: Checkpoint I/O Spikes & Approaching XID Wraparound">
+  <p>
+    A 4 TB write-heavy PostgreSQL cluster experiences 10-second latency spikes every 5 minutes during checkpoints, 45% dead-tuple bloat on its main ledger table, and <code>age(datfrozenxid) = 1.6 billion</code>.
+  </p>
+</Callout>
+
+<ExerciseCard
+  title="Challenge: Stabilizing Checkpoints, HOT Ratio & XID Freeze"
+  prompt={
+    <p>
+      Design a zero-downtime remediation plan tuning <code>max_wal_size</code>, <code>checkpoint_completion_target</code>, <code>fillfactor</code>, <code>autovacuum</code> cost limits, and targeted <code>VACUUM FREEZE</code>. Compare your plan against Interview Question 8 in Section M/N.
+    </p>
+  }
+/>
+
+</TopicSection>
+
+<TopicSection id="m05-p1-sec-q" letter="Q" title="Summary & Key Takeaways">
+
+- **PostgreSQL uses a multi-process architecture** (`postmaster` + 1 backend per connection) sharing `shared_buffers`, `wal_buffers`, and background workers.
+- **Tables and indexes live in 8 KB slotted pages** inside 1 GB segment files, with companion `_fsm`, `_vm`, and `pg_toast` structures.
+- **MVCC (`xmin`/`xmax`) and HOT updates** allow non-blocking reads and zero-index-write updates when rows fit on the same page.
+- **WAL + Full-Page Writes** prevent torn pages after crashes, while **periodic `VACUUM FREEZE`** prevents 32-bit XID wraparound.
+
+</TopicSection>
