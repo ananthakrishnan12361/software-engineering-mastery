@@ -236,12 +236,12 @@ Split into 3 parts:
 - [x] Foreign keys
 - [x] Unique constraints
 - [x] Check constraints
-- [ ] Normalization
-- [ ] Denormalization
-- [ ] 1NF
-- [ ] 2NF
-- [ ] 3NF
-- [ ] BCNF overview
+- [x] Normalization
+- [x] Denormalization
+- [x] 1NF
+- [x] 2NF
+- [x] 3NF
+- [x] BCNF overview
 - [ ] Transactions
 - [ ] ACID
 - [ ] Isolation levels

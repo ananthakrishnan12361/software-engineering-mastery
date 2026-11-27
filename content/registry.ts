@@ -35,6 +35,8 @@ import M03P4Mdx from "./modules/03-nodejs/m03-p4.mdx";
 import m03p4Raw from "./modules/03-nodejs/m03-p4.mdx?raw";
 import M04P1Mdx from "./modules/04-database-fundamentals/m04-p1.mdx";
 import m04p1Raw from "./modules/04-database-fundamentals/m04-p1.mdx?raw";
+import M04P2Mdx from "./modules/04-database-fundamentals/m04-p2.mdx";
+import m04p2Raw from "./modules/04-database-fundamentals/m04-p2.mdx?raw";
 import { m01p1Questions } from "./interviews/m01-p1.questions";
 import { m01p2Questions } from "./interviews/m01-p2.questions";
 import { m01p3Questions } from "./interviews/m01-p3.questions";
@@ -49,6 +51,7 @@ import { m03p2Questions } from "./interviews/m03-p2.questions";
 import { m03p3Questions } from "./interviews/m03-p3.questions";
 import { m03p4Questions } from "./interviews/m03-p4.questions";
 import { m04p1Questions } from "./interviews/m04-p1.questions";
+import { m04p2Questions } from "./interviews/m04-p2.questions";
 import { SYLLABUS_MODULES } from "./syllabus";
 
 export interface HandbookCatalog {
@@ -178,11 +181,11 @@ const modules: ModuleRecord[] = [
     number: 4,
     title: "Database Fundamentals & Database Architecture",
     category: "databases",
-    partSummary: "Part 1 of 3",
+    partSummary: "Parts 1–2 of 3",
     scopeSummary:
-      "Scope (Part 1): Database Architecture, B-Tree vs. LSM Engines, Relational vs. NoSQL, Data Modeling, ER Diagrams, Tables, Rows, Columns & Constraints",
-    lead: "Master database internals (Buffer Pool, WAL, B-Tree vs. LSM), relational vs. NoSQL modeling, ER cardinalities, and storage-layer constraints.",
-    lessonIds: ["m04-p1"]
+      "Scope (Parts 1–2): Database Architecture, Engines, Relational vs. NoSQL, ER Modeling, Constraints, Normalization (1NF–BCNF) & Denormalization",
+    lead: "Master database internals (Buffer Pool, WAL, B-Tree vs. LSM), relational vs. NoSQL modeling, ER cardinalities, constraints, and 1NF–BCNF normalization.",
+    lessonIds: ["m04-p1", "m04-p2"]
   }
 ];
 
@@ -1005,8 +1008,65 @@ const lessons: LessonRecord[] = [
       }
     ],
     prevLessonId: "m03-p4",
-    nextLessonId: null,
+    nextLessonId: "m04-p2",
     Content: M04P1Mdx
+  },
+  {
+    id: "m04-p2",
+    moduleId: "module-4",
+    moduleNumber: 4,
+    moduleTitle: "Database Fundamentals & Database Architecture",
+    partLabel: "Lesson M04-P2",
+    title: "Part 2: Normalization (1NF, 2NF, 3NF, BCNF) & Denormalization",
+    category: "databases",
+    duration: "80 min (35m theory · 25m practice · 20m review)",
+    objectives: [
+      "Identify insertion, update, and deletion anomalies caused by redundant relational schemas.",
+      "Normalize tables step-by-step through 1NF (atomicity), 2NF (no partial key dependencies), 3NF (no transitive dependencies), and BCNF (superkey determinants).",
+      "Distinguish immutable point-in-time snapshots (unit_price_cents) from redundant denormalization.",
+      "Apply selective denormalization only for measured read bottlenecks with atomic transaction/trigger/materialized-view synchronization."
+    ],
+    sections: [
+      { id: "m04-p2-objectives", title: "Learning Objectives" },
+      { id: "m04-p2-sec-a", letter: "A", title: "Topic Introduction" },
+      { id: "m04-p2-sec-b", letter: "B", title: "Fundamentals (Simple Mental Models)" },
+      { id: "m04-p2-sec-c", letter: "C", title: "Internal Working & Architecture" },
+      { id: "m04-p2-sec-d", letter: "D", title: "Practical Examples (Interactive)" },
+      { id: "m04-p2-sec-e", letter: "E", title: "Step-by-Step Walkthrough" },
+      { id: "m04-p2-sec-f", letter: "F", title: "Real-World Use Cases" },
+      { id: "m04-p2-sec-g", letter: "G", title: "Common Mistakes" },
+      { id: "m04-p2-sec-h", letter: "H", title: "Best Practices" },
+      { id: "m04-p2-sec-i", letter: "I", title: "Performance & Scalability" },
+      { id: "m04-p2-sec-j", letter: "J", title: "Security Considerations" },
+      { id: "m04-p2-sec-k", letter: "K", title: "Comparisons & Decision Tables" },
+      { id: "m04-p2-sec-l", letter: "L", title: "Tips to Remember (Mnemonics & Mental Models)" },
+      { id: "m04-p2-sec-mn", letter: "M/N", title: "Interview Questions & Detailed Answers" },
+      { id: "m04-p2-sec-o", letter: "O", title: "Practical Exercises" },
+      { id: "m04-p2-sec-p", letter: "P", title: "Advanced Challenge" },
+      { id: "m04-p2-sec-q", letter: "Q", title: "Summary & Key Takeaways" },
+      { id: "m04-p2-mastery", title: "Mastery Assessment" }
+    ],
+    masteryItems: [
+      {
+        id: "m04-p2-m1",
+        label: "I can decompose any unnormalized table through 1NF, 2NF, 3NF, and BCNF without losing data."
+      },
+      {
+        id: "m04-p2-m2",
+        label: "I can distinguish temporal price snapshots from redundant denormalization."
+      },
+      {
+        id: "m04-p2-m3",
+        label: "I can justify selective denormalization and design atomic sync mechanisms to prevent drift."
+      },
+      {
+        id: "m04-p2-m4",
+        label: "I completed the M04-P2 exercises and can answer the interview questions without notes."
+      }
+    ],
+    prevLessonId: "m04-p1",
+    nextLessonId: null,
+    Content: M04P2Mdx
   }
 ];
 
@@ -1024,7 +1084,8 @@ const questionsByLesson: Record<string, InterviewQuestion[]> = {
   "m03-p2": m03p2Questions,
   "m03-p3": m03p3Questions,
   "m03-p4": m03p4Questions,
-  "m04-p1": m04p1Questions
+  "m04-p1": m04p1Questions,
+  "m04-p2": m04p2Questions
 };
 
 const allQuestions: InterviewQuestion[] = [
@@ -1041,7 +1102,8 @@ const allQuestions: InterviewQuestion[] = [
   ...m03p2Questions,
   ...m03p3Questions,
   ...m03p4Questions,
-  ...m04p1Questions
+  ...m04p1Questions,
+  ...m04p2Questions
 ];
 
 function mergeGlossaryEntries(...batches: GlossaryEntry[][]): GlossaryEntry[] {
@@ -1071,7 +1133,8 @@ const glossaryEntries: GlossaryEntry[] = mergeGlossaryEntries(
   extractGlossaryFromMdx(m03p2Raw, "m03-p2"),
   extractGlossaryFromMdx(m03p3Raw, "m03-p3"),
   extractGlossaryFromMdx(m03p4Raw, "m03-p4"),
-  extractGlossaryFromMdx(m04p1Raw, "m04-p1")
+  extractGlossaryFromMdx(m04p1Raw, "m04-p1"),
+  extractGlossaryFromMdx(m04p2Raw, "m04-p2")
 );
 
 function buildSearchRecords(): SearchRecord[] {
@@ -1104,6 +1167,7 @@ function buildSearchRecords(): SearchRecord[] {
   records.push(...extractSearchRecordsFromMdx(m03p3Raw, "m03-p3", lessons[11].title, 3));
   records.push(...extractSearchRecordsFromMdx(m03p4Raw, "m03-p4", lessons[12].title, 3));
   records.push(...extractSearchRecordsFromMdx(m04p1Raw, "m04-p1", lessons[13].title, 4));
+  records.push(...extractSearchRecordsFromMdx(m04p2Raw, "m04-p2", lessons[14].title, 4));
 
   for (const mod of SYLLABUS_MODULES) {
     for (const topic of mod.topics) {

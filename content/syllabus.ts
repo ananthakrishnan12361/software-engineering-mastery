@@ -897,12 +897,36 @@ export const SYLLABUS_MODULES: SyllabusModule[] = [
       lessonId: "m04-p1",
       anchorId: "m04-p1-topic-check-constraints"
     },
-    "Normalization",
-    "Denormalization",
-    "1NF",
-    "2NF",
-    "3NF",
-    "BCNF overview",
+    {
+      title: "Normalization",
+      lessonId: "m04-p2",
+      anchorId: "m04-p2-topic-normalization"
+    },
+    {
+      title: "Denormalization",
+      lessonId: "m04-p2",
+      anchorId: "m04-p2-topic-denormalization"
+    },
+    {
+      title: "1NF",
+      lessonId: "m04-p2",
+      anchorId: "m04-p2-topic-1nf"
+    },
+    {
+      title: "2NF",
+      lessonId: "m04-p2",
+      anchorId: "m04-p2-topic-2nf"
+    },
+    {
+      title: "3NF",
+      lessonId: "m04-p2",
+      anchorId: "m04-p2-topic-3nf"
+    },
+    {
+      title: "BCNF overview",
+      lessonId: "m04-p2",
+      anchorId: "m04-p2-topic-bcnf-overview"
+    },
     "Transactions",
     "ACID",
     "Isolation levels",

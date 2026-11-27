@@ -312,3 +312,13 @@ For each review, add:
   - RocksDB / LSM-Tree Storage Engine Architecture: `https://github.com/facebook/rocksdb/wiki/RocksDB-Overview`
   - MySQL InnoDB Architecture (Buffer Pool & Clustered B-Tree Index): `https://dev.mysql.com/doc/refman/8.4/en/innodb-architecture.html`
 - **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m04-p1.mdx`, `m04-p1.questions.ts`, and `m04-p1.coverage.ts`.
+
+---
+
+### Module 04 Part 2 (M04-P2) Technical Review Log — 2026-11-27
+
+- **Scope:** Normalization, Denormalization, 1NF, 2NF, 3NF, BCNF overview.
+- **Official Documentation Verified (`M3`):**
+  - PostgreSQL Materialized Views (`REFRESH MATERIALIZED VIEW CONCURRENTLY`): `https://www.postgresql.org/docs/current/rules-materializedviews.html`
+  - PostgreSQL Triggers & Generated Columns (Derived Cache Synchronization): `https://www.postgresql.org/docs/current/ddl-generated-columns.html` and `https://www.postgresql.org/docs/current/sql-createtrigger.html`
+- **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m04-p2.mdx`, `m04-p2.questions.ts`, and `m04-p2.coverage.ts`.
