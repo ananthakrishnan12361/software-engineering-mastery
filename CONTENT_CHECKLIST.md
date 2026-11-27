@@ -181,20 +181,20 @@ Split into 4 parts:
 - [x] API validation
 - [x] Error handling
 - [x] Logging
-- [ ] Authentication
-- [ ] JWT
-- [ ] Refresh tokens
-- [ ] Session management
-- [ ] Authorization
-- [ ] RBAC
-- [ ] OAuth fundamentals
-- [ ] Rate limiting
-- [ ] CORS
-- [ ] Security
-- [ ] Input sanitization
-- [ ] SQL injection
-- [ ] NoSQL injection
-- [ ] API security
+- [x] Authentication
+- [x] JWT
+- [x] Refresh tokens
+- [x] Session management
+- [x] Authorization
+- [x] RBAC
+- [x] OAuth fundamentals
+- [x] Rate limiting
+- [x] CORS
+- [x] Security
+- [x] Input sanitization
+- [x] SQL injection
+- [x] NoSQL injection
+- [x] API security
 - [ ] Pagination
 - [ ] Filtering
 - [ ] Sorting

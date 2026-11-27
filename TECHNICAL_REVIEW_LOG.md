@@ -275,3 +275,15 @@ For each review, add:
   - Problem Details for HTTP APIs (RFC 9457): `https://www.rfc-editor.org/rfc/rfc9457.html`
   - Node.js HTTP Server Timeouts (`headersTimeout`, `requestTimeout`): `https://nodejs.org/api/http.html`
 - **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m03-p2.mdx`, `m03-p2.questions.ts`, and `m03-p2.coverage.ts`.
+
+---
+
+### Module 03 Part 3 (M03-P3) Technical Review Log — 2026-11-27
+
+- **Scope:** Authentication, JWT, Refresh tokens, Session management, Authorization, RBAC, OAuth fundamentals, Rate limiting, CORS, Security, Input sanitization, SQL injection, NoSQL injection, API security.
+- **Official Documentation Verified (`M3`):**
+  - OWASP API Security Top 10 (API1 BOLA) & SQL Injection Prevention Cheat Sheet: `https://owasp.org/API-Security/` and `https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html`
+  - OAuth 2.0 Security Best Current Practice (Authorization Code + PKCE) & RFC 7519 (JWT): `https://datatracker.ietf.org/doc/html/rfc9700` and `https://datatracker.ietf.org/doc/html/rfc7519`
+  - Node.js `node:crypto` (`scryptSync`, `timingSafeEqual`): `https://nodejs.org/api/crypto.html`
+  - Fetch Standard / MDN CORS (`Access-Control-Allow-Origin`, `Vary`, `Origin: null`): `https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS`
+- **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m03-p3.mdx`, `m03-p3.questions.ts`, and `m03-p3.coverage.ts`.

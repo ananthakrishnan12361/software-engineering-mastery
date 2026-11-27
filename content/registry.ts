@@ -29,6 +29,8 @@ import M03P1Mdx from "./modules/03-nodejs/m03-p1.mdx";
 import m03p1Raw from "./modules/03-nodejs/m03-p1.mdx?raw";
 import M03P2Mdx from "./modules/03-nodejs/m03-p2.mdx";
 import m03p2Raw from "./modules/03-nodejs/m03-p2.mdx?raw";
+import M03P3Mdx from "./modules/03-nodejs/m03-p3.mdx";
+import m03p3Raw from "./modules/03-nodejs/m03-p3.mdx?raw";
 import { m01p1Questions } from "./interviews/m01-p1.questions";
 import { m01p2Questions } from "./interviews/m01-p2.questions";
 import { m01p3Questions } from "./interviews/m01-p3.questions";
@@ -40,6 +42,7 @@ import { m02p3Questions } from "./interviews/m02-p3.questions";
 import { m02p4Questions } from "./interviews/m02-p4.questions";
 import { m03p1Questions } from "./interviews/m03-p1.questions";
 import { m03p2Questions } from "./interviews/m03-p2.questions";
+import { m03p3Questions } from "./interviews/m03-p3.questions";
 import { SYLLABUS_MODULES } from "./syllabus";
 
 export interface HandbookCatalog {
@@ -158,11 +161,11 @@ const modules: ModuleRecord[] = [
     number: 3,
     title: "Node.js & Backend Engineering",
     category: "backend",
-    partSummary: "Parts 1–2 of 4",
+    partSummary: "Parts 1–3 of 4",
     scopeSummary:
-      "Scope (Parts 1–2): Node.js Architecture, V8, libuv, Event Loop, Streams, Buffers, Express, Middleware, Routing, REST, HTTP, Validation, Errors & Logging",
-    lead: "Master Node.js runtime internals, V8 + libuv concurrency, streams/buffers, Express middleware pipelines, REST API design, validation, and structured logging.",
-    lessonIds: ["m03-p1", "m03-p2"]
+      "Scope (Parts 1–3): Node.js Runtime, Express, REST APIs, AuthN/AuthZ, JWT, Refresh Tokens, RBAC, OAuth2, Rate Limiting, CORS & Injection Defense",
+    lead: "Master Node.js runtime internals, Express middleware pipelines, REST APIs, rotating refresh tokens, RBAC/BOLA defense, rate limiting, CORS, and SQL/NoSQL injection prevention.",
+    lessonIds: ["m03-p1", "m03-p2", "m03-p3"]
   }
 ];
 
@@ -814,8 +817,65 @@ const lessons: LessonRecord[] = [
       }
     ],
     prevLessonId: "m03-p1",
-    nextLessonId: null,
+    nextLessonId: "m03-p3",
     Content: M03P2Mdx
+  },
+  {
+    id: "m03-p3",
+    moduleId: "module-3",
+    moduleNumber: 3,
+    moduleTitle: "Node.js & Backend Engineering",
+    partLabel: "Lesson M03-P3",
+    title: "Part 3: Backend Auth, JWT, RBAC, OAuth2, Rate Limiting, CORS & Injection Defense",
+    category: "backend",
+    duration: "95 min (45m theory · 30m practice · 20m review)",
+    objectives: [
+      "Implement scrypt/Argon2id password hashing, constant-time secret comparison, and strict JWT claim/algorithm verification.",
+      "Design rotating refresh token families with reuse detection and enforce RBAC + object ownership to stop BOLA/IDOR.",
+      "Apply OAuth 2.0 Authorization Code + PKCE + state, exact-origin CORS allowlists, and Redis token-bucket rate limiting.",
+      "Eliminate SQL and NoSQL injection with parameterized queries, identifier allowlists, and strict primitive validation."
+    ],
+    sections: [
+      { id: "m03-p3-objectives", title: "Learning Objectives" },
+      { id: "m03-p3-sec-a", letter: "A", title: "Topic Introduction" },
+      { id: "m03-p3-sec-b", letter: "B", title: "Fundamentals (Simple Mental Models)" },
+      { id: "m03-p3-sec-c", letter: "C", title: "Internal Working & Architecture" },
+      { id: "m03-p3-sec-d", letter: "D", title: "Practical Examples (Interactive)" },
+      { id: "m03-p3-sec-e", letter: "E", title: "Step-by-Step Walkthrough" },
+      { id: "m03-p3-sec-f", letter: "F", title: "Real-World Use Cases" },
+      { id: "m03-p3-sec-g", letter: "G", title: "Common Mistakes" },
+      { id: "m03-p3-sec-h", letter: "H", title: "Best Practices" },
+      { id: "m03-p3-sec-i", letter: "I", title: "Performance & Scalability" },
+      { id: "m03-p3-sec-j", letter: "J", title: "Security Considerations" },
+      { id: "m03-p3-sec-k", letter: "K", title: "Comparisons & Decision Tables" },
+      { id: "m03-p3-sec-l", letter: "L", title: "Tips to Remember (Mnemonics & Mental Models)" },
+      { id: "m03-p3-sec-mn", letter: "M/N", title: "Interview Questions & Detailed Answers" },
+      { id: "m03-p3-sec-o", letter: "O", title: "Practical Exercises" },
+      { id: "m03-p3-sec-p", letter: "P", title: "Advanced Challenge" },
+      { id: "m03-p3-sec-q", letter: "Q", title: "Summary & Key Takeaways" },
+      { id: "m03-p3-mastery", title: "Mastery Assessment" }
+    ],
+    masteryItems: [
+      {
+        id: "m03-p3-m1",
+        label: "I can explain scrypt/Argon2id hashing, JWT alg/exp/iss/aud checks, and rotating refresh token families."
+      },
+      {
+        id: "m03-p3-m2",
+        label: "I can prevent BOLA/IDOR using RBAC permissions plus tenant/owner DB query scoping."
+      },
+      {
+        id: "m03-p3-m3",
+        label: "I can configure exact-origin CORS, token-bucket rate limits, parameterized SQL, and NoSQL operator guards."
+      },
+      {
+        id: "m03-p3-m4",
+        label: "I completed the M03-P3 exercises and can answer the interview questions without notes."
+      }
+    ],
+    prevLessonId: "m03-p2",
+    nextLessonId: null,
+    Content: M03P3Mdx
   }
 ];
 
@@ -830,7 +890,8 @@ const questionsByLesson: Record<string, InterviewQuestion[]> = {
   "m02-p3": m02p3Questions,
   "m02-p4": m02p4Questions,
   "m03-p1": m03p1Questions,
-  "m03-p2": m03p2Questions
+  "m03-p2": m03p2Questions,
+  "m03-p3": m03p3Questions
 };
 
 const allQuestions: InterviewQuestion[] = [
@@ -844,7 +905,8 @@ const allQuestions: InterviewQuestion[] = [
   ...m02p3Questions,
   ...m02p4Questions,
   ...m03p1Questions,
-  ...m03p2Questions
+  ...m03p2Questions,
+  ...m03p3Questions
 ];
 
 function mergeGlossaryEntries(...batches: GlossaryEntry[][]): GlossaryEntry[] {
@@ -871,7 +933,8 @@ const glossaryEntries: GlossaryEntry[] = mergeGlossaryEntries(
   extractGlossaryFromMdx(m02p3Raw, "m02-p3"),
   extractGlossaryFromMdx(m02p4Raw, "m02-p4"),
   extractGlossaryFromMdx(m03p1Raw, "m03-p1"),
-  extractGlossaryFromMdx(m03p2Raw, "m03-p2")
+  extractGlossaryFromMdx(m03p2Raw, "m03-p2"),
+  extractGlossaryFromMdx(m03p3Raw, "m03-p3")
 );
 
 function buildSearchRecords(): SearchRecord[] {
@@ -901,6 +964,7 @@ function buildSearchRecords(): SearchRecord[] {
   records.push(...extractSearchRecordsFromMdx(m02p4Raw, "m02-p4", lessons[8].title, 2));
   records.push(...extractSearchRecordsFromMdx(m03p1Raw, "m03-p1", lessons[9].title, 3));
   records.push(...extractSearchRecordsFromMdx(m03p2Raw, "m03-p2", lessons[10].title, 3));
+  records.push(...extractSearchRecordsFromMdx(m03p3Raw, "m03-p3", lessons[11].title, 3));
 
   for (const mod of SYLLABUS_MODULES) {
     for (const topic of mod.topics) {

@@ -669,20 +669,76 @@ export const SYLLABUS_MODULES: SyllabusModule[] = [
       lessonId: "m03-p2",
       anchorId: "m03-p2-topic-logging"
     },
-    "Authentication",
-    "JWT",
-    "Refresh tokens",
-    "Session management",
-    "Authorization",
-    "RBAC",
-    "OAuth fundamentals",
-    "Rate limiting",
-    "CORS",
-    "Security",
-    "Input sanitization",
-    "SQL injection",
-    "NoSQL injection",
-    "API security",
+    {
+      title: "Authentication",
+      lessonId: "m03-p3",
+      anchorId: "m03-p3-topic-authentication"
+    },
+    {
+      title: "JWT",
+      lessonId: "m03-p3",
+      anchorId: "m03-p3-topic-jwt"
+    },
+    {
+      title: "Refresh tokens",
+      lessonId: "m03-p3",
+      anchorId: "m03-p3-topic-refresh-tokens"
+    },
+    {
+      title: "Session management",
+      lessonId: "m03-p3",
+      anchorId: "m03-p3-topic-session-management"
+    },
+    {
+      title: "Authorization",
+      lessonId: "m03-p3",
+      anchorId: "m03-p3-topic-authorization"
+    },
+    {
+      title: "RBAC",
+      lessonId: "m03-p3",
+      anchorId: "m03-p3-topic-rbac"
+    },
+    {
+      title: "OAuth fundamentals",
+      lessonId: "m03-p3",
+      anchorId: "m03-p3-topic-oauth-fundamentals"
+    },
+    {
+      title: "Rate limiting",
+      lessonId: "m03-p3",
+      anchorId: "m03-p3-topic-rate-limiting"
+    },
+    {
+      title: "CORS",
+      lessonId: "m03-p3",
+      anchorId: "m03-p3-topic-cors"
+    },
+    {
+      title: "Security",
+      lessonId: "m03-p3",
+      anchorId: "m03-p3-topic-security"
+    },
+    {
+      title: "Input sanitization",
+      lessonId: "m03-p3",
+      anchorId: "m03-p3-topic-input-sanitization"
+    },
+    {
+      title: "SQL injection",
+      lessonId: "m03-p3",
+      anchorId: "m03-p3-topic-sql-injection"
+    },
+    {
+      title: "NoSQL injection",
+      lessonId: "m03-p3",
+      anchorId: "m03-p3-topic-nosql-injection"
+    },
+    {
+      title: "API security",
+      lessonId: "m03-p3",
+      anchorId: "m03-p3-topic-api-security"
+    },
     "Pagination",
     "Filtering",
     "Sorting",
