@@ -5,7 +5,7 @@
 - **Current Part:** `M08-P1` (Module 8: Database Indexing — Deep Dive — Part 1)
 - **Current Step:** `PLAN`
 - **Completed Sections (`M07-P3`):** `m07-p3.mdx` (Sections A–Q, 12 TopicAnchors, 2 SVGs `Figure 7.5` & `7.6`, 1 T-SQL + 5 runnable JS blocks, 3 comparison tables), `m07-p3.questions.ts` (13 IQs `3/4/4/2`), `m07-p3.coverage.ts` (12 topics, 5 codeTests), `content/coverage/index.ts`, `content/syllabus.ts`, `content/registry.ts`, `TECHNICAL_REVIEW_LOG.md`, `QUALITY_GATE.md`, `CONTENT_CHECKLIST.md`, `PROJECT_STATUS.md`
-- **Latest Quality Check:** `npm run quality` PASSED (`25` lessons, `290/945` topics, `123` runnable blocks, `148` safety mutation checks, `245` IQs, `50` SVGs, `0` viewport overflow).
-- **Latest Audit Result:** Round 2 `PASS` (0 Critical, 0 Major, 0 Minor).
-- **Unresolved Items:** None.
+- **Latest Quality Check:** `npm run quality` PASSED (`25` lessons, `290/945` topics, `123` runnable blocks, `152` safety mutation checks, `245` IQs, `50` SVGs, `0` viewport overflow).
+- **Latest Audit Result:** `M06-P1` remediation: round 1 (fresh Claude subagent) FAIL, all findings fixed; round 2 (fresh Claude subagent) `PASS` (0 important; 6 minor, 5 wording fixes applied, 1 simulator edge case in `createLockManager` same-transaction mode re-request left as documented minor). Previous: `M07-P3` Round 2 `PASS`.
+- **Unresolved Items:** Minor: `createLockManager` may return `waitingFor` equal to own id when a queued transaction re-requests a different mode (simulator-only).
 - **Next Action:** Run `/handbook-next` to begin `M08-P1` (`PLAN -> WRITE -> CHECK -> AUDIT -> UPDATE -> COMMIT`).

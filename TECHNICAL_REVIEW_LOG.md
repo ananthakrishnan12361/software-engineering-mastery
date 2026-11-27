@@ -393,8 +393,19 @@ For each review, add:
   - MySQL 8.0 Pluggable Storage Engine Architecture & InnoDB Architecture: `https://dev.mysql.com/doc/refman/8.0/en/pluggable-storage-overview.html` and `https://dev.mysql.com/doc/refman/8.0/en/innodb-architecture.html`
   - MySQL 8.0 MyISAM Storage Engine & Server SQL Modes (`STRICT_TRANS_TABLES`, `NO_ENGINE_SUBSTITUTION`): `https://dev.mysql.com/doc/refman/8.0/en/myisam-storage-engine.html` and `https://dev.mysql.com/doc/refman/8.0/en/sql-mode.html`
   - MySQL 8.0 InnoDB Locking, Transaction Model, MVCC, Isolation Levels & Deadlocks: `https://dev.mysql.com/doc/refman/8.0/en/innodb-locking.html`, `https://dev.mysql.com/doc/refman/8.0/en/innodb-transaction-isolation-levels.html`, `https://dev.mysql.com/doc/refman/8.0/en/innodb-multi-versioning.html`, and `https://dev.mysql.com/doc/refman/8.0/en/innodb-deadlocks.html`
-  - MySQL 8.0 Two-Phase Commit (`sync_binlog`, `innodb_flush_log_at_trx_commit`): `https://dev.mysql.com/doc/refman/8.0/en/innodb-parameters.html#sysvar_innodb_flush_log_at_trx_commit`
-- **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m06-p1.mdx`, `m06-p1.questions.ts`, and `m06-p1.coverage.ts`.
+  - MySQL 8.0 binary log / redo durability settings used by the commit protocol (`sync_binlog`, `innodb_flush_log_at_trx_commit`): `https://dev.mysql.com/doc/refman/8.0/en/replication-options-binary-log.html#sysvar_sync_binlog` and `https://dev.mysql.com/doc/refman/8.0/en/innodb-parameters.html#sysvar_innodb_flush_log_at_trx_commit`
+  - Consistent nonlocking reads (MVCC snapshot, plain `SELECT` phantom behavior) and locking reads / gap & next-key locks: `https://dev.mysql.com/doc/refman/8.0/en/innodb-consistent-read.html` and `https://dev.mysql.com/doc/refman/8.0/en/innodb-locking-reads.html`
+  - `SERIALIZABLE` implicit `FOR SHARE` only with `autocommit` off, `READ COMMITTED` requiring row/mixed binlog format: `https://dev.mysql.com/doc/refman/8.0/en/innodb-transaction-isolation-levels.html`
+  - Redo log sizing, `innodb_redo_log_capacity` (8.0.30+): `https://dev.mysql.com/doc/refman/8.0/en/innodb-redo-log.html`
+  - `performance_schema.data_locks` and `data_lock_waits`: `https://dev.mysql.com/doc/refman/8.0/en/performance-schema-data-locks-table.html` and `https://dev.mysql.com/doc/refman/8.0/en/performance-schema-data-lock-waits-table.html`
+  - Online DDL and `ALGORITHM=INSTANT` (add column any position / drop column in 8.0.29+): `https://dev.mysql.com/doc/refman/8.0/en/innodb-online-ddl-operations.html`
+  - Semi-synchronous replication semantics and `Seconds_Behind_Source` (`SHOW REPLICA STATUS`): `https://dev.mysql.com/doc/refman/8.0/en/replication-semisync.html` and `https://dev.mysql.com/doc/refman/8.0/en/show-replica-status.html`
+  - `CHECK` constraints enforced from 8.0.16: `https://dev.mysql.com/doc/refman/8.0/en/create-table-check-constraints.html`
+  - InnoDB `FULLTEXT` indexes (5.6+): `https://dev.mysql.com/doc/refman/8.0/en/innodb-fulltext-index.html`
+  - Keyring / InnoDB tablespace encryption: `https://dev.mysql.com/doc/refman/8.0/en/keyring.html`
+  - Enterprise Thread Pool: `https://dev.mysql.com/doc/refman/8.0/en/thread-pool.html`
+  - gh-ost cut-over (`_tbl_gho` / `_tbl_del`) and `pt-table-checksum`: `https://github.com/github/gh-ost/blob/master/doc/cut-over.md` and `https://docs.percona.com/percona-toolkit/pt-table-checksum.html`
+- **Verification Scope:** `npm run quality` over `m06-p1.mdx`, `m06-p1.questions.ts`, and `m06-p1.coverage.ts`. Round-1 independent audit (fresh Claude subagent, 2026-11-27) returned FAIL with findings on isolation/phantom claims, lock-manager rollback, interview accuracy and M3 links; remediation is recorded in `PIPELINE_STATE.md`.
 
 ---
 

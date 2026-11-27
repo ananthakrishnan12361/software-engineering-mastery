@@ -165,6 +165,21 @@ export const m06p1Coverage: LessonCoverageSpec = {
       },
       safetyMutations: [
         {
+          description: "Remove own-write visibility — a transaction must read its own uncommitted write",
+          mutateCode: (raw) => raw.replace(`v.trxId === snapshotTrxId ||`, `false ||`),
+          verifyProtection: (run) => {
+            assert.deepEqual(
+              run(`return (() => {
+                const eng = createInnodbMvccEngine();
+                const a = eng.beginTransaction();
+                eng.write(a, "row:1", { v: 1 });
+                return eng.read("row:1", a.id);
+              })();`),
+              { v: 1 }
+            );
+          }
+        },
+        {
           description: "Remove empty rowId guard in write() — write('') should throw",
           mutateCode: (raw) =>
             raw.replace(
@@ -243,8 +258,12 @@ export const m06p1Coverage: LessonCoverageSpec = {
         assert.ok(ru.anomalies.includes("dirtyRead"), "READ_UNCOMMITTED allows dirty reads");
 
         const rr = run(`return evaluateIsolationLevel("REPEATABLE_READ");`) as { safe: boolean; anomalies: string[] };
-        assert.equal(rr.safe, true, "REPEATABLE_READ is safe");
-        assert.equal(rr.anomalies.length, 0);
+        assert.equal(rr.safe, false, "REPEATABLE_READ still allows lost updates for plain-SELECT read-modify-write");
+        assert.deepEqual(rr.anomalies, ["lostUpdate"], "only lostUpdate remains; phantoms are avoided by snapshot reads and next-key locks");
+
+        const ser = run(`return evaluateIsolationLevel("serializable");`) as { safe: boolean; anomalies: string[] };
+        assert.equal(ser.safe, true);
+        assert.equal(ser.anomalies.length, 0);
 
         const rc = run(`return evaluateIsolationLevel("read-committed");`) as { level: string };
         assert.equal(rc.level, "READ_COMMITTED");
@@ -284,7 +303,16 @@ export const m06p1Coverage: LessonCoverageSpec = {
           cycle: string[];
         };
         assert.equal(gCycle.hasDeadlock, true);
-        assert.ok(Array.isArray(gCycle.cycle) && gCycle.cycle.length >= 3);
+        assert.deepEqual(gCycle.cycle, ["1", "2", "3", "1"]);
+
+        const tail = run(`return detectDeadlock(new Map([[4, 1], [1, 2], [2, 3], [3, 1]]));`) as { cycle: string[] };
+        assert.deepEqual(tail.cycle, ["1", "2", "3", "1"], "a tail leading into a cycle is not part of the cycle");
+
+        const selfLoop = run(`return detectDeadlock(new Map([[5, 5]]));`) as { hasDeadlock: boolean; cycle: string[] };
+        assert.equal(selfLoop.hasDeadlock, true);
+        assert.deepEqual(selfLoop.cycle, ["5", "5"]);
+
+        assert.throws(() => run(`detectDeadlock(new Map([[1, NaN]]));`), /Node IDs must be numbers or strings/);
 
         const empty = run(`return detectDeadlock(new Map());`) as { hasDeadlock: boolean };
         assert.equal(empty.hasDeadlock, false);
@@ -301,6 +329,14 @@ export const m06p1Coverage: LessonCoverageSpec = {
             ),
           verifyProtection: (run) => {
             assert.throws(() => run(`detectDeadlock({});`), /waitGraph must be a Map/);
+          }
+        },
+        {
+          description: "Disable cycle check on the current path — a real wait cycle must no longer be reported as deadlock",
+          mutateCode: (raw) => raw.replace(`      if (pathIndex.has(current)) {`, `      if (false) {`),
+          verifyProtection: (run) => {
+            const r = run(`return detectDeadlock(new Map([[1, 2], [2, 1]]));`) as { hasDeadlock: boolean };
+            assert.equal(r.hasDeadlock, true, "T1<->T2 must be detected as deadlock");
           }
         }
       ]
@@ -322,6 +358,10 @@ export const m06p1Coverage: LessonCoverageSpec = {
 
         assert.throws(() => run(`selectMysqlEngine(null);`), /requirements must be a non-null object/);
         assert.throws(() => run(`selectMysqlEngine([]);`), /requirements must be a non-null object/);
+        assert.throws(() => run(`selectMysqlEngine({ needsTransactions: "false" });`), /needsTransactions must be a boolean/);
+        assert.throws(() => run(`selectMysqlEngine({ readOnly: 1 });`), /readOnly must be a boolean/);
+        const unknown = run(`return selectMysqlEngine({ readOnly: false });`) as { engine: string };
+        assert.equal(unknown.engine, "InnoDB");
       },
       safetyMutations: [
         {
@@ -333,6 +373,14 @@ export const m06p1Coverage: LessonCoverageSpec = {
             ),
           verifyProtection: (run) => {
             assert.throws(() => run(`selectMysqlEngine([]);`), /requirements must be a non-null object/);
+          }
+        },
+        {
+          description: "Remove strict boolean flag validation — the string 'false' must be rejected, not treated as truthy",
+          mutateCode: (raw) =>
+            raw.replace(`    if (value !== undefined && typeof value !== "boolean") throw new Error(flag + " must be a boolean when provided");`, `    void flag;`),
+          verifyProtection: (run) => {
+            assert.throws(() => run(`selectMysqlEngine({ needsTransactions: "false" });`), /needsTransactions must be a boolean/);
           }
         }
       ]
@@ -368,21 +416,37 @@ export const m06p1Coverage: LessonCoverageSpec = {
         })();`) as number[];
         assert.ok(freed.includes(2), "T2 unblocked after T1 releases");
 
-        // Waiting S lock cannot jump ahead of queued X waiter, and rolled-back waiter is cleaned from queue
+        // Waiting S lock cannot jump ahead of queued X waiter; once that X waiter rolls back, compatible S waiters are granted
         const fairness = run(`return (() => {
           const mgr = createLockManager();
           mgr.acquireLock(1, "row:9", "S");
           const xWait = mgr.acquireLock(2, "row:9", "X");
           const sWait = mgr.acquireLock(3, "row:9", "S");
-          mgr.releaseLocks(2); // T2 rolled back while waiting
+          const unblocked = [...mgr.releaseLocks(2)]; // T2 rolled back while waiting
           const sAfterVictim = mgr.acquireLock(4, "row:9", "S");
-          return [xWait.granted, sWait.granted, sAfterVictim.granted];
-        })();`) as [boolean, boolean, boolean];
-        assert.deepEqual(fairness, [false, false, false], "S waits behind queued X; victim cleanup keeps S3 in queue");
+          return [xWait.granted, sWait.granted, sAfterVictim.granted, unblocked];
+        })();`) as [boolean, boolean, boolean, number[]];
+        assert.deepEqual(
+          fairness,
+          [false, false, true, [3]],
+          "S3 queued behind X2 is granted when X2 rolls back; later S4 is compatible with S1 and S3"
+        );
+
+        const nonNeg = ["-1", "1.5", "NaN", "Infinity"];
+        for (const bad of nonNeg) {
+          assert.throws(
+            () => run(`(() => { const mgr = createLockManager(); mgr.acquireLock(${bad}, "row:1", "X"); })();`),
+            /trxId must be a non-negative integer/
+          );
+          assert.throws(
+            () => run(`(() => { const mgr = createLockManager(); mgr.releaseLocks(${bad}); })();`),
+            /trxId must be a non-negative integer/
+          );
+        }
 
         assert.throws(
           () => run(`(() => { const mgr = createLockManager(); mgr.acquireLock(NaN, "row:1", "X"); })();`),
-          /trxId must be a finite number/
+          /trxId must be a non-negative integer/
         );
         assert.throws(
           () => run(`(() => { const mgr = createLockManager(); mgr.acquireLock(1, "", "X"); })();`),
@@ -395,17 +459,33 @@ export const m06p1Coverage: LessonCoverageSpec = {
       },
       safetyMutations: [
         {
-          description: "Remove NaN guard on trxId — acquireLock(NaN, ...) should throw",
+          description: "Remove trxId guard — acquireLock(NaN, ...) should throw",
           mutateCode: (raw) =>
             raw.replace(
-              `    if (typeof trxId !== "number" || !Number.isFinite(trxId)) throw new Error("trxId must be a finite number");`,
+              `    if (typeof trxId !== "number" || !Number.isSafeInteger(trxId) || trxId < 0) throw new Error("trxId must be a non-negative integer");`,
               `    // guard removed`
             ),
           verifyProtection: (run) => {
             assert.throws(
               () => run(`(() => { const mgr = createLockManager(); mgr.acquireLock(NaN, "row:1", "X"); })();`),
-              /trxId must be a finite number/
+              /trxId must be a non-negative integer/
             );
+          }
+        },
+        {
+          description: "Remove rollback queue-cleanup tracking — a compatible S waiter stays stuck behind a rolled-back X waiter",
+          mutateCode: (raw) =>
+            raw.replace(`      if (cleaned.length !== queue.length) touched.add(rowKey);
+`, ``),
+          verifyProtection: (run) => {
+            const r = run(`return (() => {
+              const mgr = createLockManager();
+              mgr.acquireLock(1, "row:9", "S");
+              mgr.acquireLock(2, "row:9", "X");
+              mgr.acquireLock(3, "row:9", "S");
+              return [...mgr.releaseLocks(2)];
+            })();`) as number[];
+            assert.deepEqual(r, [3], "T3 must be granted after T2 rolls back");
           }
         }
       ]

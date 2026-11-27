@@ -69,7 +69,7 @@ export const m06p1Questions: InterviewQuestion[] = [
       },
       {
         label: "REPEATABLE READ vs. SERIALIZABLE",
-        body: "`REPEATABLE READ` (MySQL default) gives the transaction a single consistent read view. InnoDB additionally uses **next-key locks** to prevent phantom reads—stronger than the SQL standard. `SERIALIZABLE` converts all `SELECT`s to `SELECT ... FOR SHARE`, providing maximum isolation at the cost of lowest concurrency."
+        body: "`REPEATABLE READ` (MySQL default) gives the transaction a single consistent read view. Plain `SELECT`s stay phantom-free because they keep reusing that MVCC snapshot, and InnoDB adds **next-key locks** so locking reads and DML also avoid phantoms—stronger than the SQL standard—but lost updates and write skew from a plain-`SELECT` read-modify-write are still possible (use `SELECT ... FOR UPDATE` or an atomic `UPDATE`). With `autocommit` off, `SERIALIZABLE` converts plain `SELECT`s to `SELECT ... FOR SHARE`, providing maximum isolation at the cost of lowest concurrency."
       }
     ]
   },
@@ -87,7 +87,7 @@ export const m06p1Questions: InterviewQuestion[] = [
       },
       {
         label: "Why Gap Locks Exist",
-        body: "Gap locks are InnoDB's mechanism for preventing **phantom reads** in `REPEATABLE READ`. Without gap locks, a second `SELECT ... WHERE id BETWEEN 10 AND 20` in the same transaction could see a row inserted by a concurrent transaction after the first read—violating snapshot consistency."
+        body: "Gap locks are InnoDB's mechanism for keeping **locking reads and DML** phantom-free in `REPEATABLE READ`. A plain `SELECT ... WHERE id BETWEEN 10 AND 20` already reuses the MVCC snapshot, so it never sees later inserts. But `SELECT ... WHERE id BETWEEN 10 AND 20 FOR UPDATE` reads the *latest* committed data. Without gap locks, another transaction could insert `id = 15` after that statement, and repeating the locking read (or running an `UPDATE` over the range) would then return or modify a phantom row, so the range lock would not actually protect the range."
       }
     ]
   },
@@ -165,7 +165,7 @@ export const m06p1Questions: InterviewQuestion[] = [
       },
       {
         label: "Connection Management & HA",
-        body: "Use **ProxySQL** in front of a primary + 2–3 read replicas: ProxySQL's hostgroup rules route writes to the primary and reads to replicas, with connection pooling keeping backend thread count at `2 × vCPU`. Use **semi-synchronous replication** (or `rpl_semi_sync`) for the primary→replica pair used for critical reads to bound replica lag. Use **InnoDB Cluster** (Group Replication + MySQL Router) for automatic primary failover."
+        body: "Use **ProxySQL** in front of a primary + 2–3 read replicas: ProxySQL's hostgroup rules route writes to the primary and reads to replicas, with connection pooling keeping backend thread count at `2 × vCPU`. Use **semi-synchronous replication** (or `rpl_semi_sync`) for the primary→replica pair used for critical reads to guarantee the replica has *received* each committed event before the primary acknowledges the commit, until `rpl_semi_sync_source_timeout` makes it fall back to async (it never bounds apply lag, so monitor `Seconds_Behind_Source` separately). Use **InnoDB Cluster** (Group Replication + MySQL Router) for automatic primary failover."
       }
     ],
     subboxes: [
@@ -193,7 +193,7 @@ export const m06p1Questions: InterviewQuestion[] = [
       },
       {
         title: "InnoDB Online DDL Check",
-        body: "First verify whether `ALGORITHM=INSTANT` (MySQL 8.0+ adding trailing nullable columns or metadata-only changes) or `ALGORITHM=INPLACE, LOCK=NONE` applies—if so, no external tool is needed."
+        body: "First verify whether `ALGORITHM=INSTANT` (MySQL 8.0 metadata-only changes: adding a column, in any position since 8.0.29, and dropping a column since 8.0.29) or `ALGORITHM=INPLACE, LOCK=NONE` applies—if so, no external tool is needed."
       },
       {
         title: "External Tool Selection (gh-ost vs. pt-osc)",
@@ -217,11 +217,11 @@ export const m06p1Questions: InterviewQuestion[] = [
       },
       {
         title: "Atomic Cutover Swap",
-        body: "Coordinate the final atomic `RENAME TABLE tbl TO _old, _gho TO tbl` during low traffic with `gh-ost`'s cutover lock handshake, keeping app pause to sub-second."
+        body: "Let `gh-ost` run its cutover (a lock-then-rename handshake that swaps the ghost table `_tbl_gho` in for `tbl` and keeps the original as `_tbl_del`) during low traffic, keeping the app pause to sub-second."
       },
       {
         title: "Data Integrity Verification",
-        body: "Compare row counts and sample/checksum (`pt-table-checksum` or sampled `CHECKSUM TABLE` on quiescent replica) between the new table and the preserved `_old` table."
+        body: "Compare row counts and sample/checksum (`pt-table-checksum` or sampled `CHECKSUM TABLE` on quiescent replica) between the primary and its replicas. Separately, compare row counts between the new table and the preserved `_tbl_del` table."
       },
       {
         title: "Rollback & Retention Plan",

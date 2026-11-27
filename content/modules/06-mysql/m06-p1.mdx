@@ -28,7 +28,7 @@ MySQL underpins SaaS multi-tenant applications, PHP/Node.js web backends (via my
 
 MySQL's server layer consists of the **Connection Thread Manager** (one OS thread per connection, with a thread cache), the **SQL Parser** (tokeniser → parse tree), the **Query Optimizer** (cost-based; rewrites joins, pushes predicates, chooses index access paths), and the **Storage Engine API** (`handlerton`). Every `SELECT`, `INSERT`, `UPDATE`, or `DELETE` travels Parser → Optimizer → Storage Engine API → physical engine.
 
-The **binary log** (`binlog`) lives in the server layer—not in InnoDB—and records every committed statement or row change for replication and point-in-time recovery. InnoDB maintains its own **redo log** (`ib_logfile*`) and **undo log** segments; the two-phase commit protocol (`XA`) ensures the binlog and InnoDB redo log stay in sync at every `COMMIT`.
+The **binary log** (`binlog`) lives in the server layer—not in InnoDB—and records every committed statement or row change for replication and point-in-time recovery. InnoDB maintains its own **redo log** (`ib_logfile*` before 8.0.30, `#innodb_redo/#ib_redo*` after) and **undo log** segments; the two-phase commit protocol (`XA`) ensures the binlog and InnoDB redo log stay in sync at every `COMMIT`.
 
 <TopicAnchor id="m06-p1-topic-storage-engines" />
 
@@ -56,7 +56,7 @@ Choosing the wrong engine is a critical production mistake: **InnoDB** is the AC
 
 **MyISAM** (MySQL ISAM) stores data in `.MYD` (data) and `.MYI` (index) files with the index in a compact B-tree. It performs no transaction logging, acquires **table-level read/write locks** on every query, and cannot roll back changes—a crashed `UPDATE` midway leaves a corrupt half-written table that must be repaired with `REPAIR TABLE` or `myisamchk`.
 
-The major remaining use case for MyISAM is **legacy full-text search** (`FULLTEXT` index + `MATCH ... AGAINST`) in pre-5.6 databases, but InnoDB has supported `FULLTEXT` indexes since MySQL 5.6, so there is now no good reason to choose MyISAM for new tables. Never use MyISAM for tables that hold financial, inventory, or any other data requiring crash safety.
+The major remaining use case for MyISAM is **legacy full-text search** (`FULLTEXT` index + `MATCH ... AGAINST`) in pre-5.6 databases, but InnoDB has supported `FULLTEXT` indexes since MySQL 5.6, so there is now no good reason to choose MyISAM for new tables. It survives only in legacy, read-only archives you have not migrated yet (`selectMysqlEngine` below returns it solely for that case, with a deprecation note). Never use MyISAM for tables that hold financial, inventory, or any other data requiring crash safety.
 
 <TopicAnchor id="m06-p1-topic-sql" />
 
@@ -81,7 +81,7 @@ An InnoDB **transaction** groups one or more DML statements into an atomic unit:
 **ACID** is the four-property contract that InnoDB makes for every committed transaction:
 
 - **Atomicity** — undo log segments record the before-image of every modified row; a `ROLLBACK` or crash recovery replays undo entries to restore the original state.
-- **Consistency** — constraint enforcement (`NOT NULL`, `FOREIGN KEY`, `UNIQUE`, `CHECK` in 8.0+) and trigger logic execute within the transaction before `COMMIT`, keeping data invariants intact.
+- **Consistency** — constraint enforcement (`NOT NULL`, `FOREIGN KEY`, `UNIQUE`, `CHECK` enforced from 8.0.16) and trigger logic execute within the transaction before `COMMIT`, keeping data invariants intact.
 - **Isolation** — MVCC read views and row-level locks prevent concurrent transactions from seeing each other's uncommitted data (at the configured isolation level).
 - **Durability** — `innodb_flush_log_at_trx_commit = 1` (the default) flushes and `fsync()`s the redo log at every `COMMIT`, guaranteeing zero committed-data loss on crash. Setting it to `2` (flush but no fsync on commit, only on 1-second timer) or `0` (every 1 second) sacrifices up to 1 second of commits for throughput—use only where data loss is acceptable.
 
@@ -92,9 +92,9 @@ An InnoDB **transaction** groups one or more DML statements into an atomic unit:
 MySQL InnoDB supports all four SQL standard isolation levels:
 
 - **`READ UNCOMMITTED`** — dirty reads allowed; transactions see uncommitted row versions. Never used in production.
-- **`READ COMMITTED`** — no dirty reads; each statement gets a fresh read view, so non-repeatable reads and phantom reads are possible. Commonly used in high-concurrency OLTP to minimize lock contention; also the level used by MySQL row-based replication internally.
-- **`REPEATABLE READ`** (default) — a single consistent read view for the entire transaction (via MVCC); no dirty or non-repeatable reads, but **phantom reads are prevented by gap locks and next-key locks** in InnoDB (unlike standard SQL's REPEATABLE READ).
-- **`SERIALIZABLE`** — all `SELECT` statements become `SELECT ... FOR SHARE`, making reads locking; highest isolation with lowest concurrency.
+- **`READ COMMITTED`** — no dirty reads; each statement gets a fresh read view, so non-repeatable reads and phantom reads are possible. Commonly used in high-concurrency OLTP to minimize lock contention. It (like `READ UNCOMMITTED`) requires `binlog_format=ROW` (or `MIXED`) when binary logging is enabled, because statement-based logging is unsafe at this level.
+- **`REPEATABLE READ`** (default) — a single consistent read view for the entire transaction (via MVCC); no dirty or non-repeatable reads. Plain `SELECT`s are also phantom-free because they keep reusing that **MVCC snapshot**, which is stronger than standard SQL's REPEATABLE READ. **Locking reads** (`SELECT ... FOR UPDATE / FOR SHARE`) and `UPDATE`/`DELETE` read the *latest* committed data instead, and there InnoDB uses **gap and next-key locks** to block phantom inserts. Nuance: a transaction that `UPDATE`s rows inserted by others after its snapshot will then see them. REPEATABLE READ also does **not** stop lost updates or write skew from a plain-`SELECT` read-modify-write; use `SELECT ... FOR UPDATE` or an atomic `UPDATE ... SET x = x + 1`.
+- **`SERIALIZABLE`** — when `autocommit` is off (or inside an explicit transaction), plain `SELECT` statements are implicitly treated as `SELECT ... FOR SHARE`, making reads locking (with `autocommit` on, a plain `SELECT` is its own transaction and stays a non-locking consistent read); highest isolation with lowest concurrency.
 
 Change per session with `SET SESSION TRANSACTION ISOLATION LEVEL ...` or globally via `SET GLOBAL transaction_isolation = 'READ-COMMITTED'`.
 
@@ -105,8 +105,8 @@ Change per session with `SET SESSION TRANSACTION ISOLATION LEVEL ...` or globall
 InnoDB implements **row-level locking** at the index record level, not the data row level. The three lock granularities are:
 
 - **Record Lock** — locks a single index record (`WHERE id = 42`).
-- **Gap Lock** — locks the gap *before* an index record (prevents `INSERT` into a range, e.g., `WHERE id BETWEEN 10 AND 20` locks the gap even if no row has `id = 15`). Gap locks exist only in `REPEATABLE READ` and `SERIALIZABLE` to prevent phantom reads.
-- **Next-Key Lock** — a record lock plus the gap before it (default for most range scans in `REPEATABLE READ`). This is the core mechanism that makes InnoDB's `REPEATABLE READ` phantom-safe.
+- **Gap Lock** — locks the gap *before* an index record (prevents `INSERT` into a range, e.g., `WHERE id BETWEEN 10 AND 20` locks the gap even if no row has `id = 15`). Gap locks are taken by locking reads and DML under `REPEATABLE READ` and `SERIALIZABLE` (and are disabled at `READ COMMITTED`, except for foreign-key and duplicate-key checks) to stop other transactions inserting phantom rows into the range.
+- **Next-Key Lock** — a record lock plus the gap before it (default for most range scans in `REPEATABLE READ`). This is how InnoDB keeps locking reads and writes phantom-safe under `REPEATABLE READ`; plain `SELECT`s rely on the MVCC snapshot instead.
 
 **Intention locks** (`IS`, `IX`) at the table level are lightweight signals that a row-level lock is held or wanted, allowing table-lock requests to detect conflicts quickly without scanning all row locks.
 
@@ -140,7 +140,7 @@ The **Buffer Pool** is segmented into blocks of 16 KB. InnoDB uses a **midpoint-
   </defs>
   <rect class="m6-box" x="4" y="6" width="118" height="176" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2"/>
   <rect x="4" y="6" width="118" height="20" rx="6" ry="6" fill="var(--token-brand-muted)"/>
-  <text x="63" y="19" text-anchor="middle" class="m6-hdr">Connections</text>
+  <text x="63" y="19" text-anchor="middle" class="m6-hdr">Server Layer</text>
   <rect class="m6-box" x="12" y="32" width="102" height="22" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
   <text x="63" y="46" text-anchor="middle" class="m6-label">Thread Cache</text>
   <rect class="m6-box" x="12" y="58" width="102" height="22" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
@@ -175,7 +175,7 @@ The **Buffer Pool** is segmented into blocks of 16 KB. InnoDB uses a **midpoint-
   <text x="373" y="139" text-anchor="middle" class="m6-label">Doublewrite Buffer</text>
   <text x="373" y="152" text-anchor="middle" class="m6-sub">Partial-write protection</text>
   <rect class="m6-box" x="144" y="146" width="156" height="30" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
-  <text x="222" y="163" text-anchor="middle" class="m6-label">Lock Mgr · MVCC read views</text>
+  <text x="222" y="163" text-anchor="middle" class="m6-label">Lock Mgr · Read Views</text>
   <path d="M526 93 L540 93" stroke="var(--token-brand-default)" stroke-width="2" marker-end="url(#arr6)"/>
   <rect class="m6-box" x="540" y="6" width="140" height="176" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2"/>
   <rect x="540" y="6" width="140" height="20" rx="6" ry="6" fill="var(--token-warning-muted)"/>
@@ -185,7 +185,7 @@ The **Buffer Pool** is segmented into blocks of 16 KB. InnoDB uses a **midpoint-
   <rect class="m6-box" x="548" y="58" width="124" height="22" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
   <text x="610" y="72" text-anchor="middle" class="m6-label">ibdata1 system ts</text>
   <rect class="m6-box" x="548" y="84" width="124" height="22" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
-  <text x="610" y="98" text-anchor="middle" class="m6-label">ib_logfile / #ib_redo</text>
+  <text x="610" y="98" text-anchor="middle" class="m6-label">#innodb_redo files</text>
   <rect class="m6-box" x="548" y="110" width="124" height="22" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
   <text x="610" y="124" text-anchor="middle" class="m6-label">binlog-*.000001</text>
   <rect class="m6-box" x="548" y="136" width="124" height="22" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
@@ -221,6 +221,8 @@ On crash recovery, InnoDB scans for prepared-but-not-committed XA transactions a
 #### MVCC Read Views in InnoDB
 
 InnoDB's **MVCC** works via hidden row fields: `DB_TRX_ID` (last-modifying transaction), `DB_ROLL_PTR` (undo log pointer for the previous version), and `DB_ROW_ID` (auto row ID if no PK). A `SELECT` obtains a **read view** (snapshot of active transaction IDs at the moment the view is created) and uses the undo log chain to reconstruct the visible version: if the row's `DB_TRX_ID` is after the read-view's snapshot, InnoDB walks the `DB_ROLL_PTR` chain backward until it finds a version committed before the snapshot.
+
+**Simulator simplifications (Example 1):** the real InnoDB Read View is created at the transaction's *first consistent read* (or at `START TRANSACTION WITH CONSISTENT SNAPSHOT`), whereas the simulator snapshots at `beginTransaction()`. It also omits row locking and write-write conflict handling, so two uncommitted writers can both write; in real InnoDB the second writer would wait on the first writer's row lock.
 
 </TopicSection>
 
@@ -343,8 +345,9 @@ function evaluateIsolationLevel(level) {
       dirtyRead: false, nonRepeatableRead: true, phantomRead: true, lostUpdate: true
     },
     REPEATABLE_READ: {
-      // InnoDB uses next-key locks to prevent phantom reads (beyond SQL standard)
-      dirtyRead: false, nonRepeatableRead: false, phantomRead: false, lostUpdate: false
+      // Plain SELECTs reuse the MVCC snapshot (no phantoms); next-key locks protect locking reads/DML.
+      // A plain-SELECT read-modify-write can still lose updates, so lostUpdate stays true.
+      dirtyRead: false, nonRepeatableRead: false, phantomRead: false, lostUpdate: true
     },
     SERIALIZABLE: {
       dirtyRead: false, nonRepeatableRead: false, phantomRead: false, lostUpdate: false
@@ -365,9 +368,9 @@ function evaluateIsolationLevel(level) {
     anomalies,
     safe: anomalies.length === 0,
     note: normalised === "REPEATABLE_READ"
-      ? "InnoDB gap + next-key locks prevent phantom reads (stronger than SQL standard REPEATABLE_READ)"
+      ? "Snapshot reads avoid phantoms and next-key locks guard locking reads; plain-SELECT read-modify-write can still lose updates, so use SELECT ... FOR UPDATE or an atomic UPDATE"
       : normalised === "SERIALIZABLE"
-      ? "All SELECTs acquire shared locks; maximum isolation, lowest concurrency"
+      ? "With autocommit off, SELECTs acquire shared locks; maximum isolation, lowest concurrency"
       : null
   };
 }
@@ -389,9 +392,9 @@ try { evaluateIsolationLevel("SNAPSHOT"); } catch (e) { console.log("Error:", e.
 -- Session A: SELECT * FROM orders WHERE id=1 FOR UPDATE; then lock accounts id=5
 -- Session B: SELECT * FROM accounts WHERE id=5 FOR UPDATE; then lock orders id=1
 
--- GOOD pattern: always lock the smaller PK first, then the larger
+-- GOOD pattern: every session locks tables in ONE agreed order (here: accounts first, then orders)
 START TRANSACTION;
-  -- Step 1: lock accounts row first (consistent low→high ID order)
+  -- Step 1: lock the accounts row first (agreed table order: accounts → orders)
   SELECT balance FROM accounts WHERE id = 5 FOR UPDATE;
   -- Step 2: lock the orders row
   SELECT total FROM orders WHERE id = 1 FOR UPDATE;
@@ -495,11 +498,11 @@ Configure `innodb_io_capacity` (default 200 IOPS) to match your storage tier: 20
 
 #### Connection Scaling with ProxySQL
 
-MySQL does not support async connection handling—each client connection spawns one OS thread. Beyond ~1000–2000 connections, thread context-switching dominates. Use **ProxySQL** (or MySQL Router) for connection pooling and read/write splitting, keeping the actual backend thread count proportional to CPU cores.
+The default Community Edition model is one OS thread per client connection (there is no async connection handling; the Enterprise thread pool plugin is the exception). Beyond ~1000–2000 connections, thread context-switching dominates. Use **ProxySQL** (or MySQL Router) for connection pooling and read/write splitting, keeping the actual backend thread count proportional to CPU cores.
 
 #### Redo Log Sizing (MySQL 8.0+)
 
-Pre-8.0: `innodb_log_file_size` × `innodb_log_files_in_group` determines how much redo can be buffered before a checkpoint stall. Set to at least 1–4 GB on write-intensive workloads. MySQL 8.0 automates this with dynamic redo log resizing.
+Before 8.0.30: `innodb_log_file_size` × `innodb_log_files_in_group` determines how much redo can be buffered before a checkpoint stall. Set to at least 1–4 GB on write-intensive workloads. From MySQL 8.0.30, `innodb_redo_log_capacity` replaces both settings and the redo log can be resized dynamically at runtime.
 
 </TopicSection>
 
@@ -541,18 +544,18 @@ Enable the MySQL Enterprise Audit plugin (`audit_log`) or a community alternativ
 | --- | --- | --- | --- | --- |
 | `READ UNCOMMITTED` | ✅ Possible | ✅ Possible | ✅ Possible | Highest |
 | `READ COMMITTED` | ❌ Prevented | ✅ Possible | ✅ Possible | High |
-| `REPEATABLE READ` (default) | ❌ Prevented | ❌ Prevented | ❌ Prevented* | Medium |
+| `REPEATABLE READ` (default) | ❌ Prevented | ❌ Prevented | ❌ Prevented* (snapshot reads; next-key locks for locking reads) | Medium |
 | `SERIALIZABLE` | ❌ Prevented | ❌ Prevented | ❌ Prevented | Lowest |
 
-*InnoDB prevents phantom reads via next-key locks—stronger than the SQL standard's `REPEATABLE READ` guarantee.
+*Plain `SELECT`s avoid phantoms through the MVCC snapshot, and next-key locks cover locking reads and DML, which is stronger than the SQL standard's `REPEATABLE READ`. Lost updates and write skew remain possible for plain-`SELECT` read-modify-write: use `SELECT ... FOR UPDATE` or an atomic `UPDATE`.
 
 #### Table K.3 — InnoDB Lock Types
 
 | Lock Type | Scope | Prevents | When Acquired |
 | --- | --- | --- | --- |
 | **Record Lock** | Single index record | Update/delete of exact row | `WHERE id = N FOR UPDATE` |
-| **Gap Lock** | Before an index record | INSERT into range | Range `WHERE` predicates in `REPEATABLE READ` |
-| **Next-Key Lock** | Record + gap before it | Phantom reads | Default for most `REPEATABLE READ` range scans |
+| **Gap Lock** | Before an index record | INSERT into range | Locking reads / DML on ranges in `REPEATABLE READ` |
+| **Next-Key Lock** | Record + gap before it | Phantom reads | Default for locking range scans in `REPEATABLE READ` |
 | **Intention Shared (IS)** | Table level | Incompatible table-level X | `SELECT ... FOR SHARE` |
 | **Intention Exclusive (IX)** | Table level | Conflicting table locks | `SELECT ... FOR UPDATE`, `INSERT`, `UPDATE`, `DELETE` |
 | **AUTO-INC Lock** | Table level (brief) | Gap in AUTO_INCREMENT sequence | `INSERT` on AI column (mode 0 or 1) |
@@ -562,7 +565,7 @@ Enable the MySQL Enterprise Audit plugin (`audit_log`) or a community alternativ
 <TopicSection id="m06-p1-sec-l" letter="L" title="Tips to Remember (Mnemonics & Mental Models)">
 
 - **"ACID = Undo + Redo + MVCC + fsync":** Atomicity uses the **undo log**; Consistency enforces **constraints + triggers**; Isolation uses **MVCC read views + row locks**; Durability flushes the **redo log + fsync** at commit.
-- **"RURS = Read Uncommitted → Read Committed → Repeatable Read → Serializable":** Anomalies decrease moving right; concurrency decreases too. In MySQL, `REPEATABLE READ` is stronger than the SQL standard—InnoDB's next-key locks also block phantoms.
+- **"RURS = Read Uncommitted → Read Committed → Repeatable Read → Serializable":** Anomalies decrease moving right; concurrency decreases too. In MySQL, `REPEATABLE READ` is stronger than the SQL standard: snapshot reads avoid phantoms and next-key locks block phantom inserts for locking reads. It still allows lost updates, so lock with `FOR UPDATE`.
 - **"Lock Order = Alphabetical or Ascending PK":** Pick a canonical consistent ordering rule (smallest PK first, alphabetical table name first) and apply it everywhere to prevent deadlock cycles.
 - **"Buffer Pool → Dirty Pages → Page Cleaner → Disk":** Data reads land in the buffer pool. Writes dirty pages there, and the page cleaner thread flushes them in LSN order.
 - **"Deadlock: InnoDB Rolls Back the Lighter Side":** When InnoDB detects a cycle, it rolls back the transaction with fewer undo rows and returns `ERROR 1213`. Always catch and retry.
@@ -656,14 +659,17 @@ function selectMysqlEngine(requirements) {
     throw new Error("requirements must be a non-null object");
   }
   const { needsTransactions, needsForeignKeys, needsCrashSafe, readOnly, tempInMemory } = requirements;
+  for (const [flag, value] of Object.entries({ needsTransactions, needsForeignKeys, needsCrashSafe, readOnly, tempInMemory })) {
+    if (value !== undefined && typeof value !== "boolean") throw new Error(flag + " must be a boolean when provided");
+  }
 
-  if (needsTransactions || needsForeignKeys || needsCrashSafe) {
+  if (needsTransactions === true || needsForeignKeys === true || needsCrashSafe === true) {
     return { engine: "InnoDB", reason: "ACID transactions, row-level locking, FK constraints, and crash recovery via redo/undo logs." };
   }
-  if (tempInMemory === true && !needsTransactions && !needsCrashSafe) {
+  if (tempInMemory === true) {
     return { engine: "MEMORY", reason: "In-memory storage for temporary tables; data lost on restart — only suitable for cache/session data." };
   }
-  if (readOnly === true && !needsTransactions && !needsCrashSafe) {
+  if (readOnly === true) {
     return { engine: "MyISAM", reason: "Legacy read-heavy archives where crash safety is not required (deprecated for new schemas; prefer InnoDB)." };
   }
   return { engine: "InnoDB", reason: "Default to InnoDB — it is the safe, performant, and ACID-compliant choice for all ambiguous cases." };
@@ -682,6 +688,7 @@ console.log(JSON.stringify(selectMysqlEngine({})));
 // {"engine":"InnoDB","reason":"Default..."}
 
 try { selectMysqlEngine(null); } catch(e) { console.log("Error:", e.message); }
+try { selectMysqlEngine({ needsTransactions: "false" }); } catch(e) { console.log("Error:", e.message); }
 `} />
 
 </ExerciseCard>
@@ -717,7 +724,7 @@ function createLockManager() {
   }
 
   function acquireLock(trxId, rowKey, mode) {
-    if (typeof trxId !== "number" || !Number.isFinite(trxId)) throw new Error("trxId must be a finite number");
+    if (typeof trxId !== "number" || !Number.isSafeInteger(trxId) || trxId < 0) throw new Error("trxId must be a non-negative integer");
     if (typeof rowKey !== "string" || rowKey.length === 0) throw new Error("rowKey must be non-empty string");
     if (mode !== "S" && mode !== "X") throw new Error('mode must be "S" or "X"');
 
@@ -745,35 +752,47 @@ function createLockManager() {
   }
 
   function releaseLocks(trxId) {
-    if (typeof trxId !== "number" || !Number.isFinite(trxId)) throw new Error("trxId must be a finite number");
+    if (typeof trxId !== "number" || !Number.isSafeInteger(trxId) || trxId < 0) throw new Error("trxId must be a non-negative integer");
     const unblocked = new Set();
+    const touched = new Set();
 
-    // Remove trxId from all wait queues (e.g., if rolled back as deadlock victim)
+    // Remove trxId from all wait queues (e.g., rolled back as deadlock victim) and remember which rows changed
     for (const [rowKey, queue] of waitQueue.entries()) {
       const cleaned = queue.filter(w => w.trxId !== trxId);
-      waitQueue.set(rowKey, cleaned);
+      if (cleaned.length !== queue.length) touched.add(rowKey);
+      if (cleaned.length === 0) waitQueue.delete(rowKey);
+      else waitQueue.set(rowKey, cleaned);
     }
 
+    // Drop the locks this transaction held and remember those rows too
     for (const [rowKey, held] of locks.entries()) {
       const remaining = held.filter(l => l.trxId !== trxId);
       if (remaining.length !== held.length) {
-        locks.set(rowKey, remaining);
-        const queue = waitQueue.get(rowKey) ?? [];
-        const stillWaiting = [];
-        for (let i = 0; i < queue.length; i++) {
-          const waiter = queue[i];
-          const conflict = remaining.find(l => l.trxId !== waiter.trxId && !isCompatible(l.mode, waiter.mode));
-          if (!conflict && stillWaiting.length === 0) {
-            if (!remaining.some(l => l.trxId === waiter.trxId && l.mode === waiter.mode)) {
-              remaining.push({ trxId: waiter.trxId, mode: waiter.mode });
-            }
-            unblocked.add(waiter.trxId);
-          } else {
-            stillWaiting.push(waiter);
-          }
-        }
-        waitQueue.set(rowKey, stillWaiting);
+        touched.add(rowKey);
+        if (remaining.length === 0) locks.delete(rowKey);
+        else locks.set(rowKey, remaining);
       }
+    }
+
+    // Re-run the FIFO grant pass on EVERY touched row, so a removed waiter never leaves compatible waiters stuck behind it
+    for (const rowKey of touched) {
+      const queue = waitQueue.get(rowKey) ?? [];
+      const holders = locks.get(rowKey) ?? [];
+      const stillWaiting = [];
+      for (const waiter of queue) {
+        const conflict = holders.find(l => l.trxId !== waiter.trxId && !isCompatible(l.mode, waiter.mode));
+        if (!conflict && stillWaiting.length === 0) {
+          if (!holders.some(l => l.trxId === waiter.trxId && l.mode === waiter.mode)) {
+            holders.push({ trxId: waiter.trxId, mode: waiter.mode });
+          }
+          unblocked.add(waiter.trxId);
+        } else {
+          stillWaiting.push(waiter);
+        }
+      }
+      if (holders.length > 0) locks.set(rowKey, holders);
+      if (stillWaiting.length === 0) waitQueue.delete(rowKey);
+      else waitQueue.set(rowKey, stillWaiting);
     }
     return unblocked;
   }
@@ -851,10 +870,10 @@ try { lm.acquireLock(5, "row:1", "INVALID"); } catch(e) { console.log("Error:", 
   <text x="367" y="91" text-anchor="middle" class="m6q-sub">No dirty reads; non-repeatable &amp; phantom OK</text>
   <rect class="m6q-box" x="250" y="100" width="234" height="28" fill="var(--token-brand-muted)" stroke="var(--token-border-default)" stroke-width="1"/>
   <text x="367" y="114" text-anchor="middle" class="m6q-label">REPEATABLE READ (default) ★</text>
-  <text x="367" y="125" text-anchor="middle" class="m6q-sub">Txn snapshot; next-key locks prevent phantoms</text>
+  <text x="367" y="125" text-anchor="middle" class="m6q-sub">Snapshot reads; next-key locks for locking reads</text>
   <rect class="m6q-box" x="250" y="134" width="234" height="28" fill="var(--token-success-muted)" stroke="var(--token-border-default)" stroke-width="1"/>
   <text x="367" y="148" text-anchor="middle" class="m6q-label">SERIALIZABLE — all SELECTs lock</text>
-  <text x="367" y="159" text-anchor="middle" class="m6q-sub">Maximum safety; SELECT → S lock (lowest concur)</text>
+  <text x="367" y="159" text-anchor="middle" class="m6q-sub">Max safety; reads lock (autocommit off)</text>
   <text x="367" y="178" text-anchor="middle" class="m6q-sub">★ = MySQL default isolation level</text>
 
   <rect class="m6q-box" x="500" y="6" width="316" height="176" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2"/>
@@ -868,7 +887,7 @@ try { lm.acquireLock(5, "row:1", "INVALID"); } catch(e) { console.log("Error:", 
   <text x="578" y="94" text-anchor="middle" class="m6q-sub">Prevents INSERT in range</text>
   <rect class="m6q-box" x="508" y="104" width="140" height="30" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
   <text x="578" y="118" text-anchor="middle" class="m6q-label">Next-Key Lock</text>
-  <text x="578" y="130" text-anchor="middle" class="m6q-sub">Record + gap (phantom-safe)</text>
+  <text x="578" y="130" text-anchor="middle" class="m6q-sub">Record + gap (locking reads)</text>
   <rect class="m6q-box" x="508" y="140" width="140" height="30" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1"/>
   <text x="578" y="154" text-anchor="middle" class="m6q-label">IS / IX (Intention)</text>
   <text x="578" y="166" text-anchor="middle" class="m6q-sub">Table-level intent signals</text>
@@ -890,7 +909,7 @@ try { lm.acquireLock(5, "row:1", "INVALID"); } catch(e) { console.log("Error:", 
 
 - **InnoDB is non-negotiable** for any transactional workload: it alone provides ACID, row locking, foreign keys, and crash recovery in MySQL.
 - **MVCC enables non-blocking reads**: readers don't block writers and writers don't block readers—concurrent `SELECT` and `UPDATE` on the same row proceed using undo log versions.
-- **`REPEATABLE READ` is MySQL's default and is stronger than the SQL standard**: InnoDB's next-key locking prevents phantom reads that the standard only prevents at `SERIALIZABLE`.
+- **`REPEATABLE READ` is MySQL's default and is stronger than the SQL standard**: InnoDB's MVCC snapshot (plain reads) and next-key locking (locking reads) prevent phantom reads that the standard only prevents at `SERIALIZABLE`; lost updates still need `FOR UPDATE` or atomic `UPDATE`.
 - **Deadlocks are normal and must be handled**: always catch `ERROR 1213` and retry; prevent deadlocks by using consistent lock ordering and keeping transactions short.
 - **`innodb_flush_log_at_trx_commit = 1`** is the correct production setting for durability; never use `0` for data you cannot afford to lose.
 - **The binary log and InnoDB redo log stay in sync via two-phase commit**, ensuring replication and point-in-time recovery are consistent with committed data.
