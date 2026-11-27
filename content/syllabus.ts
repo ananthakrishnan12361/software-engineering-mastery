@@ -1045,22 +1045,86 @@ export const SYLLABUS_MODULES: SyllabusModule[] = [
       lessonId: "m05-p1",
       anchorId: "m05-p1-topic-transactions"
     },
-    "SQL",
-    "SELECT",
-    "INSERT",
-    "UPDATE",
-    "DELETE",
-    "JOIN",
-    "INNER JOIN",
-    "LEFT JOIN",
-    "RIGHT JOIN",
-    "FULL JOIN",
-    "CROSS JOIN",
-    "Self joins",
-    "Subqueries",
-    "CTEs",
-    "Recursive CTEs",
-    "Window functions",
+    {
+      title: "SQL",
+      lessonId: "m05-p2",
+      anchorId: "m05-p2-topic-sql"
+    },
+    {
+      title: "SELECT",
+      lessonId: "m05-p2",
+      anchorId: "m05-p2-topic-select"
+    },
+    {
+      title: "INSERT",
+      lessonId: "m05-p2",
+      anchorId: "m05-p2-topic-insert"
+    },
+    {
+      title: "UPDATE",
+      lessonId: "m05-p2",
+      anchorId: "m05-p2-topic-update"
+    },
+    {
+      title: "DELETE",
+      lessonId: "m05-p2",
+      anchorId: "m05-p2-topic-delete"
+    },
+    {
+      title: "JOIN",
+      lessonId: "m05-p2",
+      anchorId: "m05-p2-topic-join"
+    },
+    {
+      title: "INNER JOIN",
+      lessonId: "m05-p2",
+      anchorId: "m05-p2-topic-inner-join"
+    },
+    {
+      title: "LEFT JOIN",
+      lessonId: "m05-p2",
+      anchorId: "m05-p2-topic-left-join"
+    },
+    {
+      title: "RIGHT JOIN",
+      lessonId: "m05-p2",
+      anchorId: "m05-p2-topic-right-join"
+    },
+    {
+      title: "FULL JOIN",
+      lessonId: "m05-p2",
+      anchorId: "m05-p2-topic-full-join"
+    },
+    {
+      title: "CROSS JOIN",
+      lessonId: "m05-p2",
+      anchorId: "m05-p2-topic-cross-join"
+    },
+    {
+      title: "Self joins",
+      lessonId: "m05-p2",
+      anchorId: "m05-p2-topic-self-joins"
+    },
+    {
+      title: "Subqueries",
+      lessonId: "m05-p2",
+      anchorId: "m05-p2-topic-subqueries"
+    },
+    {
+      title: "CTEs",
+      lessonId: "m05-p2",
+      anchorId: "m05-p2-topic-ctes"
+    },
+    {
+      title: "Recursive CTEs",
+      lessonId: "m05-p2",
+      anchorId: "m05-p2-topic-recursive-ctes"
+    },
+    {
+      title: "Window functions",
+      lessonId: "m05-p2",
+      anchorId: "m05-p2-topic-window-functions"
+    },
     "Views",
     "Materialized views",
     "Functions",

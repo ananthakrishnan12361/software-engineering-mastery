@@ -15,6 +15,7 @@ import { m04p1Coverage } from "./m04-p1.coverage";
 import { m04p2Coverage } from "./m04-p2.coverage";
 import { m04p3Coverage } from "./m04-p3.coverage";
 import { m05p1Coverage } from "./m05-p1.coverage";
+import { m05p2Coverage } from "./m05-p2.coverage";
 import type { LessonCoverageSpec, ModuleCoverageTarget } from "./types";
 
 export type {
@@ -43,7 +44,8 @@ export const LESSON_COVERAGE_SPECS: LessonCoverageSpec[] = [
   m04p1Coverage,
   m04p2Coverage,
   m04p3Coverage,
-  m05p1Coverage
+  m05p1Coverage,
+  m05p2Coverage
 ];
 
 export const MODULE_INTERVIEW_TARGETS: ModuleCoverageTarget[] = [

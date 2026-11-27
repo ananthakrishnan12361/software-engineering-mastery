@@ -276,22 +276,22 @@ Split into 4 parts:
 - [x] MVCC
 - [x] WAL
 - [x] Transactions
-- [ ] SQL
-- [ ] SELECT
-- [ ] INSERT
-- [ ] UPDATE
-- [ ] DELETE
-- [ ] JOIN
-- [ ] INNER JOIN
-- [ ] LEFT JOIN
-- [ ] RIGHT JOIN
-- [ ] FULL JOIN
-- [ ] CROSS JOIN
-- [ ] Self joins
-- [ ] Subqueries
-- [ ] CTEs
-- [ ] Recursive CTEs
-- [ ] Window functions
+- [x] SQL
+- [x] SELECT
+- [x] INSERT
+- [x] UPDATE
+- [x] DELETE
+- [x] JOIN
+- [x] INNER JOIN
+- [x] LEFT JOIN
+- [x] RIGHT JOIN
+- [x] FULL JOIN
+- [x] CROSS JOIN
+- [x] Self joins
+- [x] Subqueries
+- [x] CTEs
+- [x] Recursive CTEs
+- [x] Window functions
 - [ ] Views
 - [ ] Materialized views
 - [ ] Functions

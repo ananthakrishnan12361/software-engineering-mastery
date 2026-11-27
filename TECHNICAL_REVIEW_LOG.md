@@ -346,3 +346,15 @@ For each review, add:
   - PostgreSQL HOT Updates & `VACUUM FREEZE` / Transaction ID Wraparound: `https://www.postgresql.org/docs/current/storage-hot.html` and `https://www.postgresql.org/docs/current/routine-vacuuming.html#VACUUM-FOR-WRAPAROUND`
   - PostgreSQL Write-Ahead Logging (WAL), `full_page_writes`, & Checkpoints: `https://www.postgresql.org/docs/current/wal-configuration.html`
 - **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m05-p1.mdx`, `m05-p1.questions.ts`, and `m05-p1.coverage.ts`.
+
+---
+
+### Module 05 Part 2 (M05-P2) Technical Review Log — 2026-11-27
+
+- **Scope:** SQL, SELECT, INSERT, UPDATE, DELETE, JOIN, INNER JOIN, LEFT JOIN, RIGHT JOIN, FULL JOIN, CROSS JOIN, Self joins, Subqueries, CTEs, Recursive CTEs, Window functions.
+- **Official Documentation Verified (`M3`):**
+  - PostgreSQL `SELECT` (`DISTINCT ON`, `LATERAL`, Joins) & `INSERT ... ON CONFLICT`: `https://www.postgresql.org/docs/current/sql-select.html` and `https://www.postgresql.org/docs/current/sql-insert.html`
+  - PostgreSQL `UPDATE`, `DELETE`, & `TRUNCATE`: `https://www.postgresql.org/docs/current/sql-update.html`, `https://www.postgresql.org/docs/current/sql-delete.html`, and `https://www.postgresql.org/docs/current/sql-truncate.html`
+  - PostgreSQL `WITH` Queries (CTEs, `MATERIALIZED`, `WITH RECURSIVE`, `CYCLE`): `https://www.postgresql.org/docs/current/queries-with.html`
+  - PostgreSQL Window Functions (`OVER`, `PARTITION BY`, `ROWS` vs `RANGE` frames): `https://www.postgresql.org/docs/current/tutorial-window.html` and `https://www.postgresql.org/docs/current/sql-expressions.html#SYNTAX-WINDOW-FUNCTIONS`
+- **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m05-p2.mdx`, `m05-p2.questions.ts`, and `m05-p2.coverage.ts`.
