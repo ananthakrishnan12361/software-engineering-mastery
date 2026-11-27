@@ -47,6 +47,8 @@ import M05P3Mdx from "./modules/05-postgresql/m05-p3.mdx";
 import m05p3Raw from "./modules/05-postgresql/m05-p3.mdx?raw";
 import M05P4Mdx from "./modules/05-postgresql/m05-p4.mdx";
 import m05p4Raw from "./modules/05-postgresql/m05-p4.mdx?raw";
+import M06P1Mdx from "./modules/06-mysql/m06-p1.mdx";
+import m06p1Raw from "./modules/06-mysql/m06-p1.mdx?raw";
 import { m01p1Questions } from "./interviews/m01-p1.questions";
 import { m01p2Questions } from "./interviews/m01-p2.questions";
 import { m01p3Questions } from "./interviews/m01-p3.questions";
@@ -67,6 +69,7 @@ import { m05p1Questions } from "./interviews/m05-p1.questions";
 import { m05p2Questions } from "./interviews/m05-p2.questions";
 import { m05p3Questions } from "./interviews/m05-p3.questions";
 import { m05p4Questions } from "./interviews/m05-p4.questions";
+import { m06p1Questions } from "./interviews/m06-p1.questions";
 import { SYLLABUS_MODULES } from "./syllabus";
 
 export interface HandbookCatalog {
@@ -212,6 +215,17 @@ const modules: ModuleRecord[] = [
       "Scope (Parts 1–4): Complete PostgreSQL — Architecture, 8 KB Pages, MVCC, WAL, SQL Mastery, Views/MatViews, Functions, Procedures, Triggers, Constraints, JSONB, Partitioning, Replication, EXPLAIN & Autovacuum",
     lead: "Master PostgreSQL end-to-end: storage internals, SQL/CTEs/windows, views/triggers/JSONB, partitioning, streaming & logical replication, EXPLAIN ANALYZE, indexing, autovacuum, and PITR.",
     lessonIds: ["m05-p1", "m05-p2", "m05-p3", "m05-p4"]
+  },
+  {
+    id: "module-6",
+    number: 6,
+    title: "MySQL",
+    category: "databases",
+    partSummary: "Parts 1–2 of 2 (Part 1 Complete)",
+    scopeSummary:
+      "Scope (Parts 1–2): MySQL — Architecture, Storage Engines, InnoDB, MVCC, Transactions, ACID, Isolation Levels, Locking, Deadlocks, Indexes, Query Optimization, EXPLAIN, Replication & Performance Tuning",
+    lead: "Master MySQL InnoDB internals: buffer pool, redo/undo logs, MVCC, ACID transactions, isolation levels, row-level locking, deadlock detection, indexes, EXPLAIN, replication, and production performance tuning.",
+    lessonIds: ["m06-p1"]
   }
 ];
 
@@ -1376,8 +1390,66 @@ const lessons: LessonRecord[] = [
       }
     ],
     prevLessonId: "m05-p3",
-    nextLessonId: null,
+    nextLessonId: "m06-p1",
     Content: M05P4Mdx
+  },
+  {
+    id: "m06-p1",
+    moduleId: "module-6",
+    moduleNumber: 6,
+    moduleTitle: "MySQL",
+    partLabel: "Lesson M06-P1",
+    title: "Part 1: MySQL Architecture, InnoDB, Storage Engines, Transactions, ACID, Isolation Levels, Locking & Deadlocks",
+    category: "databases",
+    duration: "90 min (38m theory · 32m practice · 20m review)",
+    objectives: [
+      "Describe MySQL's layered architecture (Parser, Optimizer, Storage Engine API, Binary Log) and explain two-phase commit coordination between InnoDB redo log and binlog.",
+      "Compare InnoDB, MyISAM, Memory, and CSV storage engines and choose the correct engine for a given workload.",
+      "Explain InnoDB's MVCC read-view mechanism, buffer pool, redo/undo logs, and doublewrite buffer.",
+      "Distinguish MySQL's four isolation levels and their anomaly profiles, including InnoDB's stronger-than-standard REPEATABLE READ via next-key locking.",
+      "Diagnose and prevent InnoDB deadlocks using consistent lock ordering, short transactions, indexes, and application-level retry logic."
+    ],
+    sections: [
+      { id: "m06-p1-objectives", title: "Learning Objectives" },
+      { id: "m06-p1-sec-a", letter: "A", title: "Topic Introduction" },
+      { id: "m06-p1-sec-b", letter: "B", title: "Fundamentals (Simple Mental Models)" },
+      { id: "m06-p1-sec-c", letter: "C", title: "Internal Working & Architecture" },
+      { id: "m06-p1-sec-d", letter: "D", title: "Practical Examples (Interactive)" },
+      { id: "m06-p1-sec-e", letter: "E", title: "Step-by-Step Walkthrough" },
+      { id: "m06-p1-sec-f", letter: "F", title: "Real-World Use Cases" },
+      { id: "m06-p1-sec-g", letter: "G", title: "Common Mistakes" },
+      { id: "m06-p1-sec-h", letter: "H", title: "Best Practices" },
+      { id: "m06-p1-sec-i", letter: "I", title: "Performance & Scalability" },
+      { id: "m06-p1-sec-j", letter: "J", title: "Security Considerations" },
+      { id: "m06-p1-sec-k", letter: "K", title: "Comparisons & Decision Tables" },
+      { id: "m06-p1-sec-l", letter: "L", title: "Tips to Remember (Mnemonics & Mental Models)" },
+      { id: "m06-p1-sec-mn", letter: "M/N", title: "Interview Questions & Detailed Answers" },
+      { id: "m06-p1-sec-o", letter: "O", title: "Practical Exercises" },
+      { id: "m06-p1-sec-p", letter: "P", title: "Advanced Challenge" },
+      { id: "m06-p1-sec-q", letter: "Q", title: "Summary & Key Takeaways" },
+      { id: "m06-p1-mastery", title: "Mastery Assessment" }
+    ],
+    masteryItems: [
+      {
+        id: "m06-p1-m1",
+        label: "I can explain MySQL's layered architecture, InnoDB's buffer pool/redo/undo logs, and two-phase commit."
+      },
+      {
+        id: "m06-p1-m2",
+        label: "I can compare storage engines, choose the right one, and explain MVCC read views with undo log chains."
+      },
+      {
+        id: "m06-p1-m3",
+        label: "I can distinguish all four MySQL isolation levels and explain how InnoDB next-key locks prevent phantoms."
+      },
+      {
+        id: "m06-p1-m4",
+        label: "I completed the M06-P1 exercises and can diagnose and prevent InnoDB deadlocks without notes."
+      }
+    ],
+    prevLessonId: "m05-p4",
+    nextLessonId: null,
+    Content: M06P1Mdx
   }
 ];
 
@@ -1401,7 +1473,8 @@ const questionsByLesson: Record<string, InterviewQuestion[]> = {
   "m05-p1": m05p1Questions,
   "m05-p2": m05p2Questions,
   "m05-p3": m05p3Questions,
-  "m05-p4": m05p4Questions
+  "m05-p4": m05p4Questions,
+  "m06-p1": m06p1Questions
 };
 
 const allQuestions: InterviewQuestion[] = [
@@ -1424,7 +1497,8 @@ const allQuestions: InterviewQuestion[] = [
   ...m05p1Questions,
   ...m05p2Questions,
   ...m05p3Questions,
-  ...m05p4Questions
+  ...m05p4Questions,
+  ...m06p1Questions
 ];
 
 function mergeGlossaryEntries(...batches: GlossaryEntry[][]): GlossaryEntry[] {
@@ -1460,7 +1534,8 @@ const glossaryEntries: GlossaryEntry[] = mergeGlossaryEntries(
   extractGlossaryFromMdx(m05p1Raw, "m05-p1"),
   extractGlossaryFromMdx(m05p2Raw, "m05-p2"),
   extractGlossaryFromMdx(m05p3Raw, "m05-p3"),
-  extractGlossaryFromMdx(m05p4Raw, "m05-p4")
+  extractGlossaryFromMdx(m05p4Raw, "m05-p4"),
+  extractGlossaryFromMdx(m06p1Raw, "m06-p1")
 );
 
 function buildSearchRecords(): SearchRecord[] {
@@ -1499,6 +1574,7 @@ function buildSearchRecords(): SearchRecord[] {
   records.push(...extractSearchRecordsFromMdx(m05p2Raw, "m05-p2", lessons[17].title, 5));
   records.push(...extractSearchRecordsFromMdx(m05p3Raw, "m05-p3", lessons[18].title, 5));
   records.push(...extractSearchRecordsFromMdx(m05p4Raw, "m05-p4", lessons[19].title, 5));
+  records.push(...extractSearchRecordsFromMdx(m06p1Raw, "m06-p1", lessons[20].title, 6));
 
   for (const mod of SYLLABUS_MODULES) {
     for (const topic of mod.topics) {

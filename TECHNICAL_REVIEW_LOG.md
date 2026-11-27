@@ -383,3 +383,15 @@ For each review, add:
   - PgBouncer Connection Pooling Configuration: `https://www.pgbouncer.org/config.html`
   - PostgreSQL Routine Vacuuming, Autovacuum Thresholds, `REINDEX CONCURRENTLY`, & PITR: `https://www.postgresql.org/docs/current/routine-vacuuming.html`, `https://www.postgresql.org/docs/current/sql-reindex.html`, and `https://www.postgresql.org/docs/current/continuous-archiving.html`
 - **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m05-p4.mdx`, `m05-p4.questions.ts`, and `m05-p4.coverage.ts`.
+
+---
+
+### Module 06 Part 1 (M06-P1) Technical Review Log — 2026-11-27
+
+- **Scope:** MySQL architecture, Storage engines, InnoDB, MyISAM overview, SQL, Transactions, ACID, Isolation levels, Locking, Deadlocks.
+- **Official Documentation Verified (`M3`):**
+  - MySQL 8.0 Pluggable Storage Engine Architecture & InnoDB Architecture: `https://dev.mysql.com/doc/refman/8.0/en/pluggable-storage-overview.html` and `https://dev.mysql.com/doc/refman/8.0/en/innodb-architecture.html`
+  - MySQL 8.0 MyISAM Storage Engine & Server SQL Modes (`STRICT_TRANS_TABLES`, `NO_ENGINE_SUBSTITUTION`): `https://dev.mysql.com/doc/refman/8.0/en/myisam-storage-engine.html` and `https://dev.mysql.com/doc/refman/8.0/en/sql-mode.html`
+  - MySQL 8.0 InnoDB Locking, Transaction Model, MVCC, Isolation Levels & Deadlocks: `https://dev.mysql.com/doc/refman/8.0/en/innodb-locking.html`, `https://dev.mysql.com/doc/refman/8.0/en/innodb-transaction-isolation-levels.html`, `https://dev.mysql.com/doc/refman/8.0/en/innodb-multi-versioning.html`, and `https://dev.mysql.com/doc/refman/8.0/en/innodb-deadlocks.html`
+  - MySQL 8.0 Two-Phase Commit (`sync_binlog`, `innodb_flush_log_at_trx_commit`): `https://dev.mysql.com/doc/refman/8.0/en/innodb-parameters.html#sysvar_innodb_flush_log_at_trx_commit`
+- **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m06-p1.mdx`, `m06-p1.questions.ts`, and `m06-p1.coverage.ts`.

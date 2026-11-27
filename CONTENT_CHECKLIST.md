@@ -324,16 +324,16 @@ Split into 2 parts:
 - **M06-P2**: Indexes (composite, clustered, secondary), query optimization, EXPLAIN, query execution, stored procedures, triggers, views, replication, partitioning, performance tuning, connection management, backup and recovery
 
 #### Topics
-- [ ] MySQL architecture
-- [ ] Storage engines
-- [ ] InnoDB
-- [ ] MyISAM overview
-- [ ] SQL
-- [ ] Transactions
-- [ ] ACID
-- [ ] Isolation levels
-- [ ] Locking
-- [ ] Deadlocks
+- [x] MySQL architecture
+- [x] Storage engines
+- [x] InnoDB
+- [x] MyISAM overview
+- [x] SQL
+- [x] Transactions
+- [x] ACID
+- [x] Isolation levels
+- [x] Locking
+- [x] Deadlocks
 - [ ] Indexes
 - [ ] Composite indexes
 - [ ] Clustered indexes

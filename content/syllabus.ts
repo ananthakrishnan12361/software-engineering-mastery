@@ -1243,16 +1243,56 @@ export const SYLLABUS_MODULES: SyllabusModule[] = [
   ]),
 
   defineModule(6, "MySQL", "databases", [
-    "MySQL architecture",
-    "Storage engines",
-    "InnoDB",
-    "MyISAM overview",
-    "SQL",
-    "Transactions",
-    "ACID",
-    "Isolation levels",
-    "Locking",
-    "Deadlocks",
+    {
+      title: "MySQL architecture",
+      lessonId: "m06-p1",
+      anchorId: "m06-p1-topic-mysql-architecture"
+    },
+    {
+      title: "Storage engines",
+      lessonId: "m06-p1",
+      anchorId: "m06-p1-topic-storage-engines"
+    },
+    {
+      title: "InnoDB",
+      lessonId: "m06-p1",
+      anchorId: "m06-p1-topic-innodb"
+    },
+    {
+      title: "MyISAM overview",
+      lessonId: "m06-p1",
+      anchorId: "m06-p1-topic-myisam-overview"
+    },
+    {
+      title: "SQL",
+      lessonId: "m06-p1",
+      anchorId: "m06-p1-topic-sql"
+    },
+    {
+      title: "Transactions",
+      lessonId: "m06-p1",
+      anchorId: "m06-p1-topic-transactions"
+    },
+    {
+      title: "ACID",
+      lessonId: "m06-p1",
+      anchorId: "m06-p1-topic-acid"
+    },
+    {
+      title: "Isolation levels",
+      lessonId: "m06-p1",
+      anchorId: "m06-p1-topic-isolation-levels"
+    },
+    {
+      title: "Locking",
+      lessonId: "m06-p1",
+      anchorId: "m06-p1-topic-locking"
+    },
+    {
+      title: "Deadlocks",
+      lessonId: "m06-p1",
+      anchorId: "m06-p1-topic-deadlocks"
+    },
     "Indexes",
     "Composite indexes",
     "Clustered indexes",
