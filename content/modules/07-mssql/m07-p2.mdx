@@ -1,0 +1,582 @@
+<Callout variant="info" title="Topics Covered in Part 2 (M07-P2)">
+  <p>
+    This second part of Module 7 covers 4 core SQL Server concurrency and transaction topics: <strong>Transactions</strong>, <strong>Locking</strong>, <strong>Isolation levels</strong>, and <strong>Deadlocks</strong>.
+  </p>
+</Callout>
+
+<TopicSection id="m07-p2-sec-a" letter="A" title="Topic Introduction">
+
+#### What is this?
+
+**SQL Server concurrency control** governs how hundreds of concurrent sessions read and modify 8 KB pages safely without corrupting invariants or stalling throughput. Unlike PostgreSQL (which always uses MVCC snapshots), SQL Server defaults to **pessimistic locking** (`READ COMMITTED` with Shared `S` locks) unless you enable **row versioning** (`READ_COMMITTED_SNAPSHOT` / `SNAPSHOT`) backed by the `tempdb` version store (or Accelerated Database Recovery's Persistent Version Store).
+
+#### Why does it exist & what problem does it solve?
+
+Default pessimistic `READ COMMITTED` causes readers to block writers and writers to block readers, while `REPEATABLE READ` and `SERIALIZABLE` frequently trigger **conversion deadlocks** (Error `1205`) or **lock escalation** to full-table locks after ~5,000 row/page locks. Understanding SQL Server's lock modes (`S`, `U`, `X`, `IS`, `IX`, `Sch-S`, `Sch-M`), `XACT_ABORT`, `RCSI`, and `DEADLOCK_PRIORITY` prevents production blocking chains and silent partial commits.
+
+#### Where is it used in real-world software?
+
+High-throughput financial ledgers, inventory reservation systems (`UPDLOCK` + `HOLDLOCK`), busy ASP.NET / EF Core web applications running under `READ_COMMITTED_SNAPSHOT`, and multi-step `TRY...CATCH` stored-procedure workflows.
+
+</TopicSection>
+
+<TopicSection id="m07-p2-sec-b" letter="B" title="Fundamentals (Simple Mental Models)">
+
+<TopicAnchor id="m07-p2-topic-transactions" />
+
+#### 1. Transactions: `BEGIN TRAN`, `XACT_ABORT ON`, `XACT_STATE()` & ADR
+
+SQL Server supports **Autocommit** (default, one statement per transaction), **Explicit** (`BEGIN TRANSACTION ... COMMIT / ROLLBACK`), and **Implicit** (`SET IMPLICIT_TRANSACTIONS ON`) transactions. Crucially, unlike PostgreSQL, **a runtime error in T-SQL does not automatically roll back an open explicit transaction** unless you enable **`SET XACT_ABORT ON`**—without it, a failing statement can leave earlier writes committed or locks held!
+
+Inside `TRY...CATCH` blocks, always check **`XACT_STATE()`**: `1` means the transaction is active and committable; `-1` means it is **uncommittable** (doomed, e.g. under `XACT_ABORT ON`—you *must* `ROLLBACK`, never `COMMIT`); `0` means no active transaction. Also note that **SQL Server DDL is transactional** (`ALTER TABLE` inside `BEGIN TRAN` can roll back), and **Accelerated Database Recovery (ADR)** in SQL Server 2019+ enables instant rollback regardless of transaction size.
+
+<TopicAnchor id="m07-p2-topic-locking" />
+
+#### 2. Locking: Granularity, Modes (`S`, `U`, `X`, `IS`, `IX`, `Sch-M`) & Escalation
+
+SQL Server's Lock Manager acquires locks across a hierarchy: **`RID` / `KEY` → `PAGE` → `HOBT` / `PARTITION` → `OBJECT` (Table)**. **Shared (`S`)** locks protect reads, **Exclusive (`X`)** locks protect writes, and **Intent locks (`IS`, `IX`, `SIX`)** at parent levels signal child locks quickly. **Update (`U`)** locks (`WITH (UPDLOCK)`) are special: `U` is compatible with `S` (allowing concurrent readers) but incompatible with another `U` or `X`, preventing conversion deadlocks when a read intends to update.
+
+**Schema Stability (`Sch-S`)** protects compiling/executing queries, while **Schema Modification (`Sch-M`)** is acquired by `ALTER TABLE` and blocks all `Sch-S` requests. When a single statement acquires **~5,000+ locks** on one table/HoBT (or lock memory exceeds thresholds), SQL Server performs **Lock Escalation**, replacing thousands of row/page locks with one table-level `X` or `S` lock—halting concurrent access unless mitigated by batching or `ALTER TABLE ... SET (LOCK_ESCALATION = AUTO | DISABLE)`.
+
+<TopicAnchor id="m07-p2-topic-isolation-levels" />
+
+#### 3. Isolation Levels: Pessimistic (`S` Locks) vs. Row Versioning (`RCSI` & `SNAPSHOT`)
+
+<GlossaryTerm definition="Database-wide SQL Server setting (READ_COMMITTED_SNAPSHOT ON) that replaces Shared read locks under READ COMMITTED with statement-level MVCC row versions.">READ_COMMITTED_SNAPSHOT (RCSI)</GlossaryTerm> splits SQL Server's isolation model into two families: **Pessimistic** (`READ UNCOMMITTED` / `NOLOCK`, default `READ COMMITTED`, `REPEATABLE READ`, `SERIALIZABLE` using key-range locks) and **Optimistic Row Versioning** (`RCSI` and `SNAPSHOT`).
+
+Under default pessimistic `READ COMMITTED`, `SELECT` acquires and immediately releases `S` locks, so **readers block writers and writers block readers**. Enabling `ALTER DATABASE db SET READ_COMMITTED_SNAPSHOT ON` switches `READ COMMITTED` to statement-level row versioning (storing old row versions in `tempdb` or ADR's Persistent Version Store), so readers never block writers. **`SNAPSHOT`** (`ALLOW_SNAPSHOT_ISOLATION ON`) gives transaction-level MVCC snapshots and raises **Error `3960`** (update conflict) on concurrent write-write collisions.
+
+<TopicAnchor id="m07-p2-topic-deadlocks" />
+
+#### 4. Deadlocks: Error `1205`, Conversion Deadlocks, `DEADLOCK_PRIORITY` & Prevention
+
+A **deadlock** occurs when two sessions hold incompatible locks and wait on each other in a cycle. Every few seconds (tightening dynamically under load), SQL Server's **Lock Monitor** detects cycles, chooses a **victim** based on lowest **`DEADLOCK_PRIORITY`** (`LOW` = -5, `NORMAL` = 0, `HIGH` = 5, or `-10..10`) and fewest transaction log bytes written, rolls back the victim, and returns **Error `1205`** to the client.
+
+A classic SQL Server pattern is the **Conversion Deadlock**: Session A and Session B both read the same row with `S` locks under `REPEATABLE READ` (or `UPDLOCK` omitted), then both try to convert `S → X`—neither can upgrade while the other holds `S`. Fix conversion deadlocks using **`WITH (UPDLOCK)`** on the initial `SELECT`, keep transactions short, access tables in consistent order, add covering indexes to narrow key-range locks, and capture deadlock graphs via the **`system_health`** Extended Events session.
+
+</TopicSection>
+
+<TopicSection id="m07-p2-sec-c" letter="C" title="Internal Working & Architecture">
+
+#### Lock Hierarchy, Intent Locks & Escalation
+
+Every row modification acquires `IX` on the Table (`OBJECT`), `IX` on the `PAGE`, and `X` on the `KEY` (or `RID`). If a single statement holds >= 5,000 locks on one object/HoBT, SQL Server attempts to escalate them to an `X` lock on the `OBJECT` (or `PARTITION` when `LOCK_ESCALATION = AUTO`).
+
+<DiagramCard title="Figure 7.3 — SQL Server Lock Hierarchy, Intent Locks & Escalation">
+<svg viewBox="0 0 820 190" xmlns="http://www.w3.org/2000/svg" aria-label="SQL Server lock hierarchy from OBJECT to PAGE to KEY/RID with Intent locks and 5000-lock escalation">
+  <defs>
+    <style>{`
+      .m73-lbl { font: 600 11px system-ui, sans-serif; fill: var(--token-text-primary); }
+      .m73-sub { font: 400 9.5px system-ui, sans-serif; fill: var(--token-text-secondary); }
+      .m73-hdr { font: 700 10px system-ui, sans-serif; fill: var(--token-text-inverse); }
+      .m73-box { rx: 6; ry: 6; }
+    `}</style>
+    <marker id="arr73" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="var(--token-brand-default)" />
+    </marker>
+    <marker id="arr73e" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="var(--token-error-default)" />
+    </marker>
+  </defs>
+
+  <rect class="m73-box" x="6" y="8" width="268" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
+  <rect x="6" y="8" width="268" height="22" rx="6" ry="6" fill="var(--token-brand-muted)" />
+  <text x="140" y="22" text-anchor="middle" class="m73-hdr">Lock Granularity Hierarchy</text>
+  <rect class="m73-box" x="24" y="38" width="232" height="34" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="140" y="54" text-anchor="middle" class="m73-lbl">OBJECT (Table): IX / IS</text>
+  <text x="140" y="66" text-anchor="middle" class="m73-sub">Signals child locks without scanning</text>
+  <path d="M140 72 L140 84" stroke="var(--token-brand-default)" stroke-width="1.6" marker-end="url(#arr73)" />
+  <rect class="m73-box" x="24" y="86" width="232" height="34" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="140" y="102" text-anchor="middle" class="m73-lbl">PAGE (8 KB): IX / IS / IU</text>
+  <text x="140" y="114" text-anchor="middle" class="m73-sub">Protects page splits &amp; slot array</text>
+  <path d="M140 120 L140 132" stroke="var(--token-brand-default)" stroke-width="1.6" marker-end="url(#arr73)" />
+  <rect class="m73-box" x="24" y="134" width="232" height="38" fill="var(--token-surface-raised)" stroke="var(--token-brand-default)" stroke-width="1.2" />
+  <text x="140" y="151" text-anchor="middle" class="m73-lbl">KEY / RID: S, U, or X</text>
+  <text x="140" y="164" text-anchor="middle" class="m73-sub">Row-level lock (or RangeS-U in SERIALIZABLE)</text>
+
+  <rect class="m73-box" x="284" y="8" width="254" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
+  <rect x="284" y="8" width="254" height="22" rx="6" ry="6" fill="var(--token-warning-muted)" />
+  <text x="411" y="22" text-anchor="middle" class="m73-hdr">Lock Escalation (~5,000 Locks)</text>
+  <rect class="m73-box" x="296" y="40" width="230" height="44" fill="var(--token-surface-raised)" stroke="var(--token-error-default)" stroke-width="1.2" />
+  <text x="411" y="57" text-anchor="middle" class="m73-lbl">5,000+ KEY/PAGE Locks Held</text>
+  <text x="411" y="71" text-anchor="middle" class="m73-sub">Single statement updates 50K rows</text>
+  <path d="M411 84 L411 100" stroke="var(--token-error-default)" stroke-width="1.8" marker-end="url(#arr73e)" />
+  <rect class="m73-box" x="296" y="102" width="230" height="70" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="411" y="119" text-anchor="middle" class="m73-lbl">Escalates to Table X Lock</text>
+  <text x="411" y="134" text-anchor="middle" class="m73-sub">Blocks all concurrent queries on table</text>
+  <text x="411" y="148" text-anchor="middle" class="m73-sub">Fix: Batch 2,000 rows per txn</text>
+  <text x="411" y="162" text-anchor="middle" class="m73-sub">or LOCK_ESCALATION = AUTO (partition)</text>
+
+  <rect class="m73-box" x="548" y="8" width="266" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
+  <rect x="548" y="8" width="266" height="22" rx="6" ry="6" fill="var(--token-success-muted)" />
+  <text x="681" y="22" text-anchor="middle" class="m73-hdr">Update Lock (U) Anti-Deadlock</text>
+  <rect class="m73-box" x="560" y="40" width="242" height="58" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="681" y="57" text-anchor="middle" class="m73-lbl">Bad: S + S → Both Request X</text>
+  <text x="681" y="71" text-anchor="middle" class="m73-sub">T1 &amp; T2 both hold S, wait for X</text>
+  <text x="681" y="85" text-anchor="middle" class="m73-sub">Result: Conversion Deadlock (1205)</text>
+  <rect class="m73-box" x="560" y="106" width="242" height="66" fill="var(--token-surface-raised)" stroke="var(--token-success-default)" stroke-width="1.2" />
+  <text x="681" y="123" text-anchor="middle" class="m73-lbl">Good: WITH (UPDLOCK)</text>
+  <text x="681" y="138" text-anchor="middle" class="m73-sub">U compatible with S, blocks other U/X</text>
+  <text x="681" y="152" text-anchor="middle" class="m73-sub">T2 waits on U before T1 converts U→X</text>
+  <text x="681" y="165" text-anchor="middle" class="m73-sub">Zero conversion deadlocks!</text>
+</svg>
+</DiagramCard>
+
+</TopicSection>
+
+<TopicSection id="m07-p2-sec-d" letter="D" title="Practical Examples (Interactive)">
+
+#### Example 1: SQL Server Lock Compatibility & Escalation Simulator (`createMssqlLockManager`)
+
+This simulator models SQL Server's lock compatibility matrix (`IS`, `IX`, `S`, `U`, `X`), showing how `U` (`UPDLOCK`) is compatible with `S` but blocks another `U`/`X`, and triggers **Lock Escalation** when a session crosses the 5,000-lock threshold.
+
+<CodeBlock lang="javascript" runnable title="SQL Server Lock Compatibility & Escalation Simulator" code={`
+function createMssqlLockManager({ escalationThreshold = 5000 } = {}) {
+  if (!Number.isInteger(escalationThreshold) || escalationThreshold < 1) {
+    throw new TypeError("escalationThreshold must be a positive integer");
+  }
+
+  // Compatibility matrix for S, U, X, IS, IX
+  const COMPAT = {
+    IS: { IS: true, IX: true, S: true, U: true, X: false },
+    IX: { IS: true, IX: true, S: false, U: false, X: false },
+    S:  { IS: true, IX: false, S: true, U: true, X: false },
+    U:  { IS: true, IX: false, S: true, U: false, X: false },
+    X:  { IS: false, IX: false, S: false, U: false, X: false }
+  };
+
+  const validModes = new Set(Object.keys(COMPAT));
+  const heldByResource = new Map(); // resource -> Array<{ spid, mode }>
+  const lockCountBySpid = new Map(); // spid -> number
+
+  function acquire(spid, resource, mode, count = 1) {
+    if (!Number.isInteger(spid) || spid < 1) throw new TypeError("spid must be a positive integer");
+    if (typeof resource !== "string" || resource.trim().length === 0) throw new TypeError("resource required");
+    if (!validModes.has(mode)) throw new TypeError("Invalid lock mode: " + mode);
+    if (!Number.isInteger(count) || count < 1) throw new TypeError("count must be >= 1");
+
+    const held = heldByResource.get(resource) ?? [];
+    const blocker = held.find((l) => l.spid !== spid && !COMPAT[l.mode][mode]);
+    if (blocker) {
+      return { granted: false, blockedBySpid: blocker.spid, escalated: false };
+    }
+
+    if (!heldByResource.has(resource)) heldByResource.set(resource, []);
+    heldByResource.get(resource).push({ spid, mode });
+
+    const newTotal = (lockCountBySpid.get(spid) ?? 0) + count;
+    lockCountBySpid.set(spid, newTotal);
+    const escalated = newTotal >= escalationThreshold && (mode === "X" || mode === "S" || mode === "U");
+
+    return { granted: true, blockedBySpid: null, totalLocks: newTotal, escalated };
+  }
+
+  return { acquire };
+}
+
+const lm = createMssqlLockManager();
+console.log("S1 reads:", JSON.stringify(lm.acquire(51, "Orders:PK:10", "S")));
+console.log("S2 UPDLOCK:", JSON.stringify(lm.acquire(52, "Orders:PK:10", "U")));
+console.log("S3 UPDLOCK blocked:", JSON.stringify(lm.acquire(53, "Orders:PK:10", "U")));
+console.log("Bulk 5000 escalation:", JSON.stringify(lm.acquire(54, "Orders:Batch", "X", 5000)));
+`} />
+
+#### Example 2: SQL Server Isolation Level & RCSI Evaluator (`evaluateMssqlIsolation`)
+
+<CodeBlock lang="javascript" runnable title="SQL Server Isolation & RCSI Evaluator" code={`
+function evaluateMssqlIsolation({ level, rcsiEnabled = false }) {
+  if (typeof level !== "string" || level.trim().length === 0) {
+    throw new TypeError("level must be a non-empty string");
+  }
+  if (typeof rcsiEnabled !== "boolean") throw new TypeError("rcsiEnabled must be a boolean");
+
+  const norm = level.trim().toUpperCase().replace(/[ -]+/g, "_");
+  const valid = new Set(["READ_UNCOMMITTED", "READ_COMMITTED", "REPEATABLE_READ", "SERIALIZABLE", "SNAPSHOT"]);
+  if (!valid.has(norm)) throw new TypeError("Unknown SQL Server isolation level: " + level);
+
+  if (norm === "READ_UNCOMMITTED") {
+    return { level: norm, usesRowVersioning: false, readersBlockWriters: false, dirtyReadsPossible: true, error3960Possible: false };
+  }
+  if (norm === "READ_COMMITTED" && rcsiEnabled) {
+    return { level: "READ_COMMITTED (RCSI)", usesRowVersioning: true, readersBlockWriters: false, dirtyReadsPossible: false, error3960Possible: false };
+  }
+  if (norm === "SNAPSHOT") {
+    return { level: norm, usesRowVersioning: true, readersBlockWriters: false, dirtyReadsPossible: false, error3960Possible: true };
+  }
+  return {
+    level: norm,
+    usesRowVersioning: false,
+    readersBlockWriters: true,
+    dirtyReadsPossible: false,
+    error3960Possible: false
+  };
+}
+
+console.log("Default RC:", JSON.stringify(evaluateMssqlIsolation({ level: "READ COMMITTED", rcsiEnabled: false })));
+console.log("RCSI RC:", JSON.stringify(evaluateMssqlIsolation({ level: "READ COMMITTED", rcsiEnabled: true })));
+console.log("SNAPSHOT:", JSON.stringify(evaluateMssqlIsolation({ level: "SNAPSHOT" })));
+`} />
+
+#### T-SQL Example: `XACT_ABORT ON`, `XACT_STATE()`, `UPDLOCK` & `RCSI`
+
+<CodeBlock lang="sql" title="T-SQL Safe Transaction Template & RCSI" code={`
+-- 1. Enable non-blocking READ COMMITTED via row versioning (database-wide)
+ALTER DATABASE AppDb SET READ_COMMITTED_SNAPSHOT ON;
+ALTER DATABASE AppDb SET ALLOW_SNAPSHOT_ISOLATION ON;
+
+-- 2. Safe OLTP inventory reservation with XACT_ABORT ON, UPDLOCK, and XACT_STATE()
+CREATE PROCEDURE dbo.usp_ReserveInventory
+  @SkuId BIGINT,
+  @Qty INT
+AS
+BEGIN
+  SET NOCOUNT ON;
+  SET XACT_ABORT ON; -- Ensures runtime errors roll back open transactions cleanly
+
+  BEGIN TRY
+    BEGIN TRANSACTION;
+
+    DECLARE @Available INT;
+    -- UPDLOCK prevents conversion deadlocks when two sessions check + decrement
+    SELECT @Available = AvailableQty
+    FROM dbo.Inventory WITH (UPDLOCK, ROWLOCK)
+    WHERE SkuId = @SkuId;
+
+    IF @Available IS NULL OR @Available < @Qty
+      THROW 50001, 'Insufficient inventory', 1;
+
+    UPDATE dbo.Inventory
+    SET AvailableQty = AvailableQty - @Qty
+    WHERE SkuId = @SkuId;
+
+    COMMIT TRANSACTION;
+  END TRY
+  BEGIN CATCH
+    IF XACT_STATE() <> 0
+      ROLLBACK TRANSACTION;
+    THROW;
+  END CATCH
+END;
+`} />
+
+</TopicSection>
+
+<TopicSection id="m07-p2-sec-e" letter="E" title="Step-by-Step Walkthrough">
+
+#### How `createMssqlLockManager` Resolves `S`, `U`, and `X` Requests
+
+1. **Validate SPID, Resource & Mode:** Ensures `spid` and `count` are positive integers and `mode` is one of `IS`, `IX`, `S`, `U`, or `X`.
+2. **Check Compatibility Matrix (`COMPAT`):** Inspects existing locks held by other SPIDs on `resource`. `S` + `U` is compatible (readers can coexist with one `U`), while `U` + `U` and `X` + any lock conflict.
+3. **Track Lock Count per SPID:** Increments the SPID's lock count by `count`.
+4. **Trigger Escalation Flag:** When a SPID holds >= `escalationThreshold` (`5,000`) row/page locks, flags `escalated: true` so engineers know the statement would escalate to a table-level lock.
+
+</TopicSection>
+
+<TopicSection id="m07-p2-sec-f" letter="F" title="Real-World Use Cases">
+
+#### Scenario 1: Eliminating Reader/Writer Blocking in EF Core with `RCSI`
+
+An ASP.NET API running on default pessimistic `READ COMMITTED` stalled on `LCK_M_S` waits whenever background jobs updated `Orders`. Enabling `READ_COMMITTED_SNAPSHOT ON` moved `SELECT`s to `tempdb` row versions, eliminating reader/writer blocking without rewriting queries.
+
+#### Scenario 2: Fixing Conversion Deadlocks with `WITH (UPDLOCK)`
+
+Two concurrent checkout requests checked `AvailableQty` under `REPEATABLE READ` (both taking `S` locks) and then ran `UPDATE`, causing frequent Error `1205` deadlocks. Adding `WITH (UPDLOCK, ROWLOCK)` to the initial `SELECT` serialized the second session cleanly on `U` vs. `U`.
+
+#### Scenario 3: Preventing Partial Commits with `SET XACT_ABORT ON`
+
+A stored procedure without `SET XACT_ABORT ON` hit a `CHECK` constraint error on its second `UPDATE`, silently leaving the first `UPDATE` open and holding `X` locks. Adding `SET XACT_ABORT ON` + `TRY...CATCH` with `XACT_STATE()` guaranteed atomic rollback.
+
+</TopicSection>
+
+<TopicSection id="m07-p2-sec-g" letter="G" title="Common Mistakes">
+
+- **Using `WITH (NOLOCK)` (`READ UNCOMMITTED`) as a Performance Hack:** Causes dirty reads, missing rows, or duplicate rows during B+Tree page splits! Enable `READ_COMMITTED_SNAPSHOT ON` instead for safe, non-blocking reads.
+- **Omitting `SET XACT_ABORT ON` in Explicit Transactions:** Many T-SQL runtime errors do not roll back the transaction automatically, leaving orphaned locks or partial writes.
+- **Calling `COMMIT` in `CATCH` Without Checking `XACT_STATE()`:** When `XACT_STATE() = -1`, the transaction is doomed and attempting `COMMIT` raises another error.
+- **Holding Open Transactions Across HTTP Calls or User Input:** Keeps `X` locks and `tempdb` version-store chains pinned, causing blocking and `tempdb` version-store bloat.
+- **Retrying Error `1205` Without Exponential Backoff:** Immediate tight-loop retries after a deadlock often collide again immediately.
+
+</TopicSection>
+
+<TopicSection id="m07-p2-sec-h" letter="H" title="Best Practices">
+
+- Always start stored procedures using explicit transactions with `SET NOCOUNT ON; SET XACT_ABORT ON;` and `IF XACT_STATE() <> 0 ROLLBACK TRANSACTION;` in `CATCH`.
+- Enable `READ_COMMITTED_SNAPSHOT ON` for modern OLTP web applications to eliminate reader/writer `S`/`X` blocking safely.
+- Use `WITH (UPDLOCK, ROWLOCK)` when reading a row that the same transaction intends to update.
+- Batch large `DELETE`/`UPDATE` jobs into chunks of **2,000–4,000 rows** per transaction to stay below SQL Server's ~5,000-lock escalation threshold.
+- Handle both **Error `1205`** (deadlock) and **Error `3960`** (`SNAPSHOT` update conflict) with bounded retry + jitter in application code.
+
+</TopicSection>
+
+<TopicSection id="m07-p2-sec-i" letter="I" title="Performance & Scalability">
+
+- **`tempdb` Version Store Sizing under RCSI / SNAPSHOT:** Every `UPDATE`/`DELETE` generates a 14-byte version pointer on the row and stores old row versions in `tempdb` (or the local database's Persistent Version Store when **ADR** is enabled in SQL Server 2019+). Keep transactions short so version cleanup runs promptly.
+- **Preventing Lock Escalation on Partitioned Tables:** Setting `ALTER TABLE dbo.Events SET (LOCK_ESCALATION = AUTO)` escalates locks to the **partition (`HOBT`)** level instead of the entire table, isolating batch deletes in one partition from reads in active partitions.
+
+</TopicSection>
+
+<TopicSection id="m07-p2-sec-j" letter="J" title="Security Considerations">
+
+- **Lock-DoS & Long-Running Queries:** Unbounded ad-hoc transactions or `SET LOCK_TIMEOUT -1` (infinite wait) allow a single blocked session to pile up `Sch-S`/`LCK_M_*` waits behind an `ALTER TABLE` (`Sch-M`). Configure explicit `SET LOCK_TIMEOUT` on migrations and `QUERY_GOVERNOR_COST_LIMIT` / Resource Governor caps where appropriate.
+- **Audit Deadlock & Blocking Telemetry Safely:** Avoid logging raw sensitive parameter values when capturing `system_health` deadlock XML; restrict `VIEW SERVER STATE` permissions (`sys.dm_tran_locks`, `sys.dm_exec_requests`) to DBA and observability roles.
+
+</TopicSection>
+
+<TopicSection id="m07-p2-sec-k" letter="K" title="Comparisons & Decision Tables">
+
+#### Table K.1 — SQL Server Isolation Levels
+
+| Isolation Level | Mechanism | Dirty Read | Non-Repeatable | Phantom | Notes |
+| --- | --- | --- | --- | --- | --- |
+| `READ UNCOMMITTED` (`NOLOCK`) | No `S` locks | ✅ Possible | ✅ Possible | ✅ Possible | Can read torn/duplicate rows on splits |
+| `READ COMMITTED` (Default) | Short `S` locks | ❌ | ✅ Possible | ✅ Possible | Readers block writers |
+| `READ COMMITTED` (`RCSI`) | Statement row versions | ❌ | ✅ Possible | ✅ Possible | Non-blocking reads via `tempdb`/PVS |
+| `REPEATABLE READ` | `S` locks held to commit | ❌ | ❌ | ✅ Possible | High risk of conversion deadlocks |
+| `SERIALIZABLE` | Key-range locks (`RangeS-S`) | ❌ | ❌ | ❌ | Highest blocking; lowest concurrency |
+| `SNAPSHOT` | Transaction row versions | ❌ | ❌ | ❌ | Raises Error `3960` on write-write conflict |
+
+#### Table K.2 — Core SQL Server Lock Modes
+
+| Mode | Full Name | Compatible With | Typical Usage |
+| --- | --- | --- | --- |
+| `S` | Shared | `S`, `U`, `IS` | `SELECT` under pessimistic isolation |
+| `U` | Update | `S`, `IS` | `SELECT ... WITH (UPDLOCK)` before `UPDATE` |
+| `X` | Exclusive | None | `INSERT`, `UPDATE`, `DELETE` |
+| `IS` / `IX` | Intent Shared / Exclusive | `IS`/`IX` (`IX` conflicts with `S`/`U`) | Table/Page parent intent markers |
+| `Sch-S` / `Sch-M` | Schema Stability / Modification | `Sch-S` with `Sch-S`; `Sch-M` exclusive | Query execution (`Sch-S`) vs. DDL (`Sch-M`) |
+
+#### Table K.3 — Concurrency Error Codes & Remedies
+
+| Error | Cause | Automatic Rollback? | Recommended Application Action |
+| --- | --- | --- | --- |
+| **Error `1205`** | Deadlock victim chosen by Lock Monitor | ✅ Yes | Retry transaction with exponential backoff + jitter |
+| **Error `3960`** | `SNAPSHOT` optimistic write-write conflict | ✅ Yes | Re-read latest committed row and retry |
+| **Error `1222`** | `SET LOCK_TIMEOUT` exceeded | ❌ No (check `XACT_STATE`) | Roll back if needed, log blocker, and retry |
+
+</TopicSection>
+
+<TopicSection id="m07-p2-sec-l" letter="L" title="Tips to Remember (Mnemonics & Mental Models)">
+
+- **"`XACT_ABORT ON` + `XACT_STATE()` = Safe T-SQL Transactions":** Never trust implicit rollback on T-SQL errors without `XACT_ABORT ON`.
+- **"`U` Stands for Anti-Conversion-Deadlock":** `U` (`UPDLOCK`) lets `S` readers pass, blocks other `U`/`X` writers, and prevents `S → X` deadlocks.
+- **"`5,000` Locks = Escalation Cliff":** Batch bulk DML in 2,000–4,000 row chunks so SQL Server never locks the whole table.
+- **"`RCSI` Beats `NOLOCK` Every Time":** Get non-blocking reads without dirty reads or page-split corruption.
+
+</TopicSection>
+
+<TopicSection id="m07-p2-sec-mn" letter="M/N" title="Interview Questions & Detailed Answers">
+
+<InterviewSection lessonId="m07-p2" />
+
+</TopicSection>
+
+<TopicSection id="m07-p2-sec-o" letter="O" title="Practical Exercises">
+
+#### Exercise 1: SQL Server Deadlock Victim & Retry Planner (`resolveMssqlDeadlock`)
+
+<ExerciseCard
+  title="Exercise 1: SQL Server Deadlock Victim & Retry Planner (resolveMssqlDeadlock)"
+  prompt={
+    <p>
+      Implement <code>resolveMssqlDeadlock(txA, txB)</code> where each transaction has <code>spid</code>, <code>priority</code> (<code>-10..10</code>), and <code>logBytesWritten</code>. Return the chosen victim SPID (lowest priority, or lowest <code>logBytesWritten</code> on tie) and retry guidance for Error <code>1205</code>.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function resolveMssqlDeadlock(txA, txB) {
+  for (const tx of [txA, txB]) {
+    if (tx == null || typeof tx !== "object" || Array.isArray(tx)) throw new TypeError("Transaction must be an object");
+    if (!Number.isInteger(tx.spid) || tx.spid < 1) throw new TypeError("spid must be a positive integer");
+    if (!Number.isInteger(tx.priority) || tx.priority < -10 || tx.priority > 10) {
+      throw new TypeError("priority must be an integer in [-10, 10]");
+    }
+    if (!Number.isInteger(tx.logBytesWritten) || tx.logBytesWritten < 0) {
+      throw new TypeError("logBytesWritten must be >= 0");
+    }
+  }
+  if (txA.spid === txB.spid) throw new TypeError("Deadlock requires two distinct SPIDs");
+
+  let victim = txA;
+  if (txB.priority < txA.priority) {
+    victim = txB;
+  } else if (txB.priority === txA.priority && txB.logBytesWritten < txA.logBytesWritten) {
+    victim = txB;
+  }
+
+  const survivor = victim === txA ? txB : txA;
+  return {
+    victimSpid: victim.spid,
+    survivorSpid: survivor.spid,
+    errorNumber: 1205,
+    retryRecommended: true
+  };
+}
+
+console.log("Priority tie -> less log wins:", JSON.stringify(resolveMssqlDeadlock(
+  { spid: 51, priority: 0, logBytesWritten: 40960 },
+  { spid: 52, priority: 0, logBytesWritten: 2048 }
+)));
+console.log("LOW priority loses:", JSON.stringify(resolveMssqlDeadlock(
+  { spid: 60, priority: -5, logBytesWritten: 500000 },
+  { spid: 61, priority: 0, logBytesWritten: 512 }
+)));
+`}
+  />
+</ExerciseCard>
+
+#### Exercise 2: SQL Server Isolation & Concurrency Advisor (`selectMssqlIsolation`)
+
+<ExerciseCard
+  title="Exercise 2: SQL Server Isolation & Concurrency Advisor (selectMssqlIsolation)"
+  prompt={
+    <p>
+      Implement <code>selectMssqlIsolation(&#123; nonBlockingReads, transactionWideSnapshot, preventPhantoms, readModifyWrite &#125;)</code> selecting the optimal SQL Server isolation/locking strategy.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function selectMssqlIsolation({ nonBlockingReads = true, transactionWideSnapshot = false, preventPhantoms = false, readModifyWrite = false } = {}) {
+  if ([nonBlockingReads, transactionWideSnapshot, preventPhantoms, readModifyWrite].some((v) => typeof v !== "boolean")) {
+    throw new TypeError("All flags must be booleans");
+  }
+
+  if (readModifyWrite) {
+    return { strategy: "READ_COMMITTED + UPDLOCK", reason: "Prevents S->X conversion deadlocks and lost updates on read-then-write." };
+  }
+  if (transactionWideSnapshot) {
+    return { strategy: "SNAPSHOT", reason: "Transaction-consistent MVCC snapshot; handles write-write conflicts via Error 3960." };
+  }
+  if (preventPhantoms) {
+    return { strategy: "SERIALIZABLE", reason: "Acquires key-range locks to block phantom inserts when strict locking is required." };
+  }
+  if (nonBlockingReads) {
+    return { strategy: "READ_COMMITTED_SNAPSHOT (RCSI)", reason: "Eliminates reader/writer blocking safely without dirty reads." };
+  }
+  return { strategy: "READ_COMMITTED (Pessimistic)", reason: "Default SQL Server pessimistic locking behavior." };
+}
+
+console.log("Web OLTP:", JSON.stringify(selectMssqlIsolation({ nonBlockingReads: true })));
+console.log("Inventory:", JSON.stringify(selectMssqlIsolation({ readModifyWrite: true })));
+console.log("Report:", JSON.stringify(selectMssqlIsolation({ transactionWideSnapshot: true })));
+`}
+  />
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m07-p2-sec-p" letter="P" title="Advanced Challenge">
+
+<Callout variant="warning" title="Production Incident: Conversion Deadlocks & Lock Escalation Storm">
+  <p>
+    During peak checkout, two transactions read the same inventory row before updating it without <code>UPDLOCK</code>, triggering Error <code>1205</code> deadlocks, while a nightly 50,000-row cleanup escalates to a table <code>X</code> lock and blocks all traffic.
+  </p>
+</Callout>
+
+<ExerciseCard
+  title="Challenge: Conversion Deadlock vs. UPDLOCK Simulator (simulateUpdateLockFlow)"
+  prompt={
+    <p>
+      Implement <code>simulateUpdateLockFlow(&#123; useUpdlock &#125;)</code> demonstrating how two concurrent read-then-write sessions deadlock (<code>deadlock1205: true</code>) when acquiring <code>S</code> locks before <code>X</code> under <code>REPEATABLE READ</code>, versus serializing cleanly when using <code>UPDLOCK</code>.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function simulateUpdateLockFlow({ useUpdlock }) {
+  if (typeof useUpdlock !== "boolean") throw new TypeError("useUpdlock must be a boolean");
+
+  if (!useUpdlock) {
+    return {
+      sessionAInitialLock: "S",
+      sessionBInitialLock: "S",
+      conversionStep: "A requests X (blocked by B's S); B requests X (blocked by A's S)",
+      deadlock1205: true,
+      outcome: "Lock Monitor rolls back lighter SPID with Error 1205"
+    };
+  }
+
+  return {
+    sessionAInitialLock: "U",
+    sessionBInitialLock: "U (waits on A's U)",
+    conversionStep: "A converts U -> X and commits; then B acquires U -> X and commits",
+    deadlock1205: false,
+    outcome: "Both transactions serialize cleanly with zero deadlocks"
+  };
+}
+
+console.log("Without UPDLOCK:", JSON.stringify(simulateUpdateLockFlow({ useUpdlock: false })));
+console.log("With UPDLOCK:", JSON.stringify(simulateUpdateLockFlow({ useUpdlock: true })));
+`}
+  />
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m07-p2-sec-q" letter="Q" title="Summary & Key Takeaways">
+
+<DiagramCard title="Figure 7.4 — Pessimistic Locking vs. Row Versioning (RCSI / SNAPSHOT)">
+<svg viewBox="0 0 820 190" xmlns="http://www.w3.org/2000/svg" aria-label="Comparison of SQL Server Pessimistic READ COMMITTED vs RCSI and SNAPSHOT row versioning in tempdb">
+  <defs>
+    <style>{`
+      .m74-lbl { font: 600 11px system-ui, sans-serif; fill: var(--token-text-primary); }
+      .m74-sub { font: 400 9.5px system-ui, sans-serif; fill: var(--token-text-secondary); }
+      .m74-hdr { font: 700 10px system-ui, sans-serif; fill: var(--token-text-inverse); }
+      .m74-box { rx: 6; ry: 6; }
+    `}</style>
+    <marker id="arr74" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="var(--token-brand-default)" />
+    </marker>
+  </defs>
+
+  <rect class="m74-box" x="6" y="8" width="256" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
+  <rect x="6" y="8" width="256" height="22" rx="6" ry="6" fill="var(--token-error-muted)" />
+  <text x="134" y="22" text-anchor="middle" class="m74-hdr">Pessimistic READ COMMITTED</text>
+  <rect class="m74-box" x="18" y="40" width="232" height="54" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="134" y="57" text-anchor="middle" class="m74-lbl">Writer Holds X Lock</text>
+  <text x="134" y="71" text-anchor="middle" class="m74-sub">Reader requests S lock → BLOCKED</text>
+  <text x="134" y="84" text-anchor="middle" class="m74-sub">LCK_M_S wait until writer commits</text>
+  <rect class="m74-box" x="18" y="104" width="232" height="68" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="134" y="121" text-anchor="middle" class="m74-lbl">Avoid NOLOCK!</text>
+  <text x="134" y="136" text-anchor="middle" class="m74-sub">NOLOCK skips S locks but risks</text>
+  <text x="134" y="150" text-anchor="middle" class="m74-sub">dirty reads &amp; missing/duplicate rows</text>
+
+  <rect class="m74-box" x="276" y="8" width="268" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
+  <rect x="276" y="8" width="268" height="22" rx="6" ry="6" fill="var(--token-success-muted)" />
+  <text x="410" y="22" text-anchor="middle" class="m74-hdr">Row Versioning: RCSI &amp; SNAPSHOT</text>
+  <rect class="m74-box" x="288" y="40" width="244" height="54" fill="var(--token-surface-raised)" stroke="var(--token-success-default)" stroke-width="1.2" />
+  <text x="410" y="57" text-anchor="middle" class="m74-lbl">tempdb / ADR Version Store</text>
+  <text x="410" y="71" text-anchor="middle" class="m74-sub">Reader reads prior committed version</text>
+  <text x="410" y="84" text-anchor="middle" class="m74-sub">0 reader/writer blocking!</text>
+  <rect class="m74-box" x="288" y="104" width="244" height="68" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="410" y="121" text-anchor="middle" class="m74-lbl">RCSI vs. SNAPSHOT</text>
+  <text x="410" y="136" text-anchor="middle" class="m74-sub">RCSI: statement-level snapshot</text>
+  <text x="410" y="150" text-anchor="middle" class="m74-sub">SNAPSHOT: txn-level (Error 3960)</text>
+
+  <rect class="m74-box" x="558" y="8" width="256" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
+  <rect x="558" y="8" width="256" height="22" rx="6" ry="6" fill="var(--token-brand-muted)" />
+  <text x="686" y="22" text-anchor="middle" class="m74-hdr">Safe T-SQL Transaction Checklist</text>
+  <rect class="m74-box" x="570" y="40" width="232" height="40" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="686" y="56" text-anchor="middle" class="m74-lbl">SET XACT_ABORT ON</text>
+  <text x="686" y="69" text-anchor="middle" class="m74-sub">Check XACT_STATE() in CATCH</text>
+  <rect class="m74-box" x="570" y="86" width="232" height="40" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="686" y="102" text-anchor="middle" class="m74-lbl">Batch &lt; 5,000 Rows</text>
+  <text x="686" y="115" text-anchor="middle" class="m74-sub">Prevent table lock escalation</text>
+  <rect class="m74-box" x="570" y="132" width="232" height="40" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="686" y="148" text-anchor="middle" class="m74-lbl">Retry 1205 &amp; 3960</text>
+  <text x="686" y="161" text-anchor="middle" class="m74-sub">Bounded backoff + jitter</text>
+</svg>
+</DiagramCard>
+
+#### Key Takeaways
+
+- **Transactions:** Always use `SET XACT_ABORT ON` and inspect `XACT_STATE()` inside `TRY...CATCH` so runtime errors never leave partial transactions open.
+- **Locking & Escalation:** Understand `S`, `U`, `X`, `IS`/`IX`, and `Sch-S`/`Sch-M`, and batch bulk DML under ~5,000 rows per transaction to avoid table lock escalation.
+- **Isolation Levels:** Prefer `READ_COMMITTED_SNAPSHOT ON` (RCSI) over `NOLOCK` to eliminate reader/writer blocking safely; handle Error `3960` under `SNAPSHOT`.
+- **Deadlocks:** Prevent conversion deadlocks with `WITH (UPDLOCK)`, keep transactions short, and retry Error `1205` with exponential backoff + jitter.
+
+</TopicSection>

@@ -53,6 +53,8 @@ import M06P2Mdx from "./modules/06-mysql/m06-p2.mdx";
 import m06p2Raw from "./modules/06-mysql/m06-p2.mdx?raw";
 import M07P1Mdx from "./modules/07-mssql/m07-p1.mdx";
 import m07p1Raw from "./modules/07-mssql/m07-p1.mdx?raw";
+import M07P2Mdx from "./modules/07-mssql/m07-p2.mdx";
+import m07p2Raw from "./modules/07-mssql/m07-p2.mdx?raw";
 import { m01p1Questions } from "./interviews/m01-p1.questions";
 import { m01p2Questions } from "./interviews/m01-p2.questions";
 import { m01p3Questions } from "./interviews/m01-p3.questions";
@@ -76,6 +78,7 @@ import { m05p4Questions } from "./interviews/m05-p4.questions";
 import { m06p1Questions } from "./interviews/m06-p1.questions";
 import { m06p2Questions } from "./interviews/m06-p2.questions";
 import { m07p1Questions } from "./interviews/m07-p1.questions";
+import { m07p2Questions } from "./interviews/m07-p2.questions";
 import { SYLLABUS_MODULES } from "./syllabus";
 
 export interface HandbookCatalog {
@@ -238,11 +241,11 @@ const modules: ModuleRecord[] = [
     number: 7,
     title: "Microsoft SQL Server (MSSQL)",
     category: "databases",
-    partSummary: "Parts 1–3 of 3 (Part 1 Complete)",
+    partSummary: "Parts 1–3 of 3 (Parts 1–2 Complete)",
     scopeSummary:
-      "Scope (Parts 1–3): Microsoft SQL Server — Architecture, SQLOS, 8 KB Pages, 64 KB Extents, Clustered/Non-Clustered/Heap Tables, T-SQL Objects, Transactions, Locking, Execution Plans & Tuning",
-    lead: "Master Microsoft SQL Server internals: SQLOS, 8 KB pages, 64 KB extents, Heap vs. Clustered vs. INCLUDE indexes, T-SQL objects (iTVFs, Indexed Views, #Temp vs @Table, CTEs, Window functions), transactions, and tuning.",
-    lessonIds: ["m07-p1"]
+      "Scope (Parts 1–3): Microsoft SQL Server — Architecture, SQLOS, 8 KB Pages, 64 KB Extents, Clustered/Non-Clustered/Heap Tables, T-SQL Objects, Transactions, Locking, Isolation Levels, Deadlocks & Tuning",
+    lead: "Master Microsoft SQL Server internals: SQLOS, 8 KB pages, 64 KB extents, Heap vs. Clustered vs. INCLUDE indexes, T-SQL objects, XACT_ABORT, lock escalation, RCSI/SNAPSHOT row versioning, and deadlocks.",
+    lessonIds: ["m07-p1", "m07-p2"]
   }
 ];
 
@@ -1579,8 +1582,65 @@ const lessons: LessonRecord[] = [
       }
     ],
     prevLessonId: "m06-p2",
-    nextLessonId: null,
+    nextLessonId: "m07-p2",
     Content: M07P1Mdx
+  },
+  {
+    id: "m07-p2",
+    moduleId: "module-7",
+    moduleNumber: 7,
+    moduleTitle: "Microsoft SQL Server (MSSQL)",
+    partLabel: "Lesson M07-P2",
+    title: "Part 2: Transactions, Locking, Isolation Levels, RCSI & Deadlocks",
+    category: "databases",
+    duration: "75 min (30m theory · 25m practice · 20m review)",
+    objectives: [
+      "Write atomic T-SQL transactions with `SET XACT_ABORT ON`, `TRY...CATCH`, and `XACT_STATE()` checks.",
+      "Explain SQL Server's lock hierarchy (`KEY`/`RID` → `PAGE` → `OBJECT`), `U` (`UPDLOCK`) locks, `Sch-S`/`Sch-M`, and ~5,000-lock escalation.",
+      "Compare pessimistic `READ COMMITTED` vs. `READ_COMMITTED_SNAPSHOT` (RCSI) and `SNAPSHOT` row versioning (Error `3960`).",
+      "Diagnose and prevent Error `1205` deadlocks using `UPDLOCK`, consistent lock order, `DEADLOCK_PRIORITY`, and `system_health`."
+    ],
+    sections: [
+      { id: "m07-p2-objectives", title: "Learning Objectives" },
+      { id: "m07-p2-sec-a", letter: "A", title: "Topic Introduction" },
+      { id: "m07-p2-sec-b", letter: "B", title: "Fundamentals (Simple Mental Models)" },
+      { id: "m07-p2-sec-c", letter: "C", title: "Internal Working & Architecture" },
+      { id: "m07-p2-sec-d", letter: "D", title: "Practical Examples (Interactive)" },
+      { id: "m07-p2-sec-e", letter: "E", title: "Step-by-Step Walkthrough" },
+      { id: "m07-p2-sec-f", letter: "F", title: "Real-World Use Cases" },
+      { id: "m07-p2-sec-g", letter: "G", title: "Common Mistakes" },
+      { id: "m07-p2-sec-h", letter: "H", title: "Best Practices" },
+      { id: "m07-p2-sec-i", letter: "I", title: "Performance & Scalability" },
+      { id: "m07-p2-sec-j", letter: "J", title: "Security Considerations" },
+      { id: "m07-p2-sec-k", letter: "K", title: "Comparisons & Decision Tables" },
+      { id: "m07-p2-sec-l", letter: "L", title: "Tips to Remember (Mnemonics & Mental Models)" },
+      { id: "m07-p2-sec-mn", letter: "M/N", title: "Interview Questions & Detailed Answers" },
+      { id: "m07-p2-sec-o", letter: "O", title: "Practical Exercises" },
+      { id: "m07-p2-sec-p", letter: "P", title: "Advanced Challenge" },
+      { id: "m07-p2-sec-q", letter: "Q", title: "Summary & Key Takeaways" },
+      { id: "m07-p2-mastery", title: "Mastery Assessment" }
+    ],
+    masteryItems: [
+      {
+        id: "m07-p2-m1",
+        label: "I can write safe T-SQL transactions with SET XACT_ABORT ON and XACT_STATE() in TRY...CATCH."
+      },
+      {
+        id: "m07-p2-m2",
+        label: "I can explain SQL Server lock modes (S, U, X, IS, IX, Sch-M) and prevent 5,000-lock escalation."
+      },
+      {
+        id: "m07-p2-m3",
+        label: "I can choose between RCSI, SNAPSHOT, and pessimistic isolation without resorting to NOLOCK."
+      },
+      {
+        id: "m07-p2-m4",
+        label: "I completed all M07-P2 exercises and can diagnose/prevent Error 1205 conversion deadlocks."
+      }
+    ],
+    prevLessonId: "m07-p1",
+    nextLessonId: null,
+    Content: M07P2Mdx
   }
 ];
 
@@ -1607,7 +1667,8 @@ const questionsByLesson: Record<string, InterviewQuestion[]> = {
   "m05-p4": m05p4Questions,
   "m06-p1": m06p1Questions,
   "m06-p2": m06p2Questions,
-  "m07-p1": m07p1Questions
+  "m07-p1": m07p1Questions,
+  "m07-p2": m07p2Questions
 };
 
 const allQuestions: InterviewQuestion[] = [
@@ -1633,7 +1694,8 @@ const allQuestions: InterviewQuestion[] = [
   ...m05p4Questions,
   ...m06p1Questions,
   ...m06p2Questions,
-  ...m07p1Questions
+  ...m07p1Questions,
+  ...m07p2Questions
 ];
 
 function mergeGlossaryEntries(...batches: GlossaryEntry[][]): GlossaryEntry[] {
@@ -1672,7 +1734,8 @@ const glossaryEntries: GlossaryEntry[] = mergeGlossaryEntries(
   extractGlossaryFromMdx(m05p4Raw, "m05-p4"),
   extractGlossaryFromMdx(m06p1Raw, "m06-p1"),
   extractGlossaryFromMdx(m06p2Raw, "m06-p2"),
-  extractGlossaryFromMdx(m07p1Raw, "m07-p1")
+  extractGlossaryFromMdx(m07p1Raw, "m07-p1"),
+  extractGlossaryFromMdx(m07p2Raw, "m07-p2")
 );
 
 function buildSearchRecords(): SearchRecord[] {
@@ -1714,6 +1777,7 @@ function buildSearchRecords(): SearchRecord[] {
   records.push(...extractSearchRecordsFromMdx(m06p1Raw, "m06-p1", lessons[20].title, 6));
   records.push(...extractSearchRecordsFromMdx(m06p2Raw, "m06-p2", lessons[21].title, 6));
   records.push(...extractSearchRecordsFromMdx(m07p1Raw, "m07-p1", lessons[22].title, 7));
+  records.push(...extractSearchRecordsFromMdx(m07p2Raw, "m07-p2", lessons[23].title, 7));
 
   for (const mod of SYLLABUS_MODULES) {
     for (const topic of mod.topics) {

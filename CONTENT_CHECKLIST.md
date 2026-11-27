@@ -373,10 +373,10 @@ Split into 3 parts:
 - [x] Functions
 - [x] Views
 - [x] Triggers
-- [ ] Transactions
-- [ ] Locking
-- [ ] Isolation levels
-- [ ] Deadlocks
+- [x] Transactions
+- [x] Locking
+- [x] Isolation levels
+- [x] Deadlocks
 - [ ] Query execution plans
 - [ ] Query optimization
 - [ ] Statistics

@@ -420,3 +420,14 @@ For each review, add:
   - SQL Server Clustered, Non-Clustered (`INCLUDE`) & Heap Index Design: `https://learn.microsoft.com/en-us/sql/relational-databases/sql-server-index-design-guide` and `https://learn.microsoft.com/en-us/sql/relational-databases/indexes/heaps-tables-without-clustered-indexes`
   - T-SQL Stored Procedures, Inline TVFs, Indexed Views (`SCHEMABINDING`), DML Triggers (`inserted`/`deleted`), `#Temp` vs. `@Table` (Deferred Compilation), CTEs & Window Functions (`ROWS` vs. `RANGE`): `https://learn.microsoft.com/en-us/sql/t-sql/statements/create-view-transact-sql`, `https://learn.microsoft.com/en-us/sql/relational-databases/user-defined-functions/scalar-udf-inlining`, and `https://learn.microsoft.com/en-us/sql/t-sql/queries/select-over-clause-transact-sql`
 - **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m07-p1.mdx`, `m07-p1.questions.ts`, and `m07-p1.coverage.ts`.
+
+---
+
+### Module 07 Part 2 (M07-P2) Technical Review Log — 2026-11-27
+
+- **Scope:** Transactions, Locking, Isolation levels, Deadlocks.
+- **Official Documentation Verified (`M3`):**
+  - SQL Server Transactions, `SET XACT_ABORT`, `XACT_STATE()` & Accelerated Database Recovery (ADR): `https://learn.microsoft.com/en-us/sql/t-sql/statements/set-xact-abort-transact-sql` and `https://learn.microsoft.com/en-us/sql/relational-databases/accelerated-database-recovery-concepts`
+  - SQL Server Transaction Locking, Row Versioning (`RCSI` / `SNAPSHOT`), & Lock Escalation: `https://learn.microsoft.com/en-us/sql/relational-databases/sql-server-transaction-locking-and-row-versioning-guide`
+  - SQL Server Deadlocks Guide (`Error 1205`, `DEADLOCK_PRIORITY`, `system_health`): `https://learn.microsoft.com/en-us/sql/relational-databases/sql-server-deadlocks-guide`
+- **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m07-p2.mdx`, `m07-p2.questions.ts`, and `m07-p2.coverage.ts`.
