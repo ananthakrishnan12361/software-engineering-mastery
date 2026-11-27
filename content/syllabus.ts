@@ -927,22 +927,86 @@ export const SYLLABUS_MODULES: SyllabusModule[] = [
       lessonId: "m04-p2",
       anchorId: "m04-p2-topic-bcnf-overview"
     },
-    "Transactions",
-    "ACID",
-    "Isolation levels",
-    "Dirty reads",
-    "Non-repeatable reads",
-    "Phantom reads",
-    "Locks",
-    "Deadlocks",
-    "MVCC",
-    "Concurrency",
-    "Database consistency",
-    "Data integrity",
-    "Schema migrations",
-    "Connection pooling",
-    "Database backups",
-    "Recovery"
+    {
+      title: "Transactions",
+      lessonId: "m04-p3",
+      anchorId: "m04-p3-topic-transactions"
+    },
+    {
+      title: "ACID",
+      lessonId: "m04-p3",
+      anchorId: "m04-p3-topic-acid"
+    },
+    {
+      title: "Isolation levels",
+      lessonId: "m04-p3",
+      anchorId: "m04-p3-topic-isolation-levels"
+    },
+    {
+      title: "Dirty reads",
+      lessonId: "m04-p3",
+      anchorId: "m04-p3-topic-dirty-reads"
+    },
+    {
+      title: "Non-repeatable reads",
+      lessonId: "m04-p3",
+      anchorId: "m04-p3-topic-non-repeatable-reads"
+    },
+    {
+      title: "Phantom reads",
+      lessonId: "m04-p3",
+      anchorId: "m04-p3-topic-phantom-reads"
+    },
+    {
+      title: "Locks",
+      lessonId: "m04-p3",
+      anchorId: "m04-p3-topic-locks"
+    },
+    {
+      title: "Deadlocks",
+      lessonId: "m04-p3",
+      anchorId: "m04-p3-topic-deadlocks"
+    },
+    {
+      title: "MVCC",
+      lessonId: "m04-p3",
+      anchorId: "m04-p3-topic-mvcc"
+    },
+    {
+      title: "Concurrency",
+      lessonId: "m04-p3",
+      anchorId: "m04-p3-topic-concurrency"
+    },
+    {
+      title: "Database consistency",
+      lessonId: "m04-p3",
+      anchorId: "m04-p3-topic-database-consistency"
+    },
+    {
+      title: "Data integrity",
+      lessonId: "m04-p3",
+      anchorId: "m04-p3-topic-data-integrity"
+    },
+    {
+      title: "Schema migrations",
+      lessonId: "m04-p3",
+      anchorId: "m04-p3-topic-schema-migrations"
+    },
+    {
+      title: "Connection pooling",
+      lessonId: "m04-p3",
+      anchorId: "m04-p3-topic-connection-pooling"
+    },
+    {
+      title: "Database backups",
+      lessonId: "m04-p3",
+      anchorId: "m04-p3-topic-database-backups"
+    },
+    {
+      title: "Recovery",
+      lessonId: "m04-p3",
+      anchorId: "m04-p3-topic-recovery"
+    }
   ]),
 
   defineModule(5, "PostgreSQL", "databases", [

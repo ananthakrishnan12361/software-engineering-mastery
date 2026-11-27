@@ -1,0 +1,687 @@
+<Callout variant="info" title="Topics Covered in Part 3 (M04-P3)">
+  <p>
+    This final part of Module 4 covers 16 production database topics: <strong>Transactions</strong>, <strong>ACID</strong>, <strong>Isolation levels</strong>, <strong>Dirty reads</strong>, <strong>Non-repeatable reads</strong>, <strong>Phantom reads</strong>, <strong>Locks</strong>, <strong>Deadlocks</strong>, <strong>MVCC</strong>, <strong>Concurrency</strong>, <strong>Database consistency</strong>, <strong>Data integrity</strong>, <strong>Schema migrations</strong>, <strong>Connection pooling</strong>, <strong>Database backups</strong>, and <strong>Recovery</strong>.
+  </p>
+</Callout>
+
+<TopicSection id="m04-p3-sec-a" letter="A" title="Topic Introduction">
+
+#### What is this?
+
+**Transactions, concurrency control, and recovery** are the runtime mechanisms that keep a relational database accurate under simultaneous traffic and resilient across crashes. They encompass **ACID** guarantees, **isolation levels** (`READ COMMITTED`, `REPEATABLE READ`, `SERIALIZABLE`), **MVCC** snapshot visibility, row/table **locks**, **deadlock** handling, **zero-downtime schema migrations**, **connection pooling**, and **WAL-backed backups & Point-in-Time Recovery (PITR)**.
+
+#### Why does it exist & what problem does it solve?
+
+A normalized schema protects data shape, but real production traffic runs hundreds of concurrent queries every second and crashes unexpectedly on power loss, OOM kills, or bad deployments. Without transactions, isolation, and WAL-backed recovery, two concurrent withdrawals can double-spend the same balance, an unguarded `ALTER TABLE` can lock production reads for 20 minutes, or a disk crash can lose committed customer orders.
+
+#### Where is it used in real-world software?
+
+Every production OLTP system—banking ledgers, e-commerce checkouts, SaaS billing pipelines, and job queues—relies on these mechanisms daily to guarantee zero lost updates, bounded connection pools, non-blocking schema rollouts, and second-level disaster recovery.
+
+</TopicSection>
+
+<TopicSection id="m04-p3-sec-b" letter="B" title="Fundamentals (Simple Mental Models)">
+
+<TopicAnchor id="m04-p3-topic-transactions" />
+
+#### 1. Transactions: All-or-Nothing Units of Work
+
+A <GlossaryTerm definition="A logical unit of database work that either commits completely or rolls back cleanly so partial state never becomes visible.">transaction</GlossaryTerm> groups one or more SQL statements between `BEGIN` and `COMMIT` (or `ROLLBACK`) into a single indivisible unit. Think of transferring \$100 from Alice to Bob: debiting Alice and crediting Bob must both succeed or both fail.
+
+If the server crashes or a `CHECK` constraint fails after debiting Alice, `ROLLBACK` undoes the debit automatically. Partial writes are never exposed to other sessions.
+
+<TopicAnchor id="m04-p3-topic-acid" />
+
+#### 2. ACID: Atomicity, Consistency, Isolation, Durability
+
+<GlossaryTerm definition="The four transactional guarantees: Atomicity (all-or-nothing), Consistency (valid invariants), Isolation (concurrent safety), and Durability (survives crashes).">ACID</GlossaryTerm> defines the contract a transactional database promises application code:
+
+- **Atomicity:** Every operation in the transaction succeeds together or rolls back completely.
+- **Consistency:** Every committed transaction moves the database from one valid state (satisfying `PRIMARY KEY`, `FOREIGN KEY`, `UNIQUE`, and `CHECK` rules) to another valid state.
+- **Isolation:** Concurrent transactions do not corrupt each other's intermediate state—controlled by the chosen isolation level.
+- **Durability:** Once `COMMIT` returns success, the change is flushed (`fsync`) to the **Write-Ahead Log (WAL)** so a crash immediately afterward cannot erase it.
+
+<TopicAnchor id="m04-p3-topic-isolation-levels" />
+
+#### 3. Isolation Levels: Trading Concurrency Against Anomalies
+
+<GlossaryTerm definition="SQL standard settings (Read Uncommitted, Read Committed, Repeatable Read, Serializable) that trade concurrency throughput for stronger protection against read anomalies.">Isolation levels</GlossaryTerm> specify which concurrent read anomalies a transaction is shielded from. Higher isolation prevents subtler bugs at the cost of extra locking, serialization aborts, or retry overhead.
+
+In PostgreSQL, the default is `READ COMMITTED`, while `REPEATABLE READ` provides snapshot isolation over the entire transaction and `SERIALIZABLE` adds Serializable Snapshot Isolation (SSI) to block write skew.
+
+<TopicAnchor id="m04-p3-topic-dirty-reads" />
+
+#### 4. Dirty Reads: Reading Uncommitted State
+
+A **dirty read** happens when Transaction B reads a row modified by Transaction A *before* Transaction A commits. If Transaction A later rolls back, Transaction B made business decisions (like shipping an order or approving a refund) based on data that never legally existed.
+
+PostgreSQL disallows dirty reads even at `READ UNCOMMITTED` (mapping it internally to `READ COMMITTED`), whereas engines such as MySQL InnoDB permit dirty reads when explicitly configured to `READ UNCOMMITTED`.
+
+<TopicAnchor id="m04-p3-topic-non-repeatable-reads" />
+
+#### 5. Non-Repeatable Reads: Same Row Changing Mid-Transaction
+
+A **non-repeatable read** occurs when Transaction A reads a row (`balance = 500`), Transaction B commits an `UPDATE` (`balance = 300`), and Transaction A re-reads the *same row* inside the same transaction and sees `300`.
+
+Under `READ COMMITTED`, each statement takes a fresh snapshot, so non-repeatable reads are possible. Under `REPEATABLE READ`, the transaction freezes one snapshot at its first query, eliminating non-repeatable reads.
+
+<TopicAnchor id="m04-p3-topic-phantom-reads" />
+
+#### 6. Phantom Reads: Range Queries Seeing Newly Committed Rows
+
+A **phantom read** happens when Transaction A runs a range query (`WHERE status = 'pending'`), Transaction B inserts and commits a new `'pending'` row, and Transaction A re-runs the range query and sees the new "phantom" row.
+
+Standard SQL permits phantoms under `REPEATABLE READ` (requiring `SERIALIZABLE` to block them), though PostgreSQL's `REPEATABLE READ` snapshot isolation already blocks phantoms in PostgreSQL while still allowing serialization anomalies like write skew unless `SERIALIZABLE` is enabled.
+
+<TopicAnchor id="m04-p3-topic-locks" />
+
+#### 7. Locks: Shared, Exclusive, Row-Level & Table-Level Coordination
+
+<GlossaryTerm definition="Synchronization primitives (shared read locks, exclusive row/table locks) used to serialize conflicting writes or schema changes.">Locks</GlossaryTerm> coordinate concurrent access when two transactions touch the same row or table. **Shared (`S`) locks** allow multiple readers concurrently, whereas **Exclusive (`X`) locks** block other writers (or `FOR UPDATE` readers) until `COMMIT` or `ROLLBACK`.
+
+Row-level locks (`SELECT ... FOR UPDATE`, `FOR UPDATE SKIP LOCKED`) maximize concurrency on OLTP tables, whereas DDL statements (`ALTER TABLE`) often request heavy `ACCESS EXCLUSIVE` table locks that queue behind long-running queries.
+
+<TopicAnchor id="m04-p3-topic-deadlocks" />
+
+#### 8. Deadlocks: Circular Wait Cycles & Victim Rollback
+
+A **deadlock** occurs when Transaction A holds Lock 1 and waits for Lock 2, while Transaction B holds Lock 2 and waits for Lock 1. Neither can ever proceed on its own.
+
+Databases run periodic cycle detection on the wait-for graph, abort one **victim** transaction with SQLSTATE `40P01` (`deadlock_detected`), and let the other finish. Applications prevent deadlocks by acquiring locks in a **canonical global order** (e.g., lowest `account_id` first) and retrying transient `40P01` errors.
+
+<TopicAnchor id="m04-p3-topic-mvcc" />
+
+#### 9. MVCC (Multi-Version Concurrency Control): Readers Never Block Writers
+
+<GlossaryTerm definition="Multi-Version Concurrency Control: storing multiple row versions stamped with creator/deleter transaction IDs so readers see a consistent snapshot without blocking writers.">MVCC</GlossaryTerm> solves the classic reader-writer bottleneck: instead of overwriting a row in place and blocking readers, an `UPDATE` writes a **new row version** stamped with `xmin` (creator transaction ID) and marks the old version with `xmax` (expiry transaction ID).
+
+Because readers inspect only versions visible to their snapshot (`xmin <= snapshot < xmax`), **readers never block writers and writers never block readers**. Dead old tuples are reclaimed later by `VACUUM`.
+
+<TopicAnchor id="m04-p3-topic-concurrency" />
+
+#### 10. Concurrency: Optimistic vs. Pessimistic Control
+
+**Pessimistic concurrency** acquires row locks upfront (`SELECT ... FOR UPDATE`) assuming contention is likely, guaranteeing the winner proceeds without aborting at commit. **Optimistic concurrency control (OCC)** reads without locking and checks a `version` column at `UPDATE` time (`WHERE id = $1 AND version = $2`), retrying if another writer bumped the version first.
+
+Pessimistic locking fits high-contention inventory/ledger rows; OCC fits low-contention web forms and APIs where holding locks across user think-time would stall the pool.
+
+<TopicAnchor id="m04-p3-topic-database-consistency" />
+
+#### 11. Database Consistency: Invariants, Constraints & Valid State Transitions
+
+**Database consistency** means domain invariants hold across every committed state: e.g., `sum(debits) == sum(credits)`, no orphan order items exist, and `balance_cents >= 0` is never violated. Unlike eventual consistency in distributed caches, transactional consistency guarantees that readers never observe half-applied state transitions.
+
+Relying only on application `if` checks races under concurrent requests because two workers can both read `balance = 100` before either writes. Database `CHECK` constraints, `UNIQUE` indexes, `FOREIGN KEY`s, and atomic conditional `UPDATE`s (`WHERE balance_cents >= $amount`) enforce invariants safely at commit time.
+
+<TopicAnchor id="m04-p3-topic-data-integrity" />
+
+#### 12. Data Integrity: Entity, Referential, Domain & Idempotency Guards
+
+**Data integrity** protects accuracy and trustworthiness across four concrete layers: **entity integrity** (non-null unique `PRIMARY KEY`), **referential integrity** (`FOREIGN KEY` preventing dangling child rows), **domain integrity** (`NOT NULL`, `CHECK`, and typed columns), and **operation integrity** (**idempotency keys**).
+
+In payment and order APIs, network timeouts cause clients to retry `POST` requests automatically. Storing a `UNIQUE (idempotency_key)` constraint inside the same ACID transaction as the balance update guarantees a retry either returns the original outcome or fails cleanly—never double-charging a customer.
+
+<TopicAnchor id="m04-p3-topic-schema-migrations" />
+
+#### 13. Schema Migrations: Zero-Downtime Expand-and-Contract
+
+Running `ALTER TABLE orders ADD COLUMN ... DEFAULT ...` or `CREATE INDEX` naively on a 100M-row table can acquire `ACCESS EXCLUSIVE` or write locks and cause an outage. Zero-downtime migrations use **Expand-and-Contract**:
+
+1. **Expand:** Add nullable columns, `CREATE INDEX CONCURRENTLY`, or add `CHECK (...) NOT VALID` (fast metadata lock) followed by `VALIDATE CONSTRAINT` (share-update lock).
+2. **Backfill & Dual-Write:** Backfill in small batches and update application code to read/write the new shape.
+3. **Contract:** Drop old columns/constraints only after old app replicas are retired.
+
+<TopicAnchor id="m04-p3-topic-connection-pooling" />
+
+#### 14. Connection Pooling: Bounding Database Processes & Queue Wait
+
+Each PostgreSQL backend connection spawns an OS process consuming roughly 5–10 MB of RAM plus lock-table and scheduling overhead. Opening 5,000 direct connections from serverless lambdas or microservice pods causes severe context-switch thrashing and out-of-memory crashes under traffic spikes.
+
+A **connection pool** (such as PgBouncer in **transaction pooling** mode or a bounded application pool) multiplexes thousands of client requests onto a small, fixed pool of live database connections (typically near `(2 * cores) + disk_spindles`) and queues bursts cleanly with strict `acquireTimeout` limits.
+
+<TopicAnchor id="m04-p3-topic-database-backups" />
+
+#### 15. Database Backups: Logical (`pg_dump`) vs. Physical Base Backups
+
+**Logical backups** (`pg_dump`) export SQL `CREATE` and `COPY` statements; they are portable across major database versions, easy to inspect, and ideal for small tables or selective restores, though slow to restore at multi-terabyte scale because every index must be rebuilt from scratch.
+
+**Physical backups** (`pg_basebackup` or block-level volume snapshots) copy raw heap and index files at disk speed. When paired with continuous archived WAL files, physical base backups enable rapid full-cluster restores and second-level Point-in-Time Recovery (PITR).
+
+<TopicAnchor id="m04-p3-topic-recovery" />
+
+#### 16. Recovery: WAL Replay, Checkpoints & Point-in-Time Recovery (PITR)
+
+Before modifying a data page in memory, the engine appends the change to the sequential **Write-Ahead Log (WAL)** on disk (`fsync`). Periodic **checkpoints** flush dirty pages to data files so crash recovery only replays WAL records after the last checkpoint.
+
+With **Point-in-Time Recovery (PITR)**, you restore a base physical backup and replay archived WAL segments up to an exact `recovery_target_time` (e.g., 2 seconds before an accidental `DELETE` without a `WHERE` clause).
+
+</TopicSection>
+
+<TopicSection id="m04-p3-sec-c" letter="C" title="Internal Working & Architecture">
+
+Under the hood, every `COMMIT` coordinates **in-memory buffer pool pages**, **MVCC tuple headers (`xmin`, `xmax`)**, **lock manager tables**, and **sequential WAL append + `fsync`**.
+
+<DiagramCard caption="Figure 4.5 — MVCC Snapshot Isolation & WAL Commit Pipeline: Readers inspect committed tuple versions without blocking writers, while COMMIT flushes WAL sequentially before acknowledging.">
+  <svg viewBox="0 0 820 190" width="100%" role="img" aria-label="MVCC snapshot isolation and WAL commit pipeline">
+    <rect x="8" y="10" width="804" height="170" rx="12" fill="var(--bg-subtle)" stroke="var(--border)" />
+    <text x="410" y="34" textAnchor="middle" fill="var(--text-primary)" fontSize="13" fontWeight="700" fontFamily="sans-serif">MVCC Snapshot Visibility &amp; Sequential WAL Durability</text>
+
+    <rect x="24" y="52" width="230" height="110" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" />
+    <text x="139" y="75" textAnchor="middle" fill="var(--accent-strong)" fontSize="12" fontWeight="700" fontFamily="sans-serif">Tx1 Reader (Snap xmax=101)</text>
+    <text x="139" y="98" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">Sees v1 (xmin=95, xmax=102)</text>
+    <text x="139" y="118" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Ignores v2 (102 &gt;= 101)</text>
+    <text x="139" y="142" textAnchor="middle" fill="var(--success)" fontSize="11" fontWeight="700" fontFamily="sans-serif">Zero read locks held</text>
+
+    <line x1="254" y1="107" x2="294" y2="107" stroke="var(--accent)" strokeWidth="2" />
+    <polygon points="294,107 284,102 284,112" fill="var(--accent)" />
+
+    <rect x="298" y="52" width="236" height="110" rx="8" fill="var(--bg-surface)" stroke="var(--border-control)" />
+    <text x="416" y="75" textAnchor="middle" fill="var(--text-primary)" fontSize="12" fontWeight="700" fontFamily="sans-serif">Heap Page Tuple Chain</text>
+    <text x="416" y="98" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">v1: bal=500 [95..102)</text>
+    <text x="416" y="118" textAnchor="middle" fill="var(--warning)" fontSize="11" fontFamily="monospace">v2: bal=300 [102..inf)</text>
+    <text x="416" y="142" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Tx2 (xid=102) appends v2</text>
+
+    <line x1="534" y1="107" x2="574" y2="107" stroke="var(--success)" strokeWidth="2" />
+    <polygon points="574,107 564,102 564,112" fill="var(--success)" />
+
+    <rect x="578" y="52" width="218" height="110" rx="8" fill="var(--success-soft)" stroke="var(--success)" />
+    <text x="687" y="75" textAnchor="middle" fill="var(--success)" fontSize="12" fontWeight="700" fontFamily="sans-serif">WAL (Sequential Append)</text>
+    <text x="687" y="98" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">LSN 901: UPDATE v1-&gt;v2</text>
+    <text x="687" y="118" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">LSN 902: COMMIT xid=102</text>
+    <text x="687" y="142" textAnchor="middle" fill="var(--success)" fontSize="11" fontWeight="700" fontFamily="sans-serif">fsync() before ACK</text>
+  </svg>
+</DiagramCard>
+
+<DiagramCard caption="Figure 4.6 — Deadlock Cycle Resolution vs. Base Backup + WAL Point-in-Time Recovery (PITR).">
+  <svg viewBox="0 0 820 190" width="100%" role="img" aria-label="Deadlock cycle detection and PITR WAL recovery">
+    <rect x="8" y="10" width="804" height="170" rx="12" fill="var(--bg-subtle)" stroke="var(--border)" />
+
+    <rect x="24" y="26" width="376" height="138" rx="10" fill="var(--warning-soft)" stroke="var(--warning)" />
+    <text x="212" y="48" textAnchor="middle" fill="var(--warning)" fontSize="12" fontWeight="700" fontFamily="sans-serif">Deadlock Wait-For Cycle (SQLSTATE 40P01)</text>
+    <rect x="44" y="66" width="120" height="44" rx="6" fill="var(--bg-surface)" stroke="var(--border-control)" />
+    <text x="104" y="85" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontWeight="700" fontFamily="sans-serif">Tx A</text>
+    <text x="104" y="101" textAnchor="middle" fill="var(--text-secondary)" fontSize="10" fontFamily="monospace">Holds R1</text>
+
+    <rect x="260" y="66" width="120" height="44" rx="6" fill="var(--bg-surface)" stroke="var(--border-control)" />
+    <text x="320" y="85" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontWeight="700" fontFamily="sans-serif">Tx B</text>
+    <text x="320" y="101" textAnchor="middle" fill="var(--text-secondary)" fontSize="10" fontFamily="monospace">Holds R2</text>
+
+    <line x1="164" y1="78" x2="256" y2="78" stroke="var(--warning)" strokeWidth="2" />
+    <polygon points="256,78 247,74 247,82" fill="var(--warning)" />
+    <text x="210" y="72" textAnchor="middle" fill="var(--warning)" fontSize="10" fontFamily="sans-serif">waits R2</text>
+
+    <line x1="260" y1="98" x2="168" y2="98" stroke="var(--warning)" strokeWidth="2" />
+    <polygon points="168,98 177,94 177,102" fill="var(--warning)" />
+    <text x="210" y="114" textAnchor="middle" fill="var(--warning)" fontSize="10" fontFamily="sans-serif">waits R1</text>
+    <text x="212" y="146" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="sans-serif">Fix: Always lock lowest ID first (R1 -&gt; R2)</text>
+
+    <rect x="420" y="26" width="376" height="138" rx="10" fill="var(--accent-soft)" stroke="var(--accent)" />
+    <text x="608" y="48" textAnchor="middle" fill="var(--accent-strong)" fontSize="12" fontWeight="700" fontFamily="sans-serif">Point-in-Time Recovery (PITR)</text>
+    <rect x="438" y="68" width="102" height="44" rx="6" fill="var(--bg-surface)" stroke="var(--border-control)" />
+    <text x="489" y="87" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontWeight="700" fontFamily="sans-serif">Base Backup</text>
+    <text x="489" y="103" textAnchor="middle" fill="var(--text-secondary)" fontSize="10" fontFamily="monospace">02:00 UTC</text>
+
+    <line x1="540" y1="90" x2="574" y2="90" stroke="var(--accent)" strokeWidth="2" />
+    <polygon points="574,90 565,86 565,94" fill="var(--accent)" />
+
+    <rect x="578" y="68" width="94" height="44" rx="6" fill="var(--bg-surface)" stroke="var(--border-control)" />
+    <text x="625" y="87" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontWeight="700" fontFamily="sans-serif">WAL Archive</text>
+    <text x="625" y="103" textAnchor="middle" fill="var(--text-secondary)" fontSize="10" fontFamily="monospace">Replay LSNs</text>
+
+    <line x1="672" y1="90" x2="700" y2="90" stroke="var(--success)" strokeWidth="2" />
+    <polygon points="700,90 691,86 691,94" fill="var(--success)" />
+
+    <rect x="704" y="68" width="76" height="44" rx="6" fill="var(--success-soft)" stroke="var(--success)" />
+    <text x="742" y="87" textAnchor="middle" fill="var(--success)" fontSize="11" fontWeight="700" fontFamily="sans-serif">Target</text>
+    <text x="742" y="103" textAnchor="middle" fill="var(--success)" fontSize="10" fontFamily="monospace">14:19:58</text>
+    <text x="608" y="146" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="sans-serif">Stops before accidental DROP/DELETE at 14:20:00</text>
+  </svg>
+</DiagramCard>
+
+</TopicSection>
+
+<TopicSection id="m04-p3-sec-d" letter="D" title="Practical Examples (Interactive)">
+
+#### Example 1: PostgreSQL Atomic Transfer & Zero-Downtime Migration (SQL)
+
+<CodeBlock
+  lang="sql"
+  code={`-- 1. Atomic transfer with canonical lock ordering (prevents deadlocks) & CHECK invariant
+BEGIN ISOLATION LEVEL REPEATABLE READ;
+
+-- Lock both accounts in deterministic ascending ID order
+SELECT id, balance_cents
+FROM accounts
+WHERE id IN (101, 205)
+ORDER BY id ASC
+FOR UPDATE;
+
+UPDATE accounts SET balance_cents = balance_cents - 5000 WHERE id = 101 AND balance_cents >= 5000;
+UPDATE accounts SET balance_cents = balance_cents + 5000 WHERE id = 205;
+
+INSERT INTO ledger_entries (from_account_id, to_account_id, amount_cents, idempotency_key)
+VALUES (101, 205, 5000, 'pay_req_9f2a1c');
+
+COMMIT;
+
+-- 2. Zero-downtime Expand-and-Contract migration
+ALTER TABLE ledger_entries ADD COLUMN IF NOT EXISTS currency CHAR(3);
+ALTER TABLE ledger_entries ADD CONSTRAINT chk_currency_len CHECK (char_length(currency) = 3) NOT VALID;
+-- Backfill rows in small batches, then validate without blocking reads/writes:
+ALTER TABLE ledger_entries VALIDATE CONSTRAINT chk_currency_len;
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_ledger_created_at ON ledger_entries (created_at);`}
+/>
+
+#### Example 2: MVCC Snapshot Isolation Simulator (`createMvccEngine`)
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// Simulates MVCC row versions (xmin/xmax), Read Committed vs Repeatable Read, and write-write conflicts
+function createMvccEngine(initialRows = {}) {
+  let nextXid = 1;
+  const committedXids = new Set([0]);
+  const versions = new Map();
+
+  for (const [key, value] of Object.entries(initialRows)) {
+    versions.set(key, [{ value, xmin: 0, xmax: Infinity }]);
+  }
+
+  function isVisible(ver, snapshot) {
+    const createdBeforeSnap = ver.xmin === snapshot.xid || snapshot.committedAtStart.has(ver.xmin);
+    if (!createdBeforeSnap) return false;
+    if (ver.xmax === Infinity) return true;
+    if (ver.xmax === snapshot.xid) return false;
+    return !snapshot.committedAtStart.has(ver.xmax);
+  }
+
+  return {
+    begin(isolation = "REPEATABLE_READ") {
+      if (isolation !== "READ_COMMITTED" && isolation !== "REPEATABLE_READ") {
+        throw new TypeError("isolation must be READ_COMMITTED or REPEATABLE_READ");
+      }
+      const xid = nextXid++;
+      const txSnapshot = { xid, committedAtStart: new Set(committedXids) };
+      const pendingWrites = new Map();
+      let closed = false;
+
+      const ensureOpen = () => {
+        if (closed) throw new Error("Transaction already closed");
+      };
+
+      return {
+        xid,
+        read(key) {
+          ensureOpen();
+          if (pendingWrites.has(key)) return pendingWrites.get(key);
+          const snap =
+            isolation === "READ_COMMITTED" ? { xid, committedAtStart: new Set(committedXids) } : txSnapshot;
+          const list = versions.get(key) || [];
+          for (let i = list.length - 1; i >= 0; i--) {
+            if (isVisible(list[i], snap)) return list[i].value;
+          }
+          return undefined;
+        },
+        write(key, value) {
+          ensureOpen();
+          pendingWrites.set(key, value);
+        },
+        commit() {
+          ensureOpen();
+          for (const [key] of pendingWrites) {
+            const list = versions.get(key) || [];
+            const latestCommitted = [...list].reverse().find((v) => committedXids.has(v.xmin) && v.xmax === Infinity);
+            if (isolation === "REPEATABLE_READ" && latestCommitted && !txSnapshot.committedAtStart.has(latestCommitted.xmin)) {
+              closed = true;
+              throw new Error("SerializationFailure: concurrent update on " + key);
+            }
+          }
+          for (const [key, value] of pendingWrites) {
+            const list = versions.get(key) || [];
+            const active = [...list].reverse().find((v) => committedXids.has(v.xmin) && v.xmax === Infinity);
+            if (active) active.xmax = xid;
+            list.push({ value, xmin: xid, xmax: Infinity });
+            versions.set(key, list);
+          }
+          committedXids.add(xid);
+          closed = true;
+          return { committedXid: xid };
+        },
+        rollback() {
+          ensureOpen();
+          pendingWrites.clear();
+          closed = true;
+        }
+      };
+    }
+  };
+}
+
+const db = createMvccEngine({ acct_1: 500 });
+const txRC = db.begin("READ_COMMITTED");
+const txRR = db.begin("REPEATABLE_READ");
+const beforeRC = txRC.read("acct_1");
+const beforeRR = txRR.read("acct_1");
+
+const writer = db.begin("REPEATABLE_READ");
+writer.write("acct_1", 300);
+writer.commit();
+
+console.log("RC non-repeatable:", beforeRC, "->", txRC.read("acct_1"));
+console.log("RR snapshot stable:", beforeRR, "->", txRR.read("acct_1"));`}
+/>
+
+#### Example 3: Wait-For Deadlock Detector & Victim Abort (`createDeadlockDetector`)
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// Tracks exclusive resource locks and detects wait-for cycles (deadlocks)
+function createDeadlockDetector() {
+  const holders = new Map(); // resource -> txId
+  const waitingFor = new Map(); // txId -> resource
+
+  function findCycleFrom(startTx) {
+    const visited = new Set();
+    let curr = startTx;
+    while (curr && waitingFor.has(curr)) {
+      if (visited.has(curr)) return true;
+      visited.add(curr);
+      const res = waitingFor.get(curr);
+      curr = holders.get(res) || null;
+      if (curr === startTx) return true;
+    }
+    return false;
+  }
+
+  return {
+    acquire(txId, resource) {
+      if (typeof txId !== "string" || !txId || typeof resource !== "string" || !resource) {
+        throw new TypeError("txId and resource must be non-empty strings");
+      }
+      const owner = holders.get(resource);
+      if (!owner || owner === txId) {
+        holders.set(resource, txId);
+        waitingFor.delete(txId);
+        return { granted: true };
+      }
+      waitingFor.set(txId, resource);
+      if (findCycleFrom(txId)) {
+        waitingFor.delete(txId);
+        return { granted: false, deadlock: true, victimTx: txId, blockedBy: owner };
+      }
+      return { granted: false, deadlock: false, blockedBy: owner };
+    },
+    releaseAll(txId) {
+      waitingFor.delete(txId);
+      for (const [res, owner] of holders.entries()) {
+        if (owner === txId) holders.delete(res);
+      }
+    }
+  };
+}
+
+const lm = createDeadlockDetector();
+console.log("TxA lock R1:", lm.acquire("TxA", "R1"));
+console.log("TxB lock R2:", lm.acquire("TxB", "R2"));
+console.log("TxA wait R2:", lm.acquire("TxA", "R2"));
+console.log("TxB wait R1:", lm.acquire("TxB", "R1"));`}
+/>
+
+</TopicSection>
+
+<TopicSection id="m04-p3-sec-e" letter="E" title="Step-by-Step Walkthrough">
+
+Let us trace how `createMvccEngine` handles two concurrent transactions (`txRC` and `txRR`) against `writer`:
+
+1. **Snapshot capture (`begin`)**: `txRC` begins at `xid=1` (`READ_COMMITTED`), and `txRR` begins at `xid=2` (`REPEATABLE_READ`), capturing `committedAtStart = Set([0])` (just as PostgreSQL captures `xmin`/`xmax` and active XIDs in its snapshot header).
+2. **Initial reads**: Both see `v1` (`value: 500`, `xmin: 0`, `xmax: Infinity`) because `0` is in `committedAtStart`.
+3. **Concurrent write & commit**: `writer` (`xid=3`) writes `acct_1 = 300`, sets `v1.xmax = 3`, appends `v2` (`xmin: 3, xmax: Infinity`), and adds `3` to `committedXids`.
+4. **Re-read divergence**:
+   - `txRC` builds a fresh `committedAtStart = Set([0, 3])`, sees `v1` expired (`committedAtStart.has(3)`) and `v2` visible (`committedAtStart.has(3)`) -> returns `300` (**non-repeatable read**).
+   - `txRR` keeps its original `committedAtStart = Set([0])`, so `3` is absent (`!committedAtStart.has(3)`) for both `v1.xmax` and `v2.xmin` -> returns `500` (**snapshot stability**).
+
+</TopicSection>
+
+<TopicSection id="m04-p3-sec-f" letter="F" title="Real-World Use Cases">
+
+#### Scenario 1: Ledger & Wallet Transfers
+
+Combine `BEGIN`, canonical lock ordering (`ORDER BY id ASC FOR UPDATE`), `CHECK (balance_cents >= 0)`, and `UNIQUE (idempotency_key)` to guarantee zero double-spends and zero deadlocks under concurrent payment retries.
+
+#### Scenario 2: Job Queues on PostgreSQL
+
+Workers pull pending tasks with `SELECT ... FROM jobs WHERE status = 'queued' ORDER BY id LIMIT 10 FOR UPDATE SKIP LOCKED` so concurrent workers claim distinct jobs without blocking on the same row.
+
+#### Scenario 3: High-Throughput SaaS APIs
+
+Put PgBouncer in **transaction pooling** mode in front of PostgreSQL so 2,000 microservice pods multiplex onto 40–60 active database backends cleanly.
+
+</TopicSection>
+
+<TopicSection id="m04-p3-sec-g" letter="G" title="Common Mistakes">
+
+- **Checking balance in app code before `UPDATE`:** Running `SELECT balance` then `UPDATE` without `FOR UPDATE` or `WHERE balance >= amount` causes classic **lost updates / overdrafts** under concurrency.
+- **Holding transactions open during external HTTP calls:** Calling Stripe or SendGrid inside `BEGIN ... COMMIT` holds row locks and DB connections for seconds, exhausting the connection pool.
+- **Running blocking DDL in production:** Executing `CREATE INDEX` without `CONCURRENTLY` or adding a validated `CHECK` constraint directly blocks concurrent writes until the scan finishes.
+- **Never testing backup restores:** A backup you have never restored to a staging instance is not a verified backup—corrupted WAL archives or missing base backups are discovered too late during an outage.
+
+</TopicSection>
+
+<TopicSection id="m04-p3-sec-h" letter="H" title="Best Practices">
+
+- Keep transactions **short and deterministic**; perform all external network I/O outside `BEGIN ... COMMIT`.
+- Always acquire multiple row locks in a **consistent sorted order** and implement exponential-backoff retries on transient `40P01` (deadlock) and `40001` (serialization failure) errors.
+- Enforce `statement_timeout`, `lock_timeout`, and `idle_in_transaction_session_timeout` in production so stuck clients cannot starve the pool or block `VACUUM`.
+- Practice **automated PITR restore drills** monthly and monitor replication lag + WAL archive failure alerts.
+
+</TopicSection>
+
+<TopicSection id="m04-p3-sec-i" letter="I" title="Performance & Scalability">
+
+- **Pool Sizing:** Databases scale poorly past `~2 * CPU_cores + spindles` active queries due to lock manager & CPU context switching; queue excess traffic in PgBouncer instead of raising `max_connections` to 2,000.
+- **MVCC Bloat & Autovacuum:** Long-lived `idle in transaction` snapshots pin old `xmin` horizons, preventing `VACUUM` from reclaiming dead tuples and inflating table/index size.
+- **Group Commit & WAL:** Sequential WAL writes with `synchronous_commit = on` batch multiple concurrent commits into fewer `fsync()` calls at high throughput.
+
+</TopicSection>
+
+<TopicSection id="m04-p3-sec-j" letter="J" title="Security Considerations">
+
+- **Least-Privilege Migration Roles:** Run application traffic with a restricted role (`SELECT, INSERT, UPDATE, DELETE`) and run schema migrations with a separate migration role so app SQL injection cannot `DROP TABLE` or alter schemas.
+- **Encrypted Backups & PITR Access:** WAL archives and base backups contain every row ever written (including PII); encrypt backups at rest with KMS and restrict restore credentials separately from prod app secrets.
+
+</TopicSection>
+
+<TopicSection id="m04-p3-sec-k" letter="K" title="Comparisons & Decision Tables">
+
+#### 1. ANSI Isolation Levels vs. Read Anomalies
+
+| Isolation Level | Dirty Read | Non-Repeatable Read | Phantom Read | PostgreSQL Behavior |
+| --- | --- | --- | --- | --- |
+| **Read Uncommitted** | Allowed (ANSI) | Allowed | Allowed | Treated as `READ COMMITTED` (no dirty reads) |
+| **Read Committed** | Prevented | Allowed | Allowed | Default; fresh snapshot per statement |
+| **Repeatable Read** | Prevented | Prevented | Allowed (ANSI) | Snapshot for whole tx; blocks phantoms too |
+| **Serializable** | Prevented | Prevented | Prevented | Snapshot + SSI (`40001` retry on write skew) |
+
+#### 2. Concurrency Control Strategies
+
+| Strategy | Mechanism | Contention Sweet Spot | Failure Mode |
+| --- | --- | --- | --- |
+| **Pessimistic Locking** | `SELECT ... FOR UPDATE` | High contention (wallets, stock) | Lock waits & deadlocks (`40P01`) |
+| **Optimistic (OCC)** | `WHERE version = $expected` | Low contention (CRUD forms) | Caller must retry on 0 rows updated |
+| **MVCC + SSI** | Multi-version snapshots + predicate locks | Mixed read-heavy OLTP | Serialization abort (`40001`) on write skew |
+
+#### 3. Backup & Zero-Downtime Migration Strategies
+
+| Operation | Tool / Pattern | Downtime / Lock Impact | Best Fit |
+| --- | --- | --- | --- |
+| **Logical Backup** | `pg_dump` / `pg_restore` | Non-blocking (uses snapshot) | Small DBs, cross-version upgrades, single tables |
+| **Physical + PITR** | `pg_basebackup` + WAL archive | Non-blocking | Production OLTP needing second-level RPO |
+| **Zero-Downtime DDL** | Expand-and-Contract + `CONCURRENTLY` + `NOT VALID` | Minimal metadata locks only | Live tables under continuous read/write load |
+
+</TopicSection>
+
+<TopicSection id="m04-p3-sec-l" letter="L" title="Tips to Remember (Mnemonics & Mental Models)">
+
+- **"MVCC: Readers never block writers; writers never block readers."**
+- **"Lock in ascending ID order (`ORDER BY id ASC`) to make deadlock cycles mathematically impossible."**
+- **"Short transactions, bounded pools, and WAL before data pages."**
+- **"An untested backup is just a rumor—verify PITR restores regularly."**
+
+</TopicSection>
+
+<TopicSection id="m04-p3-sec-mn" letter="M/N" title="Interview Questions & Detailed Answers">
+
+<InterviewSection lessonId="m04-p3" />
+
+</TopicSection>
+
+<TopicSection id="m04-p3-sec-o" letter="O" title="Practical Exercises">
+
+<ExerciseCard
+  title="Exercise 1: Bounded Connection Pool (createBoundedPool)"
+  prompt={
+    <p>
+      Implement <code>createBoundedPool(&#123; maxConnections, maxQueue &#125;)</code> that manages reusable connection leases, enforces <code>maxConnections</code> and <code>maxQueue</code>, rejects unknown/double-released connections, and reports active/idle/queued counts.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function createBoundedPool({ maxConnections, maxQueue = 10 }) {
+  if (!Number.isInteger(maxConnections) || maxConnections < 1) throw new TypeError("maxConnections must be >= 1");
+  if (!Number.isInteger(maxQueue) || maxQueue < 0) throw new TypeError("maxQueue must be >= 0");
+
+  const idle = Array.from({ length: maxConnections }, (_, i) => ({ id: "conn-" + (i + 1) }));
+  const active = new Set();
+  const queue = [];
+
+  return {
+    acquire(requesterId) {
+      if (typeof requesterId !== "string" || !requesterId) throw new TypeError("requesterId required");
+      if (idle.length > 0) {
+        const conn = idle.shift();
+        active.add(conn.id);
+        return { status: "acquired", connId: conn.id, requesterId };
+      }
+      if (queue.length >= maxQueue) {
+        throw new Error("PoolExhausted: maxQueue (" + maxQueue + ") reached");
+      }
+      queue.push(requesterId);
+      return { status: "queued", position: queue.length, requesterId };
+    },
+    release(connId) {
+      if (!active.has(connId)) throw new Error("Unknown or already-idle connection: " + connId);
+      active.delete(connId);
+      if (queue.length > 0) {
+        const nextRequester = queue.shift();
+        active.add(connId);
+        return { handedOffTo: nextRequester, connId };
+      }
+      idle.push({ id: connId });
+      return { returnedToIdle: connId };
+    },
+    stats() {
+      return { active: active.size, idle: idle.length, queued: queue.length };
+    }
+  };
+}
+
+const pool = createBoundedPool({ maxConnections: 2, maxQueue: 1 });
+const c1 = pool.acquire("req-1");
+const c2 = pool.acquire("req-2");
+const q1 = pool.acquire("req-3");
+console.log("Pool saturated:", pool.stats(), q1);
+console.log("Release c1:", pool.release(c1.connId));`}
+  />
+</ExerciseCard>
+
+<ExerciseCard
+  title="Exercise 2: WAL Point-in-Time Recovery Replay (replayWalForPitr)"
+  prompt={
+    <p>
+      Implement <code>replayWalForPitr(&#123; baseBackup, walRecords, targetLsn &#125;)</code> that starts from a <code>baseBackup</code> snapshot, filters WAL records up to <code>targetLsn</code>, applies only transactions whose <code>COMMIT</code> record also appears at or before <code>targetLsn</code>, and ignores aborted or uncommitted transactions.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function replayWalForPitr({ baseBackup, walRecords, targetLsn }) {
+  if (!baseBackup || typeof baseBackup !== "object") throw new TypeError("baseBackup must be an object");
+  if (!Array.isArray(walRecords)) throw new TypeError("walRecords must be an array");
+  if (!Number.isInteger(targetLsn) || targetLsn < 0) throw new TypeError("targetLsn must be non-negative integer");
+
+  const state = { ...baseBackup };
+  const stagedByTx = new Map();
+  const committedTxs = new Set();
+
+  const sorted = [...walRecords]
+    .filter((r) => r.lsn <= targetLsn)
+    .sort((a, b) => a.lsn - b.lsn);
+
+  for (const rec of sorted) {
+    if (rec.op === "SET") {
+      if (!stagedByTx.has(rec.txId)) stagedByTx.set(rec.txId, []);
+      stagedByTx.get(rec.txId).push(rec);
+    } else if (rec.op === "COMMIT") {
+      committedTxs.add(rec.txId);
+    } else if (rec.op === "ROLLBACK") {
+      stagedByTx.delete(rec.txId);
+    }
+  }
+
+  for (const rec of sorted) {
+    if (rec.op === "SET" && committedTxs.has(rec.txId)) {
+      state[rec.key] = rec.value;
+    }
+  }
+  return state;
+}
+
+const recovered = replayWalForPitr({
+  baseBackup: { alice: 100, bob: 100 },
+  walRecords: [
+    { lsn: 10, txId: "t1", op: "SET", key: "alice", value: 80 },
+    { lsn: 11, txId: "t1", op: "SET", key: "bob", value: 120 },
+    { lsn: 12, txId: "t1", op: "COMMIT" },
+    { lsn: 13, txId: "t2", op: "SET", key: "alice", value: 0 },
+    { lsn: 14, txId: "t3", op: "SET", key: "bob", value: 999 },
+    { lsn: 15, txId: "t3", op: "COMMIT" }
+  ],
+  targetLsn: 13
+});
+console.log("PITR state at LSN 13:", recovered);`}
+  />
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m04-p3-sec-p" letter="P" title="Advanced Challenge">
+
+<Callout variant="warning" title="Production Incident: 2 TB Migration Lockout &amp; Flash-Sale Deadlocks">
+  <p>
+    An e-commerce checkout hits a 2 TB PostgreSQL <code>orders</code> table at 3,000 req/s: a nightly migration triggers a 4-minute outage, and flash-sale workers hit <code>40P01</code> deadlocks on <code>inventory</code>.
+  </p>
+</Callout>
+
+<ExerciseCard
+  title="Challenge: Zero-Downtime Migration &amp; Deadlock-Free Flash-Sale Checkout"
+  prompt={
+    <p>
+      Design the remediation plan using <code>NOT VALID</code> + <code>VALIDATE CONSTRAINT</code>, <code>CREATE INDEX CONCURRENTLY</code>, canonical lock ordering, bounded connection pooling, and PITR backup verification. Compare your design against Interview Questions 12 and 13 in Section M/N.
+    </p>
+  }
+/>
+
+</TopicSection>
+
+<TopicSection id="m04-p3-sec-q" letter="Q" title="Summary & Key Takeaways">
+
+- **Transactions & ACID** guarantee all-or-nothing atomicity, constraint-verified consistency, concurrent isolation, and WAL-backed durability.
+- **Isolation levels** (`READ COMMITTED`, `REPEATABLE READ`, `SERIALIZABLE`) protect against dirty reads, non-repeatable reads, phantom reads, and write skew.
+- **MVCC** keeps readers and writers non-blocking via `xmin`/`xmax` tuple versions, while **canonical lock ordering** eliminates circular deadlock waits.
+- **Zero-downtime migrations** (`Expand-and-Contract`, `CONCURRENTLY`, `NOT VALID`), **bounded connection pools**, and **WAL + PITR backups** keep production databases safe through deployments and failures.
+
+</TopicSection>

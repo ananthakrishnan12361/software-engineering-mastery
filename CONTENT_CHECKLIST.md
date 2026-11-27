@@ -242,22 +242,22 @@ Split into 3 parts:
 - [x] 2NF
 - [x] 3NF
 - [x] BCNF overview
-- [ ] Transactions
-- [ ] ACID
-- [ ] Isolation levels
-- [ ] Dirty reads
-- [ ] Non-repeatable reads
-- [ ] Phantom reads
-- [ ] Locks
-- [ ] Deadlocks
-- [ ] MVCC
-- [ ] Concurrency
-- [ ] Database consistency
-- [ ] Data integrity
-- [ ] Schema migrations
-- [ ] Connection pooling
-- [ ] Database backups
-- [ ] Recovery
+- [x] Transactions
+- [x] ACID
+- [x] Isolation levels
+- [x] Dirty reads
+- [x] Non-repeatable reads
+- [x] Phantom reads
+- [x] Locks
+- [x] Deadlocks
+- [x] MVCC
+- [x] Concurrency
+- [x] Database consistency
+- [x] Data integrity
+- [x] Schema migrations
+- [x] Connection pooling
+- [x] Database backups
+- [x] Recovery
 
 ---
 

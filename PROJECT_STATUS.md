@@ -4,10 +4,10 @@
 Maintain a comfortable, offline-capable React + TypeScript + MDX learning portal built with Feature-Sliced Design v2.1 and bundled into `dist/software_engineering_mastery.html`.
 
 ## Overall status
-**Modules 1–3 Complete + `M04-P1` & `M04-P2` Audited (`PASS`) — `M04-P3` next**
+**Modules 1–4 Complete & Audited (`PASS`) — `M05-P1` next**
 
 ## Current phase
-Phase 3 design remains locked in [DESIGN_GUIDE.md](DESIGN_GUIDE.md). Modules 1–3 (`149/149`) and `M04-P1`–`M04-P2` (`20/36`) are complete & verified (`M04-P3` next).
+Phase 3 design remains locked in [DESIGN_GUIDE.md](DESIGN_GUIDE.md). Modules 1–4 (`185/185` topics across 16 lessons, `140` IQs) are complete & verified (`M05-P1` next).
 
 ## Completed
 - [x] Phase 1 & 2: Legacy v1 archived in `legacy/`, React 19 + TS + Vite 8 + MDX + `vite-plugin-singlefile` + Steiger setup
@@ -19,13 +19,13 @@ Phase 3 design remains locked in [DESIGN_GUIDE.md](DESIGN_GUIDE.md). Modules 1�
 - [x] Verification: `tsc`, `vite build`, `steiger ./src`, `verify:syllabus`, `verify:parity`, `verify:offline`, and headless Chrome CDP checks at `360`, `390`, `768`, `1024`, `1440` widths across all 3 themes
 
 ## Module progress
-Use `COURSE_OUTLINE.md` and `CONTENT_CHECKLIST.md` to track module and part status. Currently written: Module 1 complete (`47/47` topics, `35/35` IQs) + Module 2 complete (`46/46` topics, `35/35` IQs) + Module 3 complete (`56/56` topics, `35/35` IQs) + `M04-P1`–`M04-P2` (`20/36` topics, `22/35` IQs: `7` Basic, `6` Intermediate, `6` Advanced, `3` Senior/Architect) = `169` topics available, `776` not written yet.
+Use `COURSE_OUTLINE.md` and `CONTENT_CHECKLIST.md` to track module and part status. Currently written: Module 1 complete (`47/47` topics, `35/35` IQs) + Module 2 complete (`46/46` topics, `35/35` IQs) + Module 3 complete (`56/56` topics, `35/35` IQs) + Module 4 complete (`36/36` topics, `35/35` IQs: `10` Basic, `10` Intermediate, `10` Advanced, `5` Senior/Architect) = `185` topics available, `760` not written yet.
 
 ## Current task
-`M04-P2` completed, audited (`PASS`), and committed locally on `react-fsd`. Next part: `M04-P3` (Transactions, ACID, Isolation levels, Concurrency control, Locking, Deadlocks, MVCC overview, WAL, Durability, Backup & PITR Recovery).
+Module 4 complete (`M04-P3` audited `PASS` and committed locally on `react-fsd`). Next part: `M05-P1` (PostgreSQL architecture, PostgreSQL internals, Database storage, Pages and tuples, MVCC, WAL, Transactions).
 
 ## Next actions
-1. Proceed to `M04-P3` (`PLAN -> WRITE -> CHECK -> AUDIT -> UPDATE -> COMMIT` on `react-fsd`).
+1. Proceed to `M05-P1` (`PLAN -> WRITE -> CHECK -> AUDIT -> UPDATE -> COMMIT` on `react-fsd`).
 2. User decides when to approve removing `legacy/`.
 
 ## Decisions

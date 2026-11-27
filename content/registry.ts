@@ -37,6 +37,8 @@ import M04P1Mdx from "./modules/04-database-fundamentals/m04-p1.mdx";
 import m04p1Raw from "./modules/04-database-fundamentals/m04-p1.mdx?raw";
 import M04P2Mdx from "./modules/04-database-fundamentals/m04-p2.mdx";
 import m04p2Raw from "./modules/04-database-fundamentals/m04-p2.mdx?raw";
+import M04P3Mdx from "./modules/04-database-fundamentals/m04-p3.mdx";
+import m04p3Raw from "./modules/04-database-fundamentals/m04-p3.mdx?raw";
 import { m01p1Questions } from "./interviews/m01-p1.questions";
 import { m01p2Questions } from "./interviews/m01-p2.questions";
 import { m01p3Questions } from "./interviews/m01-p3.questions";
@@ -52,6 +54,7 @@ import { m03p3Questions } from "./interviews/m03-p3.questions";
 import { m03p4Questions } from "./interviews/m03-p4.questions";
 import { m04p1Questions } from "./interviews/m04-p1.questions";
 import { m04p2Questions } from "./interviews/m04-p2.questions";
+import { m04p3Questions } from "./interviews/m04-p3.questions";
 import { SYLLABUS_MODULES } from "./syllabus";
 
 export interface HandbookCatalog {
@@ -181,11 +184,11 @@ const modules: ModuleRecord[] = [
     number: 4,
     title: "Database Fundamentals & Database Architecture",
     category: "databases",
-    partSummary: "Parts 1–2 of 3",
+    partSummary: "Parts 1–3 of 3 (Complete)",
     scopeSummary:
-      "Scope (Parts 1–2): Database Architecture, Engines, Relational vs. NoSQL, ER Modeling, Constraints, Normalization (1NF–BCNF) & Denormalization",
-    lead: "Master database internals (Buffer Pool, WAL, B-Tree vs. LSM), relational vs. NoSQL modeling, ER cardinalities, constraints, and 1NF–BCNF normalization.",
-    lessonIds: ["m04-p1", "m04-p2"]
+      "Scope (Parts 1–3): Complete Database Fundamentals — Engines, ER Modeling, Normalization (1NF–BCNF), ACID Transactions, Isolation, MVCC, Locks, Migrations, Pooling & PITR",
+    lead: "Master database internals (Buffer Pool, WAL, B-Tree vs. LSM), ER modeling, 1NF–BCNF normalization, ACID transactions, MVCC, locks, zero-downtime migrations, pooling, and PITR.",
+    lessonIds: ["m04-p1", "m04-p2", "m04-p3"]
   }
 ];
 
@@ -1065,8 +1068,65 @@ const lessons: LessonRecord[] = [
       }
     ],
     prevLessonId: "m04-p1",
-    nextLessonId: null,
+    nextLessonId: "m04-p3",
     Content: M04P2Mdx
+  },
+  {
+    id: "m04-p3",
+    moduleId: "module-4",
+    moduleNumber: 4,
+    moduleTitle: "Database Fundamentals & Database Architecture",
+    partLabel: "Lesson M04-P3",
+    title: "Part 3: Transactions, ACID, Isolation, MVCC, Locks, Migrations, Pooling & PITR",
+    category: "databases",
+    duration: "90 min (40m theory · 30m practice · 20m review)",
+    objectives: [
+      "Explain ACID guarantees and diagnose dirty reads, non-repeatable reads, phantom reads, and write skew across isolation levels.",
+      "Trace MVCC tuple visibility (xmin/xmax) and prevent deadlocks via canonical lock ordering and bounded retries.",
+      "Execute zero-downtime schema migrations using Expand-and-Contract, NOT VALID + VALIDATE CONSTRAINT, and CREATE INDEX CONCURRENTLY.",
+      "Size bounded connection pools and recover databases to exact timestamps using base backups and WAL Point-in-Time Recovery (PITR)."
+    ],
+    sections: [
+      { id: "m04-p3-objectives", title: "Learning Objectives" },
+      { id: "m04-p3-sec-a", letter: "A", title: "Topic Introduction" },
+      { id: "m04-p3-sec-b", letter: "B", title: "Fundamentals (Simple Mental Models)" },
+      { id: "m04-p3-sec-c", letter: "C", title: "Internal Working & Architecture" },
+      { id: "m04-p3-sec-d", letter: "D", title: "Practical Examples (Interactive)" },
+      { id: "m04-p3-sec-e", letter: "E", title: "Step-by-Step Walkthrough" },
+      { id: "m04-p3-sec-f", letter: "F", title: "Real-World Use Cases" },
+      { id: "m04-p3-sec-g", letter: "G", title: "Common Mistakes" },
+      { id: "m04-p3-sec-h", letter: "H", title: "Best Practices" },
+      { id: "m04-p3-sec-i", letter: "I", title: "Performance & Scalability" },
+      { id: "m04-p3-sec-j", letter: "J", title: "Security Considerations" },
+      { id: "m04-p3-sec-k", letter: "K", title: "Comparisons & Decision Tables" },
+      { id: "m04-p3-sec-l", letter: "L", title: "Tips to Remember (Mnemonics & Mental Models)" },
+      { id: "m04-p3-sec-mn", letter: "M/N", title: "Interview Questions & Detailed Answers" },
+      { id: "m04-p3-sec-o", letter: "O", title: "Practical Exercises" },
+      { id: "m04-p3-sec-p", letter: "P", title: "Advanced Challenge" },
+      { id: "m04-p3-sec-q", letter: "Q", title: "Summary & Key Takeaways" },
+      { id: "m04-p3-mastery", title: "Mastery Assessment" }
+    ],
+    masteryItems: [
+      {
+        id: "m04-p3-m1",
+        label: "I can select the right isolation level (Read Committed, Repeatable Read, Serializable) and explain MVCC snapshots."
+      },
+      {
+        id: "m04-p3-m2",
+        label: "I can prevent deadlocks via canonical lock ordering and handle 40P01/40001 retries cleanly."
+      },
+      {
+        id: "m04-p3-m3",
+        label: "I can run zero-downtime Expand-and-Contract migrations, size connection pools, and execute WAL PITR."
+      },
+      {
+        id: "m04-p3-m4",
+        label: "I completed the M04-P3 exercises and can answer the interview questions without notes."
+      }
+    ],
+    prevLessonId: "m04-p2",
+    nextLessonId: null,
+    Content: M04P3Mdx
   }
 ];
 
@@ -1085,7 +1145,8 @@ const questionsByLesson: Record<string, InterviewQuestion[]> = {
   "m03-p3": m03p3Questions,
   "m03-p4": m03p4Questions,
   "m04-p1": m04p1Questions,
-  "m04-p2": m04p2Questions
+  "m04-p2": m04p2Questions,
+  "m04-p3": m04p3Questions
 };
 
 const allQuestions: InterviewQuestion[] = [
@@ -1103,7 +1164,8 @@ const allQuestions: InterviewQuestion[] = [
   ...m03p3Questions,
   ...m03p4Questions,
   ...m04p1Questions,
-  ...m04p2Questions
+  ...m04p2Questions,
+  ...m04p3Questions
 ];
 
 function mergeGlossaryEntries(...batches: GlossaryEntry[][]): GlossaryEntry[] {
@@ -1134,7 +1196,8 @@ const glossaryEntries: GlossaryEntry[] = mergeGlossaryEntries(
   extractGlossaryFromMdx(m03p3Raw, "m03-p3"),
   extractGlossaryFromMdx(m03p4Raw, "m03-p4"),
   extractGlossaryFromMdx(m04p1Raw, "m04-p1"),
-  extractGlossaryFromMdx(m04p2Raw, "m04-p2")
+  extractGlossaryFromMdx(m04p2Raw, "m04-p2"),
+  extractGlossaryFromMdx(m04p3Raw, "m04-p3")
 );
 
 function buildSearchRecords(): SearchRecord[] {
@@ -1168,6 +1231,7 @@ function buildSearchRecords(): SearchRecord[] {
   records.push(...extractSearchRecordsFromMdx(m03p4Raw, "m03-p4", lessons[12].title, 3));
   records.push(...extractSearchRecordsFromMdx(m04p1Raw, "m04-p1", lessons[13].title, 4));
   records.push(...extractSearchRecordsFromMdx(m04p2Raw, "m04-p2", lessons[14].title, 4));
+  records.push(...extractSearchRecordsFromMdx(m04p3Raw, "m04-p3", lessons[15].title, 4));
 
   for (const mod of SYLLABUS_MODULES) {
     for (const topic of mod.topics) {

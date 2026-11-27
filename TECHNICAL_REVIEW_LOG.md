@@ -322,3 +322,15 @@ For each review, add:
   - PostgreSQL Materialized Views (`REFRESH MATERIALIZED VIEW CONCURRENTLY`): `https://www.postgresql.org/docs/current/rules-materializedviews.html`
   - PostgreSQL Triggers & Generated Columns (Derived Cache Synchronization): `https://www.postgresql.org/docs/current/ddl-generated-columns.html` and `https://www.postgresql.org/docs/current/sql-createtrigger.html`
 - **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m04-p2.mdx`, `m04-p2.questions.ts`, and `m04-p2.coverage.ts`.
+
+---
+
+### Module 04 Part 3 (M04-P3) Technical Review Log — 2026-11-27
+
+- **Scope:** Transactions, ACID, Isolation levels, Dirty reads, Non-repeatable reads, Phantom reads, Locks, Deadlocks, MVCC, Concurrency, Database consistency, Data integrity, Schema migrations, Connection pooling, Database backups, Recovery.
+- **Official Documentation Verified (`M3`):**
+  - PostgreSQL Transaction Isolation (`READ COMMITTED`, `REPEATABLE READ`, `SERIALIZABLE` SSI): `https://www.postgresql.org/docs/current/transaction-iso.html`
+  - PostgreSQL Explicit Locking & Deadlocks (`FOR UPDATE`, `SKIP LOCKED`, `SQLSTATE 40P01`): `https://www.postgresql.org/docs/current/explicit-locking.html`
+  - PostgreSQL `CREATE INDEX CONCURRENTLY` & `ALTER TABLE ... NOT VALID / VALIDATE CONSTRAINT`: `https://www.postgresql.org/docs/current/sql-createindex.html` and `https://www.postgresql.org/docs/current/sql-altertable.html`
+  - PostgreSQL Continuous Archiving & Point-in-Time Recovery (PITR) & `pg_dump`: `https://www.postgresql.org/docs/current/continuous-archiving.html` and `https://www.postgresql.org/docs/current/backup.html`
+- **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m04-p3.mdx`, `m04-p3.questions.ts`, and `m04-p3.coverage.ts`.
