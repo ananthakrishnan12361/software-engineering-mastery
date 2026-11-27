@@ -739,23 +739,91 @@ export const SYLLABUS_MODULES: SyllabusModule[] = [
       lessonId: "m03-p3",
       anchorId: "m03-p3-topic-api-security"
     },
-    "Pagination",
-    "Filtering",
-    "Sorting",
-    "File uploads",
-    "Background jobs",
-    "Queue systems",
-    "WebSockets",
-    "Connection pooling",
-    "Microservices",
-    "Modular monolith",
-    "Backend design patterns",
-    "Dependency injection",
-    "Testing",
-    "Unit tests",
-    "Integration tests",
-    "API tests",
-    "Performance optimization"
+    {
+      title: "Pagination",
+      lessonId: "m03-p4",
+      anchorId: "m03-p4-topic-pagination"
+    },
+    {
+      title: "Filtering",
+      lessonId: "m03-p4",
+      anchorId: "m03-p4-topic-filtering"
+    },
+    {
+      title: "Sorting",
+      lessonId: "m03-p4",
+      anchorId: "m03-p4-topic-sorting"
+    },
+    {
+      title: "File uploads",
+      lessonId: "m03-p4",
+      anchorId: "m03-p4-topic-file-uploads"
+    },
+    {
+      title: "Background jobs",
+      lessonId: "m03-p4",
+      anchorId: "m03-p4-topic-background-jobs"
+    },
+    {
+      title: "Queue systems",
+      lessonId: "m03-p4",
+      anchorId: "m03-p4-topic-queue-systems"
+    },
+    {
+      title: "WebSockets",
+      lessonId: "m03-p4",
+      anchorId: "m03-p4-topic-websockets"
+    },
+    {
+      title: "Connection pooling",
+      lessonId: "m03-p4",
+      anchorId: "m03-p4-topic-connection-pooling"
+    },
+    {
+      title: "Microservices",
+      lessonId: "m03-p4",
+      anchorId: "m03-p4-topic-microservices"
+    },
+    {
+      title: "Modular monolith",
+      lessonId: "m03-p4",
+      anchorId: "m03-p4-topic-modular-monolith"
+    },
+    {
+      title: "Backend design patterns",
+      lessonId: "m03-p4",
+      anchorId: "m03-p4-topic-backend-design-patterns"
+    },
+    {
+      title: "Dependency injection",
+      lessonId: "m03-p4",
+      anchorId: "m03-p4-topic-dependency-injection"
+    },
+    {
+      title: "Testing",
+      lessonId: "m03-p4",
+      anchorId: "m03-p4-topic-testing"
+    },
+    {
+      title: "Unit tests",
+      lessonId: "m03-p4",
+      anchorId: "m03-p4-topic-unit-tests"
+    },
+    {
+      title: "Integration tests",
+      lessonId: "m03-p4",
+      anchorId: "m03-p4-topic-integration-tests"
+    },
+    {
+      title: "API tests",
+      lessonId: "m03-p4",
+      anchorId: "m03-p4-topic-api-tests"
+    },
+    {
+      title: "Performance optimization",
+      lessonId: "m03-p4",
+      anchorId: "m03-p4-topic-performance-optimization"
+    }
   ]),
 
   defineModule(4, "Database Fundamentals & Database Architecture", "databases", [

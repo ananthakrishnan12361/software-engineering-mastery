@@ -1,0 +1,695 @@
+<Callout variant="info" title="Topics Covered in Part 4 (M03-P4)">
+  <p>
+    This final part of Module 3 covers 17 production backend engineering topics: <strong>Pagination</strong>, <strong>Filtering</strong>, <strong>Sorting</strong>, <strong>File uploads</strong>, <strong>Background jobs</strong>, <strong>Queue systems</strong>, <strong>WebSockets</strong>, <strong>Connection pooling</strong>, <strong>Microservices</strong>, <strong>Modular monolith</strong>, <strong>Backend design patterns</strong>, <strong>Dependency injection</strong>, <strong>Testing</strong>, <strong>Unit tests</strong>, <strong>Integration tests</strong>, <strong>API tests</strong>, and <strong>Performance optimization</strong>.
+  </p>
+</Callout>
+
+<TopicSection id="m03-p4-sec-a" letter="A" title="Topic Introduction">
+
+#### What is this?
+
+Shipping a single Express endpoint is easy; operating a backend at scale requires **bounded queries** (**Pagination**, **Filtering**, **Sorting**), **safe binary & real-time I/O** (**File uploads**, **WebSockets**, **Connection pooling**), **asynchronous resilience** (**Background jobs**, **Queue systems**), **clean system architecture** (**Modular monolith**, **Microservices**, **Backend design patterns**, **Dependency injection**), and **automated confidence** (**Testing**, **Unit tests**, **Integration tests**, **API tests**, **Performance optimization**).
+
+#### Why does it exist & what problem does it solve?
+
+Unbounded `SELECT *` queries OOM the server, deep `OFFSET 100000` slows databases to a crawl, synchronous email/PDF generation inside HTTP routes causes `504` timeouts, unpooled DB connections exhaust Postgres `max_connections`, and premature microservices multiply network latency and deployment complexity.
+
+#### Where is it used in real-world software?
+
+Every mature Node.js platform—order pipelines, webhook processors, collaborative real-time apps, and multi-tenant SaaS APIs—relies on these exact patterns to stay fast, maintainable, and fault-tolerant.
+
+</TopicSection>
+
+<TopicSection id="m03-p4-sec-b" letter="B" title="Fundamentals (Simple Mental Models)">
+
+<TopicAnchor id="m03-p4-topic-pagination" />
+
+#### 1. Pagination: Offset vs. Keyset (Cursor) Pagination
+
+**Pagination** bounds result sets so endpoints never dump 500,000 rows into RAM. **Offset pagination** (`LIMIT 20 OFFSET 40`) is simple for small jump-to-page UIs, but degrades linearly at high offsets (`OFFSET 100000` still scans and discards 100,000 rows) and skips/duplicates rows if items are inserted mid-scroll.
+
+**Cursor (keyset) pagination** (`WHERE (created_at, id) < ($1, $2) ORDER BY created_at DESC, id DESC LIMIT 20`) uses an index seek in `O(log n)` regardless of page depth and stays stable under concurrent inserts.
+
+<TopicAnchor id="m03-p4-topic-filtering" />
+
+#### 2. Filtering: Allowlisted Predicates & Index-Friendly Bounds
+
+**Filtering** lets clients narrow query results (`?status=paid&minTotal=1000`). Always validate filter keys and operators against an explicit allowlist, coerce and bound query values (`limit` capped at `100`), and avoid leading-wildcard `LIKE '%term%'` patterns that defeat B-tree indexes.
+
+Combining strict filter validation with composite indexes `(tenant_id, status, created_at)` and parameterized placeholders keeps filtered multi-tenant queries fast across millions of rows.
+
+<TopicAnchor id="m03-p4-topic-sorting" />
+
+#### 3. Sorting: Deterministic Tie-Breakers & SQL Injection Defense
+
+**Sorting** (`?sort=-createdAt`) orders results predictably for users and cursors. Always map client sort keys through an explicit `Map` or `Set` allowlist to real SQL column names—never interpolate `req.query.sort` directly into `ORDER BY`.
+
+Always append a unique deterministic **tie-breaker** column (`ORDER BY created_at DESC, id DESC`) so rows with identical timestamps never shuffle or duplicate across pages.
+
+<TopicAnchor id="m03-p4-topic-file-uploads" />
+
+#### 4. File Uploads: Streaming, Magic Bytes & Direct-to-Object-Storage
+
+Never buffer large **file uploads** in Node.js memory or save user-supplied filenames directly to local disk. Validate `Content-Length` limits, inspect file **magic bytes** (not just `.png` extension or `Content-Type` header), rename files to random UUIDs, and stream directly to object storage (S3/GCS).
+
+For large files, the gold-standard pattern is **pre-signed upload URLs**: the Node API authenticates and issues a short-lived signed S3 URL so the browser uploads straight to object storage without tying up Node event-loop/bandwidth capacity.
+
+<TopicAnchor id="m03-p4-topic-background-jobs" />
+
+#### 5. Background Jobs: Returning `202 Accepted` & Keeping HTTP Fast
+
+**Background jobs** move slow, non-critical, or failure-prone work (sending emails, generating PDFs, resizing video, syncing webhooks) out of the HTTP request-response cycle. The API validates the request, persists/enqueues the job, and returns **`202 Accepted`** in milliseconds.
+
+Always design job handlers to be **idempotent** (using an `idempotencyKey` or DB unique constraint) because queues guarantee **at-least-once** delivery—meaning a worker crash after side effects can re-run the same job.
+
+<TopicAnchor id="m03-p4-topic-queue-systems" />
+
+#### 6. Queue Systems: Retries, Backoff, Concurrency & Dead-Letter Queues
+
+**Queue systems** (BullMQ on Redis, SQS, RabbitMQ) decouple producers from workers, smoothing traffic spikes instead of overwhelming databases. Workers pull jobs with bounded concurrency, retry transient failures using **exponential backoff + jitter**, and route poison-pill jobs to a **Dead-Letter Queue (DLQ)** after `maxAttempts`.
+
+Monitor queue depth, oldest job age, and DLQ count so silent worker stalls trigger alerts before backlogs grow out of control.
+
+<TopicAnchor id="m03-p4-topic-websockets" />
+
+#### 7. WebSockets: Full-Duplex Real-Time Connections & Scaling
+
+**WebSockets** upgrade an HTTP/1.1 connection (`101 Switching Protocols`) into a persistent, bidirectional TCP channel ideal for live chat, collaborative cursors, and streaming dashboards (whereas **Server-Sent Events / SSE** suffice for simpler server-to-client feeds).
+
+In production, send periodic **ping/pong heartbeats** to prune dead half-open sockets, enforce per-connection message size/rate limits, and back rooms with **Redis Pub/Sub** when scaling across multiple Node instances.
+
+<TopicAnchor id="m03-p4-topic-connection-pooling" />
+
+#### 8. Connection Pooling: Reusing Expensive TCP/TLS DB Handshakes
+
+Opening a fresh PostgreSQL or Redis TCP + TLS + auth connection per HTTP request adds tens of milliseconds and quickly exhausts the database's `max_connections` limit. **Connection pooling** maintains a bounded set of warm reusable connections (`min`/`max`, `idleTimeoutMillis`, `connectionTimeoutMillis`).
+
+Size each Node instance's pool carefully (`instances * maxPoolSize <= dbMaxConnections` minus admin headroom) and always release connections in a `finally` block so thrown errors never leak pool slots.
+
+<TopicAnchor id="m03-p4-topic-microservices" />
+
+#### 9. Microservices: Independent Deployment vs. Distributed Complexity
+
+**Microservices** split a backend into independently deployable services owning their own data stores, communicating over HTTP/gRPC or async events. They shine when large teams need independent release cadences, isolated scaling (e.g., video transcoding vs. billing), or polyglot runtimes.
+
+However, microservices introduce network latency, partial failures, distributed tracing, and eventual consistency (no cross-service ACID joins)—never adopt them before you actually hit team or scaling bottlenecks.
+
+<TopicAnchor id="m03-p4-topic-modular-monolith" />
+
+#### 10. Modular Monolith: Clean Domain Boundaries Without Network Tax
+
+A **Modular Monolith** deploys as one application process while organizing code into strict domain modules (`orders/`, `billing/`, `inventory/`) that communicate only through explicit **public interfaces**—never reaching directly into another module's private tables or internal files.
+
+You get fast in-process calls, single-DB ACID transactions, and zero distributed-systems overhead while keeping module boundaries clean enough to extract into a microservice later if needed.
+
+<TopicAnchor id="m03-p4-topic-backend-design-patterns" />
+
+#### 11. Backend Design Patterns: Controller-Service-Repository, Outbox & Circuit Breaker
+
+Proven **backend design patterns** separate concerns cleanly: **Controller** (HTTP parsing/validation) -> **Service** (business rules/transactions) -> **Repository** (SQL/DB queries). Use the **Transactional Outbox** pattern to atomically write DB state and an outbox event in one transaction before publishing to a queue.
+
+Protect outbound HTTP calls with **timeouts + Circuit Breakers** so a slow third-party API fails fast instead of exhausting all Node sockets and cascading into a full outage.
+
+<TopicAnchor id="m03-p4-topic-dependency-injection" />
+
+#### 12. Dependency Injection: Decoupling Wiring From Business Logic
+
+**Dependency Injection (DI)** passes collaborators (`orderRepo`, `mailer`, `clock`) into a service's constructor or factory function instead of hardcoding `import db from "./db"` directly inside business logic.
+
+In Node.js and TypeScript, explicit **constructor or factory DI** (without heavy reflection decorators) keeps module dependencies crystal clear, eliminates circular imports, and lets tests swap real Postgres or Stripe clients for fast deterministic fakes in one line.
+
+<TopicAnchor id="m03-p4-topic-testing" />
+
+#### 13. Testing: Backend Testing Pyramid & Deterministic Isolation
+
+A reliable backend **testing** strategy balances fast **unit tests** (pure domain rules, validators, pagination math), **integration tests** (repositories against real containerized databases via Testcontainers), and **API tests** (full Express middleware, auth, status codes, and Problem Details contracts).
+
+Keep tests deterministic by injecting clocks and IDs, isolating database state per test (rolled-back transactions or clean schemas), and never hitting live third-party payment or email APIs in CI.
+
+<TopicAnchor id="m03-p4-topic-unit-tests" />
+
+#### 14. Unit Tests: Fast Verification of Services, Rules & Edge Cases
+
+**Unit tests** exercise individual functions and DI-wired services in milliseconds with zero network or disk I/O. Test boundary values (`limit = 0`, `limit = 101`, negative totals), state transitions, and expected error paths (`NotFoundError`, `ConflictError`).
+
+Mock only external I/O boundaries (`mailer`, `paymentGateway`)—avoid over-mocking internal helper functions, which couples tests tightly to implementation details rather than observable behavior.
+
+<TopicAnchor id="m03-p4-topic-integration-tests" />
+
+#### 15. Integration Tests: Real Database Queries, Migrations & Constraints
+
+**Integration tests** run your repositories, schema migrations, unique constraints, and connection pools against a real database (such as ephemeral PostgreSQL or Redis containers) rather than an in-memory SQLite mock that behaves differently.
+
+They catch real-world SQL syntax bugs, missing indexes, transaction deadlock handling, and `UNIQUE` or `FOREIGN KEY` constraint violations before code ever reaches production.
+
+<TopicAnchor id="m03-p4-topic-api-tests" />
+
+#### 16. API Tests: End-to-End HTTP Contracts, Auth & Error Shapes
+
+**API tests** (using `supertest` or Node `fetch` against an ephemeral Express server) verify the complete HTTP pipeline: route matching, Zod validation (`422`), AuthN (`401`), RBAC/BOLA (`403`), rate limiting (`429`), response headers (`X-Request-Id`, `Location`), and redacted `500` error bodies.
+
+Every fixed production API bug should ship with an automated regression API test locking down the exact HTTP status code and JSON contract.
+
+<TopicAnchor id="m03-p4-topic-performance-optimization" />
+
+#### 17. Performance Optimization: Profiling, N+1 Elimination & Caching
+
+Backend **performance optimization** starts with measuring p95/p99 latency, DB query plans (`EXPLAIN ANALYZE`), and Node event-loop delay before guessing. The biggest real-world wins come from eliminating **N+1 queries** (batching with `WHERE id = ANY($1)` or joins), adding missing composite indexes, caching hot reads in Redis, and keeping the event loop non-blocking.
+
+Pair **HTTP compression** (`gzip`/`br` at the reverse proxy), **keep-alive connection reuse**, and **bounded pools/caches** so latency stays flat under peak concurrency.
+
+</TopicSection>
+
+<TopicSection id="m03-p4-sec-c" letter="C" title="Internal Working & Architecture">
+
+#### 1. Async Background Queue & Dead-Letter Retry Pipeline
+
+Offloading slow work from HTTP routes returns `202 Accepted` immediately while workers process jobs with bounded concurrency, idempotency checks, exponential backoff, and a Dead-Letter Queue.
+
+<DiagramCard caption="Figure 3.7 — HTTP endpoints return 202 Accepted immediately; workers enforce idempotency, exponential backoff retries, and DLQ isolation.">
+  <svg viewBox="0 0 820 190" role="img" aria-label="Background job queue with retries and dead-letter queue">
+    <rect x="10" y="10" width="800" height="170" rx="10" fill="var(--bg-subtle)" stroke="var(--border)" />
+
+    <rect x="26" y="34" width="170" height="120" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" />
+    <text x="111" y="60" textAnchor="middle" fill="var(--accent-strong)" fontSize="12.5" fontWeight="700" fontFamily="sans-serif">1. Express API</text>
+    <text x="111" y="88" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">enqueue(jobId)</text>
+    <text x="111" y="114" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Return 202 Accepted</text>
+
+    <line x1="196" y1="94" x2="234" y2="94" stroke="var(--accent)" strokeWidth="2" />
+    <polygon points="234,94 224,89 224,99" fill="var(--accent)" />
+
+    <rect x="238" y="34" width="170" height="120" rx="8" fill="var(--bg-surface)" stroke="var(--border-strong)" />
+    <text x="323" y="60" textAnchor="middle" fill="var(--text-primary)" fontSize="12.5" fontWeight="700" fontFamily="sans-serif">2. Queue Broker</text>
+    <text x="323" y="88" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">BullMQ / SQS</text>
+    <text x="323" y="114" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">At-least-once delivery</text>
+
+    <line x1="408" y1="94" x2="446" y2="94" stroke="var(--success)" strokeWidth="2" />
+    <polygon points="446,94 436,89 436,99" fill="var(--success)" />
+
+    <rect x="450" y="34" width="175" height="120" rx="8" fill="var(--success-soft)" stroke="var(--success)" />
+    <text x="537" y="60" textAnchor="middle" fill="var(--success)" fontSize="12.5" fontWeight="700" fontFamily="sans-serif">3. Worker Pool</text>
+    <text x="537" y="88" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">Idempotent run</text>
+    <text x="537" y="114" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Backoff + jitter retry</text>
+
+    <line x1="625" y1="94" x2="663" y2="94" stroke="var(--danger)" strokeWidth="2" />
+    <polygon points="663,94 653,89 653,99" fill="var(--danger)" />
+
+    <rect x="667" y="34" width="127" height="120" rx="8" fill="var(--danger-soft)" stroke="var(--danger)" />
+    <text x="730" y="60" textAnchor="middle" fill="var(--danger)" fontSize="12.5" fontWeight="700" fontFamily="sans-serif">4. Dead-Letter</text>
+    <text x="730" y="88" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">attempts &gt;= max</text>
+    <text x="730" y="114" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Alert &amp; inspect</text>
+  </svg>
+</DiagramCard>
+
+#### 2. Modular Monolith & Connection Pool Architecture
+
+Strict domain boundaries with explicit Dependency Injection keep modules decoupled in-process, while a bounded connection pool guards the shared database against connection storms.
+
+<DiagramCard caption="Figure 3.8 — Modular Monolith layers route HTTP through DI-injected Services/Repositories into a bounded Connection Pool.">
+  <svg viewBox="0 0 820 180" role="img" aria-label="Modular monolith DI layers and bounded database connection pool">
+    <rect x="10" y="10" width="800" height="160" rx="10" fill="var(--bg-subtle)" stroke="var(--border)" />
+
+    <rect x="28" y="32" width="175" height="116" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" />
+    <text x="115" y="58" textAnchor="middle" fill="var(--accent-strong)" fontSize="12.5" fontWeight="700" fontFamily="sans-serif">HTTP Controller</text>
+    <text x="115" y="86" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">Validate + AuthZ</text>
+    <text x="115" y="112" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Calls public module API</text>
+
+    <line x1="203" y1="90" x2="241" y2="90" stroke="var(--accent)" strokeWidth="2" />
+    <polygon points="241,90 231,85 231,95" fill="var(--accent)" />
+
+    <rect x="245" y="32" width="180" height="116" rx="8" fill="var(--bg-surface)" stroke="var(--border-strong)" />
+    <text x="335" y="58" textAnchor="middle" fill="var(--text-primary)" fontSize="12.5" fontWeight="700" fontFamily="sans-serif">Service (DI Ports)</text>
+    <text x="335" y="86" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">Business rules</text>
+    <text x="335" y="112" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Swappable test doubles</text>
+
+    <line x1="425" y1="90" x2="463" y2="90" stroke="var(--warning)" strokeWidth="2" />
+    <polygon points="463,90 453,85 453,95" fill="var(--warning)" />
+
+    <rect x="467" y="32" width="165" height="116" rx="8" fill="var(--warning-soft)" stroke="var(--warning)" />
+    <text x="549" y="58" textAnchor="middle" fill="var(--warning)" fontSize="12.5" fontWeight="700" fontFamily="sans-serif">DB Pool (max=10)</text>
+    <text x="549" y="86" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">acquire / finally</text>
+    <text x="549" y="112" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Zero leaked sockets</text>
+
+    <line x1="632" y1="90" x2="668" y2="90" stroke="var(--success)" strokeWidth="2" />
+    <polygon points="668,90 658,85 658,95" fill="var(--success)" />
+
+    <rect x="672" y="32" width="122" height="116" rx="8" fill="var(--success-soft)" stroke="var(--success)" />
+    <text x="733" y="58" textAnchor="middle" fill="var(--success)" fontSize="12.5" fontWeight="700" fontFamily="sans-serif">PostgreSQL</text>
+    <text x="733" y="86" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">Keyset index</text>
+    <text x="733" y="112" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">ACID + Outbox</text>
+  </svg>
+</DiagramCard>
+
+</TopicSection>
+
+<TopicSection id="m03-p4-sec-d" letter="D" title="Practical Examples (Interactive)">
+
+#### Example 1: DI-Wired Order Service With Keyset Pagination & Async Queue (TypeScript Reference)
+
+<CodeBlock
+  lang="typescript"
+  code={`export interface OrderRow {
+  readonly id: string;
+  readonly createdAt: string;
+  readonly totalCents: number;
+}
+
+export interface OrderRepository {
+  listPage(params: { tenantId: string; cursorCreatedAt?: string; cursorId?: string; limit: number }): Promise<OrderRow[]>;
+}
+
+export interface JobQueue {
+  enqueue(name: string, payload: Record<string, unknown>, idempotencyKey: string): Promise<void>;
+}
+
+// Explicit constructor DI: easy to unit-test without a real database or Redis
+export class OrderService {
+  constructor(
+    private readonly repo: OrderRepository,
+    private readonly queue: JobQueue
+  ) {}
+
+  async listOrders(tenantId: string, cursorCreatedAt?: string, cursorId?: string, requestedLimit = 20) {
+    const safeLimit = Number.isFinite(requestedLimit) ? requestedLimit : 20;
+    const limit = Math.min(Math.max(1, Math.trunc(safeLimit)), 100);
+    const rows = await this.repo.listPage({ tenantId, cursorCreatedAt, cursorId, limit: limit + 1 });
+    const hasMore = rows.length > limit;
+    const items = hasMore ? rows.slice(0, limit) : rows;
+    const last = items.at(-1);
+    return {
+      items,
+      nextCursor: hasMore && last ? { createdAt: last.createdAt, id: last.id } : null
+    };
+  }
+
+  async scheduleReceipt(tenantId: string, orderId: string) {
+    await this.queue.enqueue("send-receipt", { tenantId, orderId }, "receipt:" + orderId);
+    return { status: "accepted" as const };
+  }
+}`}
+/>
+
+#### Example 2: Keyset Cursor Pagination + Allowlisted Filter & Sort Builder (`buildCursorListSpec`)
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// Models O(log n) keyset cursor pagination + allowlisted filtering and deterministic tie-breaker sort
+const ALLOWED_STATUSES = new Set(["pending", "paid", "shipped"]);
+const SORT_FIELDS = new Map([
+  ["createdAt", "created_at"],
+  ["totalCents", "total_cents"]
+]);
+
+function buildCursorListSpec({ tenantId, status, sortBy = "createdAt", direction = "DESC", limit = 20, cursor }) {
+  if (typeof tenantId !== "string" || !tenantId.trim()) throw new TypeError("tenantId required");
+  if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+    throw new RangeError("limit must be an integer between 1 and 100");
+  }
+  const sortCol = SORT_FIELDS.get(sortBy);
+  if (!sortCol) throw new RangeError("Invalid sortBy: " + sortBy);
+  const dir = direction === "ASC" ? "ASC" : direction === "DESC" ? "DESC" : null;
+  if (!dir) throw new RangeError("direction must be ASC or DESC");
+
+  const params = [tenantId.trim()];
+  const clauses = ["tenant_id = $1"];
+  if (status !== undefined) {
+    if (!ALLOWED_STATUSES.has(status)) throw new RangeError("Invalid status filter");
+    params.push(status);
+    clauses.push("status = $" + params.length);
+  }
+  if (cursor) {
+    if (typeof cursor.value !== "string" || typeof cursor.id !== "string" || !cursor.id) {
+      throw new TypeError("cursor must have string value and id");
+    }
+    const op = dir === "DESC" ? "<" : ">";
+    params.push(cursor.value, cursor.id);
+    clauses.push("(" + sortCol + ", id) " + op + " ($" + (params.length - 1) + ", $" + params.length + ")");
+  }
+  params.push(limit + 1);
+  return {
+    sql: "SELECT id, status, total_cents FROM orders WHERE " + clauses.join(" AND ") +
+      " ORDER BY " + sortCol + " " + dir + ", id " + dir + " LIMIT $" + params.length,
+    params
+  };
+}
+
+const spec = buildCursorListSpec({ tenantId: "t1", status: "paid", limit: 25, cursor: { value: "2026-11-20T00:00Z", id: "ord_9" } });
+console.log("SQL:", spec.sql);
+console.log("Params count:", spec.params.length);`}
+/>
+
+#### Example 3: Bounded Database Connection Pool (`createConnectionPool`)
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// Models bounded connection pooling: reuse idle sockets, cap max connections, reject leaks
+function createConnectionPool(maxSize = 2) {
+  if (!Number.isInteger(maxSize) || maxSize < 1) throw new TypeError("maxSize must be integer >= 1");
+  let created = 0;
+  const idle = [];
+  const inUse = new Set();
+
+  return {
+    acquire() {
+      if (idle.length > 0) {
+        const conn = idle.pop();
+        inUse.add(conn);
+        return conn;
+      }
+      if (created < maxSize) {
+        const conn = { id: "conn_" + (++created) };
+        inUse.add(conn);
+        return conn;
+      }
+      throw new Error("Pool exhausted (max=" + maxSize + ")");
+    },
+    release(conn) {
+      if (!inUse.has(conn)) throw new Error("Cannot release unowned or already-released connection");
+      inUse.delete(conn);
+      idle.push(conn);
+    },
+    stats() {
+      return { created, idle: idle.length, inUse: inUse.size };
+    }
+  };
+}
+
+const pool = createConnectionPool(2);
+const c1 = pool.acquire();
+const c2 = pool.acquire();
+pool.release(c1);
+const c3 = pool.acquire(); // reuses conn_1 without creating a 3rd connection
+console.log("Reused c1?", c3.id === c1.id, "| Pool stats:", pool.stats());`}
+/>
+
+#### Example 4: Background Job Queue With Idempotency, Exponential Backoff & DLQ (`createJobQueue`)
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// Models at-least-once job queue with idempotency dedup, exponential backoff, and DLQ
+function createJobQueue(maxAttempts = 3, baseDelayMs = 100) {
+  if (!Number.isInteger(maxAttempts) || maxAttempts < 1) throw new TypeError("maxAttempts must be integer >= 1");
+  if (!Number.isInteger(baseDelayMs) || baseDelayMs < 1) throw new TypeError("baseDelayMs must be integer >= 1");
+  const seenKeys = new Set();
+  const pending = [];
+  const dlq = [];
+  const completed = [];
+
+  return {
+    enqueue(idempotencyKey, payload) {
+      if (typeof idempotencyKey !== "string" || !idempotencyKey.trim()) {
+        throw new TypeError("idempotencyKey required");
+      }
+      if (seenKeys.has(idempotencyKey)) return { queued: false, reason: "duplicate" };
+      seenKeys.add(idempotencyKey);
+      pending.push({ idempotencyKey, payload, attempts: 0, nextDelayMs: 0 });
+      return { queued: true };
+    },
+    processNext(handler) {
+      if (typeof handler !== "function") throw new TypeError("handler must be a function");
+      if (pending.length === 0) return null;
+      const job = pending.shift();
+      job.attempts++;
+      try {
+        handler(job.payload);
+        completed.push(job.idempotencyKey);
+        return { status: "completed", attempts: job.attempts };
+      } catch (err) {
+        if (job.attempts >= maxAttempts) {
+          dlq.push({ ...job, error: err instanceof Error ? err.message : String(err) });
+          return { status: "dlq", attempts: job.attempts };
+        }
+        job.nextDelayMs = baseDelayMs * (2 ** (job.attempts - 1));
+        pending.push(job);
+        return { status: "retry", attempts: job.attempts, nextDelayMs: job.nextDelayMs };
+      }
+    },
+    summary() {
+      return { pending: pending.length, completed: completed.length, dlq: dlq.length };
+    }
+  };
+}
+
+const jq = createJobQueue(3, 50);
+jq.enqueue("receipt:1", { orderId: 1 });
+const dup = jq.enqueue("receipt:1", { orderId: 1 });
+const r1 = jq.processNext(() => { throw new Error("SMTP timeout"); });
+const r2 = jq.processNext(() => { throw new Error("SMTP timeout"); });
+const r3 = jq.processNext(() => { throw new Error("SMTP timeout"); });
+console.log("Dup blocked?", !dup.queued, "| Step 1:", r1, "| Step 3:", r3, "| Summary:", jq.summary());`}
+/>
+
+</TopicSection>
+
+<TopicSection id="m03-p4-sec-e" letter="E" title="Step-by-Step Walkthrough">
+
+Trace **`createJobQueue(3, 50)`** (**Example 4**) handling a flaky SMTP server:
+
+1. **Idempotent Enqueue:** First `enqueue("receipt:1")` registers the key in `seenKeys` (`queued: true`); second call with the same key returns `{ queued: false, reason: "duplicate" }`.
+2. **Attempt 1 Fails:** `attempts` becomes `1 < 3`, so the job is re-queued with `nextDelayMs = 50 * 2^0 = 50ms`.
+3. **Attempt 2 Fails:** `attempts` becomes `2 < 3`, doubling backoff to `100ms`.
+4. **Attempt 3 Hits `maxAttempts`:** Instead of looping forever and blocking the queue, the job moves to `dlq` (`{ status: "dlq", attempts: 3 }`) for operator inspection and replay.
+
+</TopicSection>
+
+<TopicSection id="m03-p4-sec-f" letter="F" title="Real-World Use Cases">
+
+#### Scenario 1: Replacing Slow `OFFSET` Pagination & Sync PDF Generation on `/exports`
+
+**Problem:** An admin orders endpoint takes 3.2 seconds at page 500 (`OFFSET 10000`), and exporting PDFs synchronously in Express causes `504 Gateway Timeout` errors under load.
+
+**Production Solution:** Switch list reads to `(created_at, id)` **keyset cursor pagination** backed by a composite index, and move PDF generation to a BullMQ background job returning `202 Accepted` with a pre-signed S3 download link when ready.
+
+#### Scenario 2: Preventing `max_connections` Exhaustion Across 12 Node Replicas
+
+**Problem:** A service scales to 12 Kubernetes pods, each configured with `pool.max = 25` (`300` total connections), crashing a PostgreSQL instance with `max_connections = 200` during traffic bursts.
+
+**Production Solution:** Size each pod's pool to `max = 10` (`120` total) or introduce **PgBouncer** in transaction-pooling mode, and release every connection in a `try/finally` block.
+
+</TopicSection>
+
+<TopicSection id="m03-p4-sec-g" letter="G" title="Common Mistakes">
+
+- **Using `OFFSET 50000` on large tables:** Forces the database to scan and discard 50,000 rows per request.
+- **Forgetting `finally { pool.release(conn); }`:** Leaks pool slots on exceptions until every request hangs waiting for a connection.
+- **Running non-idempotent background jobs without dedup keys:** Sends duplicate emails or double charges when at-least-once queues retry.
+- **Trusting `req.file.originalname` or `Content-Type` on file uploads:** Allows path traversal and spoofed executables.
+- **Splitting into 15 microservices on day one:** Adds distributed latency, split-brain failures, and operational tax when a **Modular Monolith** fits cleanly.
+
+</TopicSection>
+
+<TopicSection id="m03-p4-sec-h" letter="H" title="Best Practices">
+
+- **Start with a Modular Monolith** using strict module boundaries and constructor DI; extract microservices only when scaling or team independence demands it.
+- **Use keyset cursor pagination** (`limit` capped &lt;= 100, deterministic tie-breaker `id`) for feeds and large tables.
+- **Enforce `try/finally` connection release**, bounded pool sizes, and pre-signed URLs for large file uploads.
+- **Lock critical flows with Unit + DB Integration + API tests** using deterministic DI fakes for external vendors and real DB containers for SQL constraints.
+
+</TopicSection>
+
+<TopicSection id="m03-p4-sec-i" letter="I" title="Performance & Scalability">
+
+- **Eliminate N+1 Queries:** Batch child lookups (`WHERE order_id = ANY($1)`) or use SQL joins instead of querying inside a `for` loop.
+- **Keyset Index Seeks:** Composite indexes matching `(tenant_id, created_at DESC, id DESC)` keep page 1 and page 10,000 equally fast.
+- **Worker Concurrency & Backpressure:** Bound background worker concurrency and WebSocket room fan-out via Redis Pub/Sub so burst traffic degrades smoothly into queue latency rather than crashing pods.
+
+</TopicSection>
+
+<TopicSection id="m03-p4-sec-j" letter="J" title="Security Considerations">
+
+- **File Upload Hardening:** Enforce max byte limits, verify magic bytes (JPEG/PNG/PDF signatures), store with generated UUID keys outside web roots, and serve user uploads from an isolated bucket/domain with `Content-Disposition: attachment` and `X-Content-Type-Options: nosniff`.
+- **WebSocket Auth & Limits:** Authenticate the WebSocket upgrade handshake (`cookie` / short-lived ticket), re-check authorization on room joins, and cap frame size + message rate per socket.
+- **Filter/Sort Allowlists:** Never pass raw query keys into `ORDER BY` or dynamic SQL `WHERE` clauses.
+
+</TopicSection>
+
+<TopicSection id="m03-p4-sec-k" letter="K" title="Comparisons & Decision Tables">
+
+#### 1. Offset vs. Keyset (Cursor) Pagination
+
+| Dimension | Offset (`LIMIT/OFFSET`) | Keyset / Cursor (`WHERE (ts, id) < ...`) |
+| --- | --- | --- |
+| **Deep Page Speed** | Degrades (`O(offset + limit)`) | Constant (`O(log n)` index seek) |
+| **Live Inserts Stability** | Can skip or duplicate rows | Stable, zero duplicates |
+| **Random Page Jump (`Page 42`)** | Easy | Not supported (Next/Prev only) |
+
+#### 2. Modular Monolith vs. Microservices
+
+| Dimension | Modular Monolith | Microservices |
+| --- | --- | --- |
+| **Call Latency & Transactions** | In-process microseconds, ACID joins | Network hops, eventual consistency (Saga/Outbox) |
+| **Deployment & Ops** | Single CI/CD pipeline | Independent deploys, service mesh, distributed tracing |
+| **Best Fit** | Small–medium teams, rapid iteration | Large independent teams or isolated compute scaling |
+
+#### 3. Backend Testing Layers
+
+| Layer | Target | Dependencies | Speed |
+| --- | --- | --- | --- |
+| **Unit Tests** | Pure helpers & DI services | In-memory fakes | < 1ms |
+| **Integration Tests** | Repositories, SQL, migrations | Real Postgres/Redis container | 10–100ms |
+| **API Tests** | Routes, Auth, Zod, Status codes | Ephemeral Express app + test DB | 20–150ms |
+
+</TopicSection>
+
+<TopicSection id="m03-p4-sec-l" letter="L" title="Tips to Remember (Mnemonics & Mental Models)">
+
+- **"Cursor pagination + unique `id` tie-breaker = fast at page 10,000."**
+- **"Always `release()` pool connections in `finally`."**
+- **"Queues deliver at-least-once -> make every job idempotent + cap retries with a DLQ."**
+- **"Modular Monolith first; microservices only when team/scale pain is real."**
+
+</TopicSection>
+
+<TopicSection id="m03-p4-sec-mn" letter="M/N" title="Interview Questions & Detailed Answers">
+
+<InterviewSection lessonId="m03-p4" />
+
+</TopicSection>
+
+<TopicSection id="m03-p4-sec-o" letter="O" title="Practical Exercises">
+
+<ExerciseCard
+  title="Exercise 1: Magic-Byte File Upload Validator (validateUpload)"
+  prompt={
+    <p>
+      Implement <code>validateUpload(&#123; sizeBytes, maxBytes, magicBytes, declaredMime &#125;)</code> that enforces size bounds, verifies PNG/PDF magic bytes against <code>declaredMime</code>, and returns a safe UUID-like storage key without trusting user filenames.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function validateUpload({ sizeBytes, maxBytes = 5_000_000, magicBytes, declaredMime }) {
+  if (!Number.isInteger(maxBytes) || maxBytes < 1) {
+    throw new TypeError("maxBytes must be an integer >= 1");
+  }
+  if (!Number.isInteger(sizeBytes) || sizeBytes < 1 || sizeBytes > maxBytes) {
+    throw new RangeError("File size must be between 1 and " + maxBytes + " bytes");
+  }
+  if (!(magicBytes instanceof Uint8Array) || magicBytes.length < 4) {
+    throw new TypeError("magicBytes must be Uint8Array with >= 4 bytes");
+  }
+  const isPng =
+    magicBytes[0] === 0x89 && magicBytes[1] === 0x50 && magicBytes[2] === 0x4e && magicBytes[3] === 0x47;
+  const isPdf =
+    magicBytes[0] === 0x25 && magicBytes[1] === 0x50 && magicBytes[2] === 0x44 && magicBytes[3] === 0x46;
+
+  const ext = declaredMime === "image/png" && isPng ? "png" : declaredMime === "application/pdf" && isPdf ? "pdf" : null;
+  if (!ext) return { ok: false, reason: "Magic bytes do not match declared MIME type" };
+  return { ok: true, ext, storageKey: "uploads/" + crypto.randomUUID() + "." + ext };
+}
+
+const pngMagic = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
+const spoofed = validateUpload({ sizeBytes: 1024, magicBytes: new Uint8Array([0x3c, 0x73, 0x63, 0x72]), declaredMime: "image/png" });
+console.log("Valid PNG?", validateUpload({ sizeBytes: 1024, magicBytes: pngMagic, declaredMime: "image/png" }).ok, "| Spoofed blocked?", !spoofed.ok);`}
+  />
+</ExerciseCard>
+
+<ExerciseCard
+  title="Exercise 2: Lightweight DI Container & WebSocket Heartbeat Tracker (createContainer, createWsTracker)"
+  prompt={
+    <p>
+      Implement <code>createContainer()</code> supporting singleton/factory registration with circular-dependency detection, plus <code>createWsTracker(timeoutMs)</code> to prune stale WebSocket connections missing heartbeats.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function createContainer() {
+  const factories = new Map();
+  const instances = new Map();
+  const resolving = new Set();
+
+  return {
+    register(name, factory) {
+      if (typeof name !== "string" || !name.trim() || typeof factory !== "function") {
+        throw new TypeError("Invalid registration");
+      }
+      factories.set(name, factory);
+    },
+    resolve(name) {
+      if (instances.has(name)) return instances.get(name);
+      if (!factories.has(name)) throw new Error("Unregistered dependency: " + name);
+      if (resolving.has(name)) throw new Error("Circular dependency detected: " + name);
+      resolving.add(name);
+      try {
+        const inst = factories.get(name)(this);
+        instances.set(name, inst);
+        return inst;
+      } finally {
+        resolving.delete(name);
+      }
+    }
+  };
+}
+
+function createWsTracker(timeoutMs) {
+  if (!Number.isInteger(timeoutMs) || timeoutMs < 1) throw new TypeError("timeoutMs must be positive integer");
+  const sockets = new Map();
+  return {
+    heartbeat(id, nowMs) {
+      sockets.set(id, nowMs);
+    },
+    pruneStale(nowMs) {
+      const removed = [];
+      for (const [id, lastMs] of sockets.entries()) {
+        if (nowMs - lastMs > timeoutMs) {
+          sockets.delete(id);
+          removed.push(id);
+        }
+      }
+      return removed;
+    }
+  };
+}
+
+const c = createContainer();
+c.register("repo", () => ({ kind: "pg" }));
+c.register("svc", (di) => ({ repo: di.resolve("repo") }));
+const ws = createWsTracker(5000);
+ws.heartbeat("s1", 1000);
+ws.heartbeat("s2", 4000);
+console.log("DI wired?", c.resolve("svc").repo.kind === "pg", "| Pruned at 7000ms:", ws.pruneStale(7000));`}
+  />
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m03-p4-sec-p" letter="P" title="Advanced Challenge">
+
+<Callout variant="warn" title="Senior Challenge: Scaling a Slow Monolith Without Premature Microservices">
+  <p>
+    A growing SaaS backend suffers from 4-second <code>OFFSET</code> pagination on a 10M-row table, <code>504</code> timeouts on synchronous invoice PDF/email requests, DB <code>max_connections</code> exhaustion during traffic spikes, and zero integration tests.
+  </p>
+  <p>
+    <strong>Your Task:</strong> Design a clean evolution keeping a <strong>Modular Monolith</strong> while fixing query latency, async job processing, pool sizing, and the automated testing pyramid.
+  </p>
+</Callout>
+
+<ExerciseCard
+  title="Reference Architecture Notes"
+  prompt={null}
+  buttonLabel="Reveal Approach"
+  hideLabel="Hide Approach"
+>
+  <ol>
+    <li>Replace deep <code>OFFSET</code> with <code>(created_at, id)</code> keyset cursor pagination + composite tenant indexes, and bound DB connection pools per pod (with PgBouncer if replica counts grow).</li>
+    <li>Move PDF/email work into a Redis/BullMQ queue returning <code>202 Accepted</code>, using idempotency keys, exponential backoff + jitter, and a DLQ.</li>
+    <li>Organize domains as a Modular Monolith with constructor DI so unit tests run in milliseconds and Testcontainers integration + Supertest API tests validate real SQL and HTTP contracts.</li>
+  </ol>
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m03-p4-sec-q" letter="Q" title="Summary & Key Takeaways">
+
+- **Query Bounds:** Prefer keyset cursor pagination with deterministic `id` tie-breakers, allowlisted filters/sorts, and composite indexes.
+- **Async & Real-Time:** Offload slow work to idempotent background queues (`202 Accepted` + backoff + DLQ), stream/pre-sign file uploads with magic-byte checks, and prune WebSockets with heartbeats.
+- **Architecture & Pooling:** Size DB connection pools safely with `try/finally` releases, and build a DI-wired Modular Monolith before paying microservice complexity.
+- **Testing & Speed:** Combine Unit + real-DB Integration + API tests, profile with `EXPLAIN ANALYZE`, and eliminate N+1 queries.
+
+</TopicSection>

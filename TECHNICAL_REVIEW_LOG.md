@@ -287,3 +287,16 @@ For each review, add:
   - Node.js `node:crypto` (`scryptSync`, `timingSafeEqual`): `https://nodejs.org/api/crypto.html`
   - Fetch Standard / MDN CORS (`Access-Control-Allow-Origin`, `Vary`, `Origin: null`): `https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS`
 - **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m03-p3.mdx`, `m03-p3.questions.ts`, and `m03-p3.coverage.ts`.
+
+---
+
+### Module 03 Part 4 (M03-P4) Technical Review Log — 2026-11-27
+
+- **Scope:** Pagination, Filtering, Sorting, File uploads, Background jobs, Queue systems, WebSockets, Connection pooling, Microservices, Modular monolith, Backend design patterns, Dependency injection, Testing, Unit tests, Integration tests, API tests, Performance optimization.
+- **Official Documentation Verified (`M3`):**
+  - PostgreSQL Keyset Pagination & Composite Indexes: `https://www.postgresql.org/docs/current/indexes-multicolumn.html`
+  - node-postgres (`pg.Pool`) Connection Pooling: `https://node-postgres.com/features/pooling`
+  - BullMQ Retries, Backoff & Dead-Letter Patterns: `https://docs.bullmq.io/guide/retrying-failing-jobs`
+  - AWS S3 Presigned Upload URLs & OWASP File Upload Cheat Sheet: `https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-presigned-url.html` and `https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html`
+  - Node.js Performance & `monitorEventLoopDelay`: `https://nodejs.org/api/perf_hooks.html`
+- **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m03-p4.mdx`, `m03-p4.questions.ts`, and `m03-p4.coverage.ts`.

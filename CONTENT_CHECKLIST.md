@@ -195,23 +195,23 @@ Split into 4 parts:
 - [x] SQL injection
 - [x] NoSQL injection
 - [x] API security
-- [ ] Pagination
-- [ ] Filtering
-- [ ] Sorting
-- [ ] File uploads
-- [ ] Background jobs
-- [ ] Queue systems
-- [ ] WebSockets
-- [ ] Connection pooling
-- [ ] Microservices
-- [ ] Modular monolith
-- [ ] Backend design patterns
-- [ ] Dependency injection
-- [ ] Testing
-- [ ] Unit tests
-- [ ] Integration tests
-- [ ] API tests
-- [ ] Performance optimization
+- [x] Pagination
+- [x] Filtering
+- [x] Sorting
+- [x] File uploads
+- [x] Background jobs
+- [x] Queue systems
+- [x] WebSockets
+- [x] Connection pooling
+- [x] Microservices
+- [x] Modular monolith
+- [x] Backend design patterns
+- [x] Dependency injection
+- [x] Testing
+- [x] Unit tests
+- [x] Integration tests
+- [x] API tests
+- [x] Performance optimization
 
 ---
 
