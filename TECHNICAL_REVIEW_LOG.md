@@ -431,3 +431,14 @@ For each review, add:
   - SQL Server Transaction Locking, Row Versioning (`RCSI` / `SNAPSHOT`), & Lock Escalation: `https://learn.microsoft.com/en-us/sql/relational-databases/sql-server-transaction-locking-and-row-versioning-guide`
   - SQL Server Deadlocks Guide (`Error 1205`, `DEADLOCK_PRIORITY`, `system_health`): `https://learn.microsoft.com/en-us/sql/relational-databases/sql-server-deadlocks-guide`
 - **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m07-p2.mdx`, `m07-p2.questions.ts`, and `m07-p2.coverage.ts`.
+
+---
+
+### Module 07 Part 3 (M07-P3) Technical Review Log — 2026-11-27
+
+- **Scope:** Query execution plans, Query optimization, Statistics, Execution plan analysis, Index maintenance, Fragmentation, Parameter sniffing, Query tuning, Partitioning, SQL Server Agent, Backup and recovery, Performance monitoring.
+- **Official Documentation Verified (`M3`):**
+  - SQL Server Query Store, Execution Plans, Statistics & Parameter Sensitive Plan (PSP) Optimization: `https://learn.microsoft.com/en-us/sql/relational-databases/performance/monitoring-performance-by-using-the-query-store`, `https://learn.microsoft.com/en-us/sql/relational-databases/statistics/statistics`, and `https://learn.microsoft.com/en-us/sql/relational-databases/performance/parameter-sensitive-plan-optimization`
+  - SQL Server Index Maintenance (`REORGANIZE` vs. `REBUILD`, 5%/30% Fragmentation) & Partitioning (`RANGE RIGHT`, `SWITCH`): `https://learn.microsoft.com/en-us/sql/relational-databases/indexes/reorganize-and-rebuild-indexes` and `https://learn.microsoft.com/en-us/sql/relational-databases/partitions/partitioned-tables-and-indexes`
+  - SQL Server Agent, Recovery Models, PITR (`NORECOVERY`/`STOPAT`), & Wait Stats (`sys.dm_os_wait_stats`): `https://learn.microsoft.com/en-us/sql/ssms/agent/sql-server-agent`, `https://learn.microsoft.com/en-us/sql/relational-databases/backup-restore/restore-a-sql-server-database-to-a-point-in-time-full-recovery-model`, and `https://learn.microsoft.com/en-us/sql/relational-databases/system-dynamic-management-views/sys-dm-os-wait-stats-transact-sql`
+- **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m07-p3.mdx`, `m07-p3.questions.ts`, and `m07-p3.coverage.ts`.

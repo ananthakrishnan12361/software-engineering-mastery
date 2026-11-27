@@ -55,6 +55,8 @@ import M07P1Mdx from "./modules/07-mssql/m07-p1.mdx";
 import m07p1Raw from "./modules/07-mssql/m07-p1.mdx?raw";
 import M07P2Mdx from "./modules/07-mssql/m07-p2.mdx";
 import m07p2Raw from "./modules/07-mssql/m07-p2.mdx?raw";
+import M07P3Mdx from "./modules/07-mssql/m07-p3.mdx";
+import m07p3Raw from "./modules/07-mssql/m07-p3.mdx?raw";
 import { m01p1Questions } from "./interviews/m01-p1.questions";
 import { m01p2Questions } from "./interviews/m01-p2.questions";
 import { m01p3Questions } from "./interviews/m01-p3.questions";
@@ -79,6 +81,7 @@ import { m06p1Questions } from "./interviews/m06-p1.questions";
 import { m06p2Questions } from "./interviews/m06-p2.questions";
 import { m07p1Questions } from "./interviews/m07-p1.questions";
 import { m07p2Questions } from "./interviews/m07-p2.questions";
+import { m07p3Questions } from "./interviews/m07-p3.questions";
 import { SYLLABUS_MODULES } from "./syllabus";
 
 export interface HandbookCatalog {
@@ -241,11 +244,11 @@ const modules: ModuleRecord[] = [
     number: 7,
     title: "Microsoft SQL Server (MSSQL)",
     category: "databases",
-    partSummary: "Parts 1–3 of 3 (Parts 1–2 Complete)",
+    partSummary: "Parts 1–3 of 3 (Complete)",
     scopeSummary:
-      "Scope (Parts 1–3): Microsoft SQL Server — Architecture, SQLOS, 8 KB Pages, 64 KB Extents, Clustered/Non-Clustered/Heap Tables, T-SQL Objects, Transactions, Locking, Isolation Levels, Deadlocks & Tuning",
-    lead: "Master Microsoft SQL Server internals: SQLOS, 8 KB pages, 64 KB extents, Heap vs. Clustered vs. INCLUDE indexes, T-SQL objects, XACT_ABORT, lock escalation, RCSI/SNAPSHOT row versioning, and deadlocks.",
-    lessonIds: ["m07-p1", "m07-p2"]
+      "Scope (Parts 1–3): Complete Microsoft SQL Server — Architecture, SQLOS, 8 KB Pages, 64 KB Extents, Clustered/Non-Clustered/Heap Tables, T-SQL Objects, Transactions, Locking, Isolation Levels, Deadlocks, Execution Plans, Index Maintenance & PITR",
+    lead: "Master Microsoft SQL Server end-to-end: SQLOS, 8 KB pages, Heap/Clustered/INCLUDE indexes, T-SQL objects, XACT_ABORT, RCSI/SNAPSHOT, deadlocks, Query Store, parameter sniffing, 5/30 index maintenance, Partition SWITCH, and Full/Diff/Log PITR.",
+    lessonIds: ["m07-p1", "m07-p2", "m07-p3"]
   }
 ];
 
@@ -1639,8 +1642,65 @@ const lessons: LessonRecord[] = [
       }
     ],
     prevLessonId: "m07-p1",
-    nextLessonId: null,
+    nextLessonId: "m07-p3",
     Content: M07P2Mdx
+  },
+  {
+    id: "m07-p3",
+    moduleId: "module-7",
+    moduleNumber: 7,
+    moduleTitle: "Microsoft SQL Server (MSSQL)",
+    partLabel: "Lesson M07-P3",
+    title: "Part 3: Execution Plans, Statistics, Parameter Sniffing, Index Maintenance, Partitioning & PITR",
+    category: "databases",
+    duration: "95 min (40m theory · 35m practice · 20m review)",
+    objectives: [
+      "Analyze Estimated vs. Actual Execution Plans, Query Store history, statistics histograms, and memory-grant `tempdb` spills.",
+      "Resolve `CONVERT_IMPLICIT` scans and parameter sniffing using `INCLUDE`, `OPTION (RECOMPILE)`, `OPTIMIZE FOR UNKNOWN`, and SQL 2022 PSP.",
+      "Schedule threshold-driven index maintenance (`5%–30% REORGANIZE` + stats, `>30% REBUILD`) and `RANGE RIGHT` Partition `SWITCH` jobs via SQL Server Agent.",
+      "Design `FULL` recovery model Full/Differential/Log (`.trn`) PITR restore chains (`NORECOVERY` -> `RECOVERY, STOPAT`) and wait-stats monitoring."
+    ],
+    sections: [
+      { id: "m07-p3-objectives", title: "Learning Objectives" },
+      { id: "m07-p3-sec-a", letter: "A", title: "Topic Introduction" },
+      { id: "m07-p3-sec-b", letter: "B", title: "Fundamentals (Simple Mental Models)" },
+      { id: "m07-p3-sec-c", letter: "C", title: "Internal Working & Architecture" },
+      { id: "m07-p3-sec-d", letter: "D", title: "Practical Examples (Interactive)" },
+      { id: "m07-p3-sec-e", letter: "E", title: "Step-by-Step Walkthrough" },
+      { id: "m07-p3-sec-f", letter: "F", title: "Real-World Use Cases" },
+      { id: "m07-p3-sec-g", letter: "G", title: "Common Mistakes" },
+      { id: "m07-p3-sec-h", letter: "H", title: "Best Practices" },
+      { id: "m07-p3-sec-i", letter: "I", title: "Performance & Scalability" },
+      { id: "m07-p3-sec-j", letter: "J", title: "Security Considerations" },
+      { id: "m07-p3-sec-k", letter: "K", title: "Comparisons & Decision Tables" },
+      { id: "m07-p3-sec-l", letter: "L", title: "Tips to Remember (Mnemonics & Mental Models)" },
+      { id: "m07-p3-sec-mn", letter: "M/N", title: "Interview Questions & Detailed Answers" },
+      { id: "m07-p3-sec-o", letter: "O", title: "Practical Exercises" },
+      { id: "m07-p3-sec-p", letter: "P", title: "Advanced Challenge" },
+      { id: "m07-p3-sec-q", letter: "Q", title: "Summary & Key Takeaways" },
+      { id: "m07-p3-mastery", title: "Mastery Assessment" }
+    ],
+    masteryItems: [
+      {
+        id: "m07-p3-m1",
+        label: "I can interpret Actual Execution Plans, Query Store regressions, CONVERT_IMPLICIT, and tempdb spills."
+      },
+      {
+        id: "m07-p3-m2",
+        label: "I can diagnose parameter sniffing and choose between PSP, RECOMPILE, OPTIMIZE FOR UNKNOWN, and plan forcing."
+      },
+      {
+        id: "m07-p3-m3",
+        label: "I can apply the 5%/30% index maintenance rule, RANGE RIGHT Partition SWITCH, and Full/Diff/Log PITR restores."
+      },
+      {
+        id: "m07-p3-m4",
+        label: "I completed all M07-P3 exercises and can triage SQL Server waits via sys.dm_os_wait_stats."
+      }
+    ],
+    prevLessonId: "m07-p2",
+    nextLessonId: null,
+    Content: M07P3Mdx
   }
 ];
 
@@ -1668,7 +1728,8 @@ const questionsByLesson: Record<string, InterviewQuestion[]> = {
   "m06-p1": m06p1Questions,
   "m06-p2": m06p2Questions,
   "m07-p1": m07p1Questions,
-  "m07-p2": m07p2Questions
+  "m07-p2": m07p2Questions,
+  "m07-p3": m07p3Questions
 };
 
 const allQuestions: InterviewQuestion[] = [
@@ -1695,7 +1756,8 @@ const allQuestions: InterviewQuestion[] = [
   ...m06p1Questions,
   ...m06p2Questions,
   ...m07p1Questions,
-  ...m07p2Questions
+  ...m07p2Questions,
+  ...m07p3Questions
 ];
 
 function mergeGlossaryEntries(...batches: GlossaryEntry[][]): GlossaryEntry[] {
@@ -1735,7 +1797,8 @@ const glossaryEntries: GlossaryEntry[] = mergeGlossaryEntries(
   extractGlossaryFromMdx(m06p1Raw, "m06-p1"),
   extractGlossaryFromMdx(m06p2Raw, "m06-p2"),
   extractGlossaryFromMdx(m07p1Raw, "m07-p1"),
-  extractGlossaryFromMdx(m07p2Raw, "m07-p2")
+  extractGlossaryFromMdx(m07p2Raw, "m07-p2"),
+  extractGlossaryFromMdx(m07p3Raw, "m07-p3")
 );
 
 function buildSearchRecords(): SearchRecord[] {
@@ -1778,6 +1841,7 @@ function buildSearchRecords(): SearchRecord[] {
   records.push(...extractSearchRecordsFromMdx(m06p2Raw, "m06-p2", lessons[21].title, 6));
   records.push(...extractSearchRecordsFromMdx(m07p1Raw, "m07-p1", lessons[22].title, 7));
   records.push(...extractSearchRecordsFromMdx(m07p2Raw, "m07-p2", lessons[23].title, 7));
+  records.push(...extractSearchRecordsFromMdx(m07p3Raw, "m07-p3", lessons[24].title, 7));
 
   for (const mod of SYLLABUS_MODULES) {
     for (const topic of mod.topics) {

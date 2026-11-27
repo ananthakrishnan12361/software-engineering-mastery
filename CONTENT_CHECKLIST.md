@@ -377,22 +377,22 @@ Split into 3 parts:
 - [x] Locking
 - [x] Isolation levels
 - [x] Deadlocks
-- [ ] Query execution plans
-- [ ] Query optimization
-- [ ] Statistics
-- [ ] Execution plan analysis
-- [ ] Index maintenance
-- [ ] Fragmentation
-- [ ] Parameter sniffing
-- [ ] Query tuning
+- [x] Query execution plans
+- [x] Query optimization
+- [x] Statistics
+- [x] Execution plan analysis
+- [x] Index maintenance
+- [x] Fragmentation
+- [x] Parameter sniffing
+- [x] Query tuning
 - [x] Temp tables
 - [x] Table variables
 - [x] CTEs
 - [x] Window functions
-- [ ] Partitioning
-- [ ] SQL Server Agent
-- [ ] Backup and recovery
-- [ ] Performance monitoring
+- [x] Partitioning
+- [x] SQL Server Agent
+- [x] Backup and recovery
+- [x] Performance monitoring
 
 ---
 
