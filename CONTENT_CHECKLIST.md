@@ -334,21 +334,21 @@ Split into 2 parts:
 - [x] Isolation levels
 - [x] Locking
 - [x] Deadlocks
-- [ ] Indexes
-- [ ] Composite indexes
-- [ ] Clustered indexes
-- [ ] Secondary indexes
-- [ ] Query optimization
-- [ ] EXPLAIN
-- [ ] Query execution
-- [ ] Stored procedures
-- [ ] Triggers
-- [ ] Views
-- [ ] Replication
-- [ ] Partitioning
-- [ ] Performance tuning
-- [ ] Connection management
-- [ ] Backup and recovery
+- [x] Indexes
+- [x] Composite indexes
+- [x] Clustered indexes
+- [x] Secondary indexes
+- [x] Query optimization
+- [x] EXPLAIN
+- [x] Query execution
+- [x] Stored procedures
+- [x] Triggers
+- [x] Views
+- [x] Replication
+- [x] Partitioning
+- [x] Performance tuning
+- [x] Connection management
+- [x] Backup and recovery
 
 ---
 

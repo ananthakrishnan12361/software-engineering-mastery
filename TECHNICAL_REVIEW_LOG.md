@@ -395,3 +395,16 @@ For each review, add:
   - MySQL 8.0 InnoDB Locking, Transaction Model, MVCC, Isolation Levels & Deadlocks: `https://dev.mysql.com/doc/refman/8.0/en/innodb-locking.html`, `https://dev.mysql.com/doc/refman/8.0/en/innodb-transaction-isolation-levels.html`, `https://dev.mysql.com/doc/refman/8.0/en/innodb-multi-versioning.html`, and `https://dev.mysql.com/doc/refman/8.0/en/innodb-deadlocks.html`
   - MySQL 8.0 Two-Phase Commit (`sync_binlog`, `innodb_flush_log_at_trx_commit`): `https://dev.mysql.com/doc/refman/8.0/en/innodb-parameters.html#sysvar_innodb_flush_log_at_trx_commit`
 - **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m06-p1.mdx`, `m06-p1.questions.ts`, and `m06-p1.coverage.ts`.
+
+---
+
+### Module 06 Part 2 (M06-P2) Technical Review Log — 2026-11-27
+
+- **Scope:** Indexes, Composite indexes, Clustered indexes, Secondary indexes, Query optimization, EXPLAIN, Query execution, Stored procedures, Triggers, Views, Replication, Partitioning, Performance tuning, Connection management, Backup and recovery.
+- **Official Documentation Verified (`M3`):**
+  - MySQL 8.0 Clustered & Secondary Indexes, Multiple-Column Indexes & `EXPLAIN` / `EXPLAIN ANALYZE`: `https://dev.mysql.com/doc/refman/8.0/en/innodb-index-types.html`, `https://dev.mysql.com/doc/refman/8.0/en/multiple-column-indexes.html`, and `https://dev.mysql.com/doc/refman/8.0/en/explain-output.html`
+  - MySQL 8.0 Hash Joins, Functional Indexes & Invisible Indexes: `https://dev.mysql.com/doc/refman/8.0/en/hash-joins.html`, `https://dev.mysql.com/doc/refman/8.0/en/create-index.html#create-index-functional-key-parts`, and `https://dev.mysql.com/doc/refman/8.0/en/invisible-indexes.html`
+  - MySQL 8.0 Stored Programs, Triggers & Views (`MERGE`/`TEMPTABLE`, `SQL SECURITY INVOKER`): `https://dev.mysql.com/doc/refman/8.0/en/stored-programs-views.html`
+  - MySQL 8.0 GTID Replication, Parallel Workers & Partitioning: `https://dev.mysql.com/doc/refman/8.0/en/replication-gtids.html` and `https://dev.mysql.com/doc/refman/8.0/en/partitioning-range.html`
+  - MySQL 8.0 Connection Management, Backup & Point-in-Time Recovery (`mysqldump`, MySQL Shell, `mysqlbinlog`, Percona XtraBackup): `https://dev.mysql.com/doc/refman/8.0/en/point-in-time-recovery.html` and `https://docs.percona.com/percona-xtrabackup/8.0/`
+- **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m06-p2.mdx`, `m06-p2.questions.ts`, and `m06-p2.coverage.ts`.

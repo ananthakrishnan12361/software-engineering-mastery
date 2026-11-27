@@ -49,6 +49,8 @@ import M05P4Mdx from "./modules/05-postgresql/m05-p4.mdx";
 import m05p4Raw from "./modules/05-postgresql/m05-p4.mdx?raw";
 import M06P1Mdx from "./modules/06-mysql/m06-p1.mdx";
 import m06p1Raw from "./modules/06-mysql/m06-p1.mdx?raw";
+import M06P2Mdx from "./modules/06-mysql/m06-p2.mdx";
+import m06p2Raw from "./modules/06-mysql/m06-p2.mdx?raw";
 import { m01p1Questions } from "./interviews/m01-p1.questions";
 import { m01p2Questions } from "./interviews/m01-p2.questions";
 import { m01p3Questions } from "./interviews/m01-p3.questions";
@@ -70,6 +72,7 @@ import { m05p2Questions } from "./interviews/m05-p2.questions";
 import { m05p3Questions } from "./interviews/m05-p3.questions";
 import { m05p4Questions } from "./interviews/m05-p4.questions";
 import { m06p1Questions } from "./interviews/m06-p1.questions";
+import { m06p2Questions } from "./interviews/m06-p2.questions";
 import { SYLLABUS_MODULES } from "./syllabus";
 
 export interface HandbookCatalog {
@@ -221,11 +224,11 @@ const modules: ModuleRecord[] = [
     number: 6,
     title: "MySQL",
     category: "databases",
-    partSummary: "Parts 1–2 of 2 (Part 1 Complete)",
+    partSummary: "Parts 1–2 of 2 (Complete)",
     scopeSummary:
-      "Scope (Parts 1–2): MySQL — Architecture, Storage Engines, InnoDB, MVCC, Transactions, ACID, Isolation Levels, Locking, Deadlocks, Indexes, Query Optimization, EXPLAIN, Replication & Performance Tuning",
-    lead: "Master MySQL InnoDB internals: buffer pool, redo/undo logs, MVCC, ACID transactions, isolation levels, row-level locking, deadlock detection, indexes, EXPLAIN, replication, and production performance tuning.",
-    lessonIds: ["m06-p1"]
+      "Scope (Parts 1–2): Complete MySQL — Architecture, Storage Engines, InnoDB, MVCC, Transactions, ACID, Isolation Levels, Locking, Deadlocks, Indexes, Query Optimization, EXPLAIN, Replication, Partitioning & PITR",
+    lead: "Master MySQL InnoDB internals end-to-end: buffer pool, redo/undo logs, MVCC, ACID, isolation levels, locks, deadlocks, clustered/secondary/covering indexes, EXPLAIN, GTID replication, partitioning, ProxySQL, and XtraBackup PITR.",
+    lessonIds: ["m06-p1", "m06-p2"]
   }
 ];
 
@@ -1448,8 +1451,65 @@ const lessons: LessonRecord[] = [
       }
     ],
     prevLessonId: "m05-p4",
-    nextLessonId: null,
+    nextLessonId: "m06-p2",
     Content: M06P1Mdx
+  },
+  {
+    id: "m06-p2",
+    moduleId: "module-6",
+    moduleNumber: 6,
+    moduleTitle: "MySQL",
+    partLabel: "Lesson M06-P2",
+    title: "Part 2: Indexes, Query Optimization, EXPLAIN, Stored Programs, Replication, Partitioning & PITR",
+    category: "databases",
+    duration: "95 min (40m theory · 35m practice · 20m review)",
+    objectives: [
+      "Design compact sequential primary keys and Equality-First, Range/Sort-Last composite covering indexes (`Using index`).",
+      "Interpret `EXPLAIN` / `EXPLAIN ANALYZE` output (`type`, `rows`, `filtered`, `Using filesort`, `Using temporary`) and eliminate full scans.",
+      "Evaluate trade-offs for Stored Procedures, Triggers, and `MERGE` vs. `TEMPTABLE` Views (`SQL SECURITY INVOKER`).",
+      "Architect GTID replication, `RANGE` partitioning, ProxySQL connection pooling, and Percona XtraBackup + binary log PITR."
+    ],
+    sections: [
+      { id: "m06-p2-objectives", title: "Learning Objectives" },
+      { id: "m06-p2-sec-a", letter: "A", title: "Topic Introduction" },
+      { id: "m06-p2-sec-b", letter: "B", title: "Fundamentals (Simple Mental Models)" },
+      { id: "m06-p2-sec-c", letter: "C", title: "Internal Working & Architecture" },
+      { id: "m06-p2-sec-d", letter: "D", title: "Practical Examples (Interactive)" },
+      { id: "m06-p2-sec-e", letter: "E", title: "Step-by-Step Walkthrough" },
+      { id: "m06-p2-sec-f", letter: "F", title: "Real-World Use Cases" },
+      { id: "m06-p2-sec-g", letter: "G", title: "Common Mistakes" },
+      { id: "m06-p2-sec-h", letter: "H", title: "Best Practices" },
+      { id: "m06-p2-sec-i", letter: "I", title: "Performance & Scalability" },
+      { id: "m06-p2-sec-j", letter: "J", title: "Security Considerations" },
+      { id: "m06-p2-sec-k", letter: "K", title: "Comparisons & Decision Tables" },
+      { id: "m06-p2-sec-l", letter: "L", title: "Tips to Remember (Mnemonics & Mental Models)" },
+      { id: "m06-p2-sec-mn", letter: "M/N", title: "Interview Questions & Detailed Answers" },
+      { id: "m06-p2-sec-o", letter: "O", title: "Practical Exercises" },
+      { id: "m06-p2-sec-p", letter: "P", title: "Advanced Challenge" },
+      { id: "m06-p2-sec-q", letter: "Q", title: "Summary & Key Takeaways" },
+      { id: "m06-p2-mastery", title: "Mastery Assessment" }
+    ],
+    masteryItems: [
+      {
+        id: "m06-p2-m1",
+        label: "I can explain InnoDB clustered vs. secondary double lookups and design covering composite indexes."
+      },
+      {
+        id: "m06-p2-m2",
+        label: "I can read EXPLAIN / EXPLAIN ANALYZE plans and eliminate ALL scans, filesorts, and deep OFFSETs."
+      },
+      {
+        id: "m06-p2-m3",
+        label: "I can configure GTID replication, RANGE partitioning, ProxySQL pooling, and XtraBackup PITR."
+      },
+      {
+        id: "m06-p2-m4",
+        label: "I completed all M06-P2 coding exercises and can answer the interview questions without notes."
+      }
+    ],
+    prevLessonId: "m06-p1",
+    nextLessonId: null,
+    Content: M06P2Mdx
   }
 ];
 
@@ -1474,7 +1534,8 @@ const questionsByLesson: Record<string, InterviewQuestion[]> = {
   "m05-p2": m05p2Questions,
   "m05-p3": m05p3Questions,
   "m05-p4": m05p4Questions,
-  "m06-p1": m06p1Questions
+  "m06-p1": m06p1Questions,
+  "m06-p2": m06p2Questions
 };
 
 const allQuestions: InterviewQuestion[] = [
@@ -1498,7 +1559,8 @@ const allQuestions: InterviewQuestion[] = [
   ...m05p2Questions,
   ...m05p3Questions,
   ...m05p4Questions,
-  ...m06p1Questions
+  ...m06p1Questions,
+  ...m06p2Questions
 ];
 
 function mergeGlossaryEntries(...batches: GlossaryEntry[][]): GlossaryEntry[] {
@@ -1535,7 +1597,8 @@ const glossaryEntries: GlossaryEntry[] = mergeGlossaryEntries(
   extractGlossaryFromMdx(m05p2Raw, "m05-p2"),
   extractGlossaryFromMdx(m05p3Raw, "m05-p3"),
   extractGlossaryFromMdx(m05p4Raw, "m05-p4"),
-  extractGlossaryFromMdx(m06p1Raw, "m06-p1")
+  extractGlossaryFromMdx(m06p1Raw, "m06-p1"),
+  extractGlossaryFromMdx(m06p2Raw, "m06-p2")
 );
 
 function buildSearchRecords(): SearchRecord[] {
@@ -1575,6 +1638,7 @@ function buildSearchRecords(): SearchRecord[] {
   records.push(...extractSearchRecordsFromMdx(m05p3Raw, "m05-p3", lessons[18].title, 5));
   records.push(...extractSearchRecordsFromMdx(m05p4Raw, "m05-p4", lessons[19].title, 5));
   records.push(...extractSearchRecordsFromMdx(m06p1Raw, "m06-p1", lessons[20].title, 6));
+  records.push(...extractSearchRecordsFromMdx(m06p2Raw, "m06-p2", lessons[21].title, 6));
 
   for (const mod of SYLLABUS_MODULES) {
     for (const topic of mod.topics) {

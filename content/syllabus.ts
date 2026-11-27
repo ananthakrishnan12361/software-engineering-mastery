@@ -1293,21 +1293,81 @@ export const SYLLABUS_MODULES: SyllabusModule[] = [
       lessonId: "m06-p1",
       anchorId: "m06-p1-topic-deadlocks"
     },
-    "Indexes",
-    "Composite indexes",
-    "Clustered indexes",
-    "Secondary indexes",
-    "Query optimization",
-    "EXPLAIN",
-    "Query execution",
-    "Stored procedures",
-    "Triggers",
-    "Views",
-    "Replication",
-    "Partitioning",
-    "Performance tuning",
-    "Connection management",
-    "Backup and recovery"
+    {
+      title: "Indexes",
+      lessonId: "m06-p2",
+      anchorId: "m06-p2-topic-indexes"
+    },
+    {
+      title: "Composite indexes",
+      lessonId: "m06-p2",
+      anchorId: "m06-p2-topic-composite-indexes"
+    },
+    {
+      title: "Clustered indexes",
+      lessonId: "m06-p2",
+      anchorId: "m06-p2-topic-clustered-indexes"
+    },
+    {
+      title: "Secondary indexes",
+      lessonId: "m06-p2",
+      anchorId: "m06-p2-topic-secondary-indexes"
+    },
+    {
+      title: "Query optimization",
+      lessonId: "m06-p2",
+      anchorId: "m06-p2-topic-query-optimization"
+    },
+    {
+      title: "EXPLAIN",
+      lessonId: "m06-p2",
+      anchorId: "m06-p2-topic-explain"
+    },
+    {
+      title: "Query execution",
+      lessonId: "m06-p2",
+      anchorId: "m06-p2-topic-query-execution"
+    },
+    {
+      title: "Stored procedures",
+      lessonId: "m06-p2",
+      anchorId: "m06-p2-topic-stored-procedures"
+    },
+    {
+      title: "Triggers",
+      lessonId: "m06-p2",
+      anchorId: "m06-p2-topic-triggers"
+    },
+    {
+      title: "Views",
+      lessonId: "m06-p2",
+      anchorId: "m06-p2-topic-views"
+    },
+    {
+      title: "Replication",
+      lessonId: "m06-p2",
+      anchorId: "m06-p2-topic-replication"
+    },
+    {
+      title: "Partitioning",
+      lessonId: "m06-p2",
+      anchorId: "m06-p2-topic-partitioning"
+    },
+    {
+      title: "Performance tuning",
+      lessonId: "m06-p2",
+      anchorId: "m06-p2-topic-performance-tuning"
+    },
+    {
+      title: "Connection management",
+      lessonId: "m06-p2",
+      anchorId: "m06-p2-topic-connection-management"
+    },
+    {
+      title: "Backup and recovery",
+      lessonId: "m06-p2",
+      anchorId: "m06-p2-topic-backup-and-recovery"
+    }
   ]),
 
   defineModule(7, "Microsoft SQL Server (MSSQL)", "databases", [
