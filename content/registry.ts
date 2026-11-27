@@ -57,6 +57,8 @@ import M07P2Mdx from "./modules/07-mssql/m07-p2.mdx";
 import m07p2Raw from "./modules/07-mssql/m07-p2.mdx?raw";
 import M07P3Mdx from "./modules/07-mssql/m07-p3.mdx";
 import m07p3Raw from "./modules/07-mssql/m07-p3.mdx?raw";
+import M08P1Mdx from "./modules/08-indexing/m08-p1.mdx";
+import m08p1Raw from "./modules/08-indexing/m08-p1.mdx?raw";
 import { m01p1Questions } from "./interviews/m01-p1.questions";
 import { m01p2Questions } from "./interviews/m01-p2.questions";
 import { m01p3Questions } from "./interviews/m01-p3.questions";
@@ -82,6 +84,7 @@ import { m06p2Questions } from "./interviews/m06-p2.questions";
 import { m07p1Questions } from "./interviews/m07-p1.questions";
 import { m07p2Questions } from "./interviews/m07-p2.questions";
 import { m07p3Questions } from "./interviews/m07-p3.questions";
+import { m08p1Questions } from "./interviews/m08-p1.questions";
 import { SYLLABUS_MODULES } from "./syllabus";
 
 export interface HandbookCatalog {
@@ -249,6 +252,17 @@ const modules: ModuleRecord[] = [
       "Scope (Parts 1–3): Complete Microsoft SQL Server — Architecture, SQLOS, 8 KB Pages, 64 KB Extents, Clustered/Non-Clustered/Heap Tables, T-SQL Objects, Transactions, Locking, Isolation Levels, Deadlocks, Execution Plans, Index Maintenance & PITR",
     lead: "Master Microsoft SQL Server end-to-end: SQLOS, 8 KB pages, Heap/Clustered/INCLUDE indexes, T-SQL objects, XACT_ABORT, RCSI/SNAPSHOT, deadlocks, Query Store, parameter sniffing, 5/30 index maintenance, Partition SWITCH, and Full/Diff/Log PITR.",
     lessonIds: ["m07-p1", "m07-p2", "m07-p3"]
+  },
+  {
+    id: "module-8",
+    number: 8,
+    title: "Database Indexing — Deep Dive",
+    category: "databases",
+    partSummary: "Parts 1–4 of 4 (Part 1 Complete)",
+    scopeSummary:
+      "Scope (Parts 1–4): Database Indexing — Why Indexes Exist, B-Tree, B+ Tree, Hash, Clustered, Non-Clustered, Unique, Composite, Covering, Partial, Filtered, Functional, Full-Text, Spatial, Selectivity, Access Patterns, Maintenance & Cross-Database Strategy",
+    lead: "Master database indexing from first principles: B+ Tree internals, hash indexes, clustered versus non-clustered lookups, unique constraints, and the cost model behind every index decision.",
+    lessonIds: ["m08-p1"]
   }
 ];
 
@@ -1699,8 +1713,66 @@ const lessons: LessonRecord[] = [
       }
     ],
     prevLessonId: "m07-p2",
-    nextLessonId: null,
+    nextLessonId: "m08-p1",
     Content: M07P3Mdx
+  },
+  {
+    id: "m08-p1",
+    moduleId: "module-8",
+    moduleNumber: 8,
+    moduleTitle: "Database Indexing — Deep Dive",
+    partLabel: "Lesson M08-P1",
+    title: "Part 1: Index Foundations — Why Indexes Exist, B-Tree, B+ Tree, Hash, Clustered, Non-Clustered & Unique Indexes",
+    category: "databases",
+    duration: "90 min (38m theory · 32m practice · 20m review)",
+    objectives: [
+      "Explain why indexes exist, how a sorted index turns a linear scan into a logarithmic seek, and when a sequential scan is still the cheaper plan.",
+      "Describe B-Tree and B+ Tree structure (fan-out, leaf chain, copy-up versus move-up splits) and trace a lookup and a range scan.",
+      "Choose between B-Tree and hash indexes and state the engine-specific limits of hash indexes in PostgreSQL, MySQL, SQL Server and MongoDB.",
+      "Compare clustered and non-clustered indexes, calculate page reads for primary-key, secondary and covering lookups, and pick a good clustering key.",
+      "Enforce uniqueness safely with unique indexes, including NULL and collation differences across engines and atomic update behaviour."
+    ],
+    sections: [
+      { id: "m08-p1-objectives", title: "Learning Objectives" },
+      { id: "m08-p1-sec-a", letter: "A", title: "Topic Introduction" },
+      { id: "m08-p1-sec-b", letter: "B", title: "Fundamentals (Simple Mental Models)" },
+      { id: "m08-p1-sec-c", letter: "C", title: "Internal Working & Architecture" },
+      { id: "m08-p1-sec-d", letter: "D", title: "Practical Examples (Interactive)" },
+      { id: "m08-p1-sec-e", letter: "E", title: "Step-by-Step Walkthrough" },
+      { id: "m08-p1-sec-f", letter: "F", title: "Real-World Use Cases" },
+      { id: "m08-p1-sec-g", letter: "G", title: "Common Mistakes" },
+      { id: "m08-p1-sec-h", letter: "H", title: "Best Practices" },
+      { id: "m08-p1-sec-i", letter: "I", title: "Performance & Scalability" },
+      { id: "m08-p1-sec-j", letter: "J", title: "Security Considerations" },
+      { id: "m08-p1-sec-k", letter: "K", title: "Comparisons & Decision Tables" },
+      { id: "m08-p1-sec-l", letter: "L", title: "Tips to Remember (Mnemonics & Mental Models)" },
+      { id: "m08-p1-sec-mn", letter: "M/N", title: "Interview Questions & Detailed Answers" },
+      { id: "m08-p1-sec-o", letter: "O", title: "Practical Exercises" },
+      { id: "m08-p1-sec-p", letter: "P", title: "Advanced Challenge" },
+      { id: "m08-p1-sec-q", letter: "Q", title: "Summary & Key Takeaways" },
+      { id: "m08-p1-mastery", title: "Mastery Assessment" }
+    ],
+    masteryItems: [
+      {
+        id: "m08-p1-m1",
+        label: "I can explain why indexes exist and use a page-read cost model to decide between an index seek and a table scan."
+      },
+      {
+        id: "m08-p1-m2",
+        label: "I can trace B+ Tree lookups, range scans and leaf splits, and explain why databases prefer B+ Trees over classic B-Trees."
+      },
+      {
+        id: "m08-p1-m3",
+        label: "I can compare clustered, non-clustered and hash indexes across PostgreSQL, MySQL, SQL Server and MongoDB."
+      },
+      {
+        id: "m08-p1-m4",
+        label: "I completed the M08-P1 exercises and can enforce uniqueness safely, including NULL and atomic-update edge cases."
+      }
+    ],
+    prevLessonId: "m07-p3",
+    nextLessonId: null,
+    Content: M08P1Mdx
   }
 ];
 
@@ -1729,7 +1801,8 @@ const questionsByLesson: Record<string, InterviewQuestion[]> = {
   "m06-p2": m06p2Questions,
   "m07-p1": m07p1Questions,
   "m07-p2": m07p2Questions,
-  "m07-p3": m07p3Questions
+  "m07-p3": m07p3Questions,
+  "m08-p1": m08p1Questions
 };
 
 const allQuestions: InterviewQuestion[] = [
@@ -1757,7 +1830,8 @@ const allQuestions: InterviewQuestion[] = [
   ...m06p2Questions,
   ...m07p1Questions,
   ...m07p2Questions,
-  ...m07p3Questions
+  ...m07p3Questions,
+  ...m08p1Questions
 ];
 
 function mergeGlossaryEntries(...batches: GlossaryEntry[][]): GlossaryEntry[] {
@@ -1798,7 +1872,8 @@ const glossaryEntries: GlossaryEntry[] = mergeGlossaryEntries(
   extractGlossaryFromMdx(m06p2Raw, "m06-p2"),
   extractGlossaryFromMdx(m07p1Raw, "m07-p1"),
   extractGlossaryFromMdx(m07p2Raw, "m07-p2"),
-  extractGlossaryFromMdx(m07p3Raw, "m07-p3")
+  extractGlossaryFromMdx(m07p3Raw, "m07-p3"),
+  extractGlossaryFromMdx(m08p1Raw, "m08-p1")
 );
 
 function buildSearchRecords(): SearchRecord[] {
@@ -1842,6 +1917,7 @@ function buildSearchRecords(): SearchRecord[] {
   records.push(...extractSearchRecordsFromMdx(m07p1Raw, "m07-p1", lessons[22].title, 7));
   records.push(...extractSearchRecordsFromMdx(m07p2Raw, "m07-p2", lessons[23].title, 7));
   records.push(...extractSearchRecordsFromMdx(m07p3Raw, "m07-p3", lessons[24].title, 7));
+  records.push(...extractSearchRecordsFromMdx(m08p1Raw, "m08-p1", lessons[25].title, 8));
 
   for (const mod of SYLLABUS_MODULES) {
     for (const topic of mod.topics) {
