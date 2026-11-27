@@ -370,3 +370,16 @@ For each review, add:
   - PostgreSQL Constraints (`EXCLUDE USING`, `DEFERRABLE`, `NOT VALID`): `https://www.postgresql.org/docs/current/ddl-constraints.html`
   - PostgreSQL `JSON` / `JSONB` Types & `GIN` Indexing (`jsonb_ops`, `jsonb_path_ops`): `https://www.postgresql.org/docs/current/datatype-json.html`
 - **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m05-p3.mdx`, `m05-p3.questions.ts`, and `m05-p3.coverage.ts`.
+
+---
+
+### Module 05 Part 4 (M05-P4) Technical Review Log — 2026-11-27
+
+- **Scope:** Locking, Isolation levels, Partitioning, Replication, Connection pooling, EXPLAIN, EXPLAIN ANALYZE, Query planner, Query optimization, Indexing, Performance tuning, Vacuum, Autovacuum, Database maintenance, Backup and recovery.
+- **Official Documentation Verified (`M3`):**
+  - PostgreSQL Table Partitioning (`PARTITION BY RANGE/LIST/HASH` & Pruning): `https://www.postgresql.org/docs/current/ddl-partitioning.html`
+  - PostgreSQL Physical Streaming & Logical Replication: `https://www.postgresql.org/docs/current/high-availability.html` and `https://www.postgresql.org/docs/current/logical-replication.html`
+  - PostgreSQL `EXPLAIN (ANALYZE, BUFFERS)`, Planner Statistics, `pg_stat_statements`, `CREATE STATISTICS`, & Index Types (`B-Tree`, `GIN`, `GiST`, `BRIN`, `INCLUDE`): `https://www.postgresql.org/docs/current/using-explain.html`, `https://www.postgresql.org/docs/current/pgstatstatements.html`, `https://www.postgresql.org/docs/current/sql-createstatistics.html`, and `https://www.postgresql.org/docs/current/indexes-types.html`
+  - PgBouncer Connection Pooling Configuration: `https://www.pgbouncer.org/config.html`
+  - PostgreSQL Routine Vacuuming, Autovacuum Thresholds, `REINDEX CONCURRENTLY`, & PITR: `https://www.postgresql.org/docs/current/routine-vacuuming.html`, `https://www.postgresql.org/docs/current/sql-reindex.html`, and `https://www.postgresql.org/docs/current/continuous-archiving.html`
+- **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m05-p4.mdx`, `m05-p4.questions.ts`, and `m05-p4.coverage.ts`.

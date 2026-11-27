@@ -300,21 +300,21 @@ Split into 4 parts:
 - [x] Constraints
 - [x] JSON
 - [x] JSONB
-- [ ] Locking
-- [ ] Isolation levels
-- [ ] Partitioning
-- [ ] Replication
-- [ ] Connection pooling
-- [ ] EXPLAIN
-- [ ] EXPLAIN ANALYZE
-- [ ] Query planner
-- [ ] Query optimization
-- [ ] Indexing
-- [ ] Performance tuning
-- [ ] Vacuum
-- [ ] Autovacuum
-- [ ] Database maintenance
-- [ ] Backup and recovery
+- [x] Locking
+- [x] Isolation levels
+- [x] Partitioning
+- [x] Replication
+- [x] Connection pooling
+- [x] EXPLAIN
+- [x] EXPLAIN ANALYZE
+- [x] Query planner
+- [x] Query optimization
+- [x] Indexing
+- [x] Performance tuning
+- [x] Vacuum
+- [x] Autovacuum
+- [x] Database maintenance
+- [x] Backup and recovery
 
 ---
 

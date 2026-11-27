@@ -45,6 +45,8 @@ import M05P2Mdx from "./modules/05-postgresql/m05-p2.mdx";
 import m05p2Raw from "./modules/05-postgresql/m05-p2.mdx?raw";
 import M05P3Mdx from "./modules/05-postgresql/m05-p3.mdx";
 import m05p3Raw from "./modules/05-postgresql/m05-p3.mdx?raw";
+import M05P4Mdx from "./modules/05-postgresql/m05-p4.mdx";
+import m05p4Raw from "./modules/05-postgresql/m05-p4.mdx?raw";
 import { m01p1Questions } from "./interviews/m01-p1.questions";
 import { m01p2Questions } from "./interviews/m01-p2.questions";
 import { m01p3Questions } from "./interviews/m01-p3.questions";
@@ -64,6 +66,7 @@ import { m04p3Questions } from "./interviews/m04-p3.questions";
 import { m05p1Questions } from "./interviews/m05-p1.questions";
 import { m05p2Questions } from "./interviews/m05-p2.questions";
 import { m05p3Questions } from "./interviews/m05-p3.questions";
+import { m05p4Questions } from "./interviews/m05-p4.questions";
 import { SYLLABUS_MODULES } from "./syllabus";
 
 export interface HandbookCatalog {
@@ -204,11 +207,11 @@ const modules: ModuleRecord[] = [
     number: 5,
     title: "PostgreSQL",
     category: "databases",
-    partSummary: "Parts 1–3 of 4",
+    partSummary: "Parts 1–4 of 4 (Complete)",
     scopeSummary:
-      "Scope (Parts 1–3): PostgreSQL Architecture, 8 KB Pages, MVCC, WAL, SQL Mastery, JOINs, CTEs, Views, Materialized Views, Functions, Procedures, Triggers, Constraints & JSON/JSONB",
-    lead: "Master PostgreSQL internals, SQL joins/CTEs/windows, security-invoker views, concurrent materialized views, triggers, exclusion constraints, and JSONB + GIN.",
-    lessonIds: ["m05-p1", "m05-p2", "m05-p3"]
+      "Scope (Parts 1–4): Complete PostgreSQL — Architecture, 8 KB Pages, MVCC, WAL, SQL Mastery, Views/MatViews, Functions, Procedures, Triggers, Constraints, JSONB, Partitioning, Replication, EXPLAIN & Autovacuum",
+    lead: "Master PostgreSQL end-to-end: storage internals, SQL/CTEs/windows, views/triggers/JSONB, partitioning, streaming & logical replication, EXPLAIN ANALYZE, indexing, autovacuum, and PITR.",
+    lessonIds: ["m05-p1", "m05-p2", "m05-p3", "m05-p4"]
   }
 ];
 
@@ -1316,8 +1319,65 @@ const lessons: LessonRecord[] = [
       }
     ],
     prevLessonId: "m05-p2",
-    nextLessonId: null,
+    nextLessonId: "m05-p4",
     Content: M05P3Mdx
+  },
+  {
+    id: "m05-p4",
+    moduleId: "module-5",
+    moduleNumber: 5,
+    moduleTitle: "PostgreSQL",
+    partLabel: "Lesson M05-P4",
+    title: "Part 4: Locking, Partitioning, Replication, EXPLAIN ANALYZE, Indexing, Autovacuum & PITR",
+    category: "databases",
+    duration: "95 min (40m theory · 35m practice · 20m review)",
+    objectives: [
+      "Prevent lock-queue outages with lock_timeout and run safe isolation/PgBouncer transaction pooling.",
+      "Scale multi-TB tables using declarative Partitioning (Range/List/Hash) and Physical/Logical Replication.",
+      "Diagnose slow plans with EXPLAIN (ANALYZE, BUFFERS), pg_statistic, SARGable predicates, and B-Tree/GIN/GiST/BRIN indexes.",
+      "Tune per-table Autovacuum thresholds, run pg_repack / REINDEX CONCURRENTLY, and verify PITR backups."
+    ],
+    sections: [
+      { id: "m05-p4-objectives", title: "Learning Objectives" },
+      { id: "m05-p4-sec-a", letter: "A", title: "Topic Introduction" },
+      { id: "m05-p4-sec-b", letter: "B", title: "Fundamentals (Simple Mental Models)" },
+      { id: "m05-p4-sec-c", letter: "C", title: "Internal Working & Architecture" },
+      { id: "m05-p4-sec-d", letter: "D", title: "Practical Examples (Interactive)" },
+      { id: "m05-p4-sec-e", letter: "E", title: "Step-by-Step Walkthrough" },
+      { id: "m05-p4-sec-f", letter: "F", title: "Real-World Use Cases" },
+      { id: "m05-p4-sec-g", letter: "G", title: "Common Mistakes" },
+      { id: "m05-p4-sec-h", letter: "H", title: "Best Practices" },
+      { id: "m05-p4-sec-i", letter: "I", title: "Performance & Scalability" },
+      { id: "m05-p4-sec-j", letter: "J", title: "Security Considerations" },
+      { id: "m05-p4-sec-k", letter: "K", title: "Comparisons & Decision Tables" },
+      { id: "m05-p4-sec-l", letter: "L", title: "Tips to Remember (Mnemonics & Mental Models)" },
+      { id: "m05-p4-sec-mn", letter: "M/N", title: "Interview Questions & Detailed Answers" },
+      { id: "m05-p4-sec-o", letter: "O", title: "Practical Exercises" },
+      { id: "m05-p4-sec-p", letter: "P", title: "Advanced Challenge" },
+      { id: "m05-p4-sec-q", letter: "Q", title: "Summary & Key Takeaways" },
+      { id: "m05-p4-mastery", title: "Mastery Assessment" }
+    ],
+    masteryItems: [
+      {
+        id: "m05-p4-m1",
+        label: "I can prevent lock-queue outages, configure PgBouncer transaction pooling, and choose sync/async/logical replication."
+      },
+      {
+        id: "m05-p4-m2",
+        label: "I can interpret EXPLAIN (ANALYZE, BUFFERS), fix row-estimate skew, and pick B-Tree, GIN, GiST, or BRIN indexes."
+      },
+      {
+        id: "m05-p4-m3",
+        label: "I can partition multi-TB tables, tune per-table Autovacuum thresholds, and run online maintenance + PITR."
+      },
+      {
+        id: "m05-p4-m4",
+        label: "I completed the M05-P4 exercises and can answer the interview questions without notes."
+      }
+    ],
+    prevLessonId: "m05-p3",
+    nextLessonId: null,
+    Content: M05P4Mdx
   }
 ];
 
@@ -1340,7 +1400,8 @@ const questionsByLesson: Record<string, InterviewQuestion[]> = {
   "m04-p3": m04p3Questions,
   "m05-p1": m05p1Questions,
   "m05-p2": m05p2Questions,
-  "m05-p3": m05p3Questions
+  "m05-p3": m05p3Questions,
+  "m05-p4": m05p4Questions
 };
 
 const allQuestions: InterviewQuestion[] = [
@@ -1362,7 +1423,8 @@ const allQuestions: InterviewQuestion[] = [
   ...m04p3Questions,
   ...m05p1Questions,
   ...m05p2Questions,
-  ...m05p3Questions
+  ...m05p3Questions,
+  ...m05p4Questions
 ];
 
 function mergeGlossaryEntries(...batches: GlossaryEntry[][]): GlossaryEntry[] {
@@ -1397,7 +1459,8 @@ const glossaryEntries: GlossaryEntry[] = mergeGlossaryEntries(
   extractGlossaryFromMdx(m04p3Raw, "m04-p3"),
   extractGlossaryFromMdx(m05p1Raw, "m05-p1"),
   extractGlossaryFromMdx(m05p2Raw, "m05-p2"),
-  extractGlossaryFromMdx(m05p3Raw, "m05-p3")
+  extractGlossaryFromMdx(m05p3Raw, "m05-p3"),
+  extractGlossaryFromMdx(m05p4Raw, "m05-p4")
 );
 
 function buildSearchRecords(): SearchRecord[] {
@@ -1435,6 +1498,7 @@ function buildSearchRecords(): SearchRecord[] {
   records.push(...extractSearchRecordsFromMdx(m05p1Raw, "m05-p1", lessons[16].title, 5));
   records.push(...extractSearchRecordsFromMdx(m05p2Raw, "m05-p2", lessons[17].title, 5));
   records.push(...extractSearchRecordsFromMdx(m05p3Raw, "m05-p3", lessons[18].title, 5));
+  records.push(...extractSearchRecordsFromMdx(m05p4Raw, "m05-p4", lessons[19].title, 5));
 
   for (const mod of SYLLABUS_MODULES) {
     for (const topic of mod.topics) {

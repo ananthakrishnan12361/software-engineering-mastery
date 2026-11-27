@@ -1165,21 +1165,81 @@ export const SYLLABUS_MODULES: SyllabusModule[] = [
       lessonId: "m05-p3",
       anchorId: "m05-p3-topic-jsonb"
     },
-    "Locking",
-    "Isolation levels",
-    "Partitioning",
-    "Replication",
-    "Connection pooling",
-    "EXPLAIN",
-    "EXPLAIN ANALYZE",
-    "Query planner",
-    "Query optimization",
-    "Indexing",
-    "Performance tuning",
-    "Vacuum",
-    "Autovacuum",
-    "Database maintenance",
-    "Backup and recovery"
+    {
+      title: "Locking",
+      lessonId: "m05-p4",
+      anchorId: "m05-p4-topic-locking"
+    },
+    {
+      title: "Isolation levels",
+      lessonId: "m05-p4",
+      anchorId: "m05-p4-topic-isolation-levels"
+    },
+    {
+      title: "Partitioning",
+      lessonId: "m05-p4",
+      anchorId: "m05-p4-topic-partitioning"
+    },
+    {
+      title: "Replication",
+      lessonId: "m05-p4",
+      anchorId: "m05-p4-topic-replication"
+    },
+    {
+      title: "Connection pooling",
+      lessonId: "m05-p4",
+      anchorId: "m05-p4-topic-connection-pooling"
+    },
+    {
+      title: "EXPLAIN",
+      lessonId: "m05-p4",
+      anchorId: "m05-p4-topic-explain"
+    },
+    {
+      title: "EXPLAIN ANALYZE",
+      lessonId: "m05-p4",
+      anchorId: "m05-p4-topic-explain-analyze"
+    },
+    {
+      title: "Query planner",
+      lessonId: "m05-p4",
+      anchorId: "m05-p4-topic-query-planner"
+    },
+    {
+      title: "Query optimization",
+      lessonId: "m05-p4",
+      anchorId: "m05-p4-topic-query-optimization"
+    },
+    {
+      title: "Indexing",
+      lessonId: "m05-p4",
+      anchorId: "m05-p4-topic-indexing"
+    },
+    {
+      title: "Performance tuning",
+      lessonId: "m05-p4",
+      anchorId: "m05-p4-topic-performance-tuning"
+    },
+    {
+      title: "Vacuum",
+      lessonId: "m05-p4",
+      anchorId: "m05-p4-topic-vacuum"
+    },
+    {
+      title: "Autovacuum",
+      lessonId: "m05-p4",
+      anchorId: "m05-p4-topic-autovacuum"
+    },
+    {
+      title: "Database maintenance",
+      lessonId: "m05-p4",
+      anchorId: "m05-p4-topic-database-maintenance"
+    },
+    {
+      title: "Backup and recovery",
+      lessonId: "m05-p4",
+      anchorId: "m05-p4-topic-backup-and-recovery"
+    }
   ]),
 
   defineModule(6, "MySQL", "databases", [
