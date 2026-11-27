@@ -4,10 +4,10 @@
 Maintain a comfortable, offline-capable React + TypeScript + MDX learning portal built with Feature-Sliced Design v2.1 and bundled into `dist/software_engineering_mastery.html`.
 
 ## Overall status
-**Modules 1–6 Complete & Audited (`PASS`) — `M07-P1` next**
+**Modules 1–6 Complete & `M07-P1` Complete (`PASS`) — `M07-P2` next**
 
 ## Current phase
-Phase 3 design remains locked in [DESIGN_GUIDE.md](DESIGN_GUIDE.md). Modules 1–6 (`256/945` topics across 22 lessons, `210` IQs) are complete & verified (`M07-P1` next).
+Phase 3 design remains locked in [DESIGN_GUIDE.md](DESIGN_GUIDE.md). Modules 1–6 + `M07-P1` (`274/945` topics across 23 lessons, `224` IQs) are complete & verified (`M07-P2` next).
 
 ## Completed
 - [x] Phase 1 & 2: Legacy v1 archived in `legacy/`, React 19 + TS + Vite 8 + MDX + `vite-plugin-singlefile` + Steiger setup
@@ -19,13 +19,13 @@ Phase 3 design remains locked in [DESIGN_GUIDE.md](DESIGN_GUIDE.md). Modules 1�
 - [x] Verification: `tsc`, `vite build`, `steiger ./src`, `verify:syllabus`, `verify:parity`, `verify:offline`, and headless Chrome CDP checks at `360`, `390`, `768`, `1024`, `1440` widths across all 3 themes
 
 ## Module progress
-Use `COURSE_OUTLINE.md` and `CONTENT_CHECKLIST.md` to track module and part status. Currently written: Module 1 complete (`47/47` topics, `35/35` IQs) + Module 2 complete (`46/46` topics, `35/35` IQs) + Module 3 complete (`56/56` topics, `35/35` IQs) + Module 4 complete (`36/36` topics, `35/35` IQs) + Module 5 complete (`46/46` topics, `35/35` IQs) + Module 6 complete (`25/25` topics, `35/35` IQs: `10` Basic, `10` Intermediate, `10` Advanced, `5` Senior/Architect) = `256` topics available, `689` not written yet.
+Use `COURSE_OUTLINE.md` and `CONTENT_CHECKLIST.md` to track module and part status. Currently written: Module 1 complete (`47/47` topics, `35/35` IQs) + Module 2 complete (`46/46` topics, `35/35` IQs) + Module 3 complete (`56/56` topics, `35/35` IQs) + Module 4 complete (`36/36` topics, `35/35` IQs) + Module 5 complete (`46/46` topics, `35/35` IQs) + Module 6 complete (`25/25` topics, `35/35` IQs) + Module 7 Part 1 (`18/34` topics, `14/35` IQs: `4` Basic, `4` Intermediate, `4` Advanced, `2` Senior/Architect) = `274` topics available, `671` not written yet.
 
 ## Current task
-Module 6 complete (`M06-P2` audited `PASS` and committed locally on `react-fsd`). Next part: `M07-P1` (Microsoft SQL Server architecture, engine, storage, pages, extents, tables, indexes, and T-SQL objects).
+`M07-P1` complete (audited `PASS` and committed locally on `react-fsd`). Next part: `M07-P2` (MSSQL Transactions, Locking, Isolation levels, Deadlocks).
 
 ## Next actions
-1. Proceed to `M07-P1` (`PLAN -> WRITE -> CHECK -> AUDIT -> UPDATE -> COMMIT` on `react-fsd`).
+1. Proceed to `M07-P2` (`PLAN -> WRITE -> CHECK -> AUDIT -> UPDATE -> COMMIT` on `react-fsd`).
 2. User decides when to approve removing `legacy/`.
 
 ## Decisions

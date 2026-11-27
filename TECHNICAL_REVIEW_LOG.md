@@ -408,3 +408,15 @@ For each review, add:
   - MySQL 8.0 GTID Replication, Parallel Workers & Partitioning: `https://dev.mysql.com/doc/refman/8.0/en/replication-gtids.html` and `https://dev.mysql.com/doc/refman/8.0/en/partitioning-range.html`
   - MySQL 8.0 Connection Management, Backup & Point-in-Time Recovery (`mysqldump`, MySQL Shell, `mysqlbinlog`, Percona XtraBackup): `https://dev.mysql.com/doc/refman/8.0/en/point-in-time-recovery.html` and `https://docs.percona.com/percona-xtrabackup/8.0/`
 - **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m06-p2.mdx`, `m06-p2.questions.ts`, and `m06-p2.coverage.ts`.
+
+---
+
+### Module 07 Part 1 (M07-P1) Technical Review Log — 2026-11-27
+
+- **Scope:** SQL Server architecture, SQL Server engine, Storage, Pages, Extents, Tables, Indexes, Clustered indexes, Non-clustered indexes, Heap tables, Stored procedures, Functions, Views, Triggers, Temp tables, Table variables, CTEs, Window functions.
+- **Official Documentation Verified (`M3`):**
+  - SQL Server Architecture, SQLOS & Query Processing: `https://learn.microsoft.com/en-us/sql/relational-databases/sql-server-guides` and `https://learn.microsoft.com/en-us/sql/relational-databases/query-processing-architecture-guide`
+  - SQL Server Pages & Extents Architecture (8 KB Pages, 64 KB Uniform/Mixed Extents, Row-Overflow): `https://learn.microsoft.com/en-us/sql/relational-databases/pages-and-extents-architecture-guide`
+  - SQL Server Clustered, Non-Clustered (`INCLUDE`) & Heap Index Design: `https://learn.microsoft.com/en-us/sql/relational-databases/sql-server-index-design-guide` and `https://learn.microsoft.com/en-us/sql/relational-databases/indexes/heaps-tables-without-clustered-indexes`
+  - T-SQL Stored Procedures, Inline TVFs, Indexed Views (`SCHEMABINDING`), DML Triggers (`inserted`/`deleted`), `#Temp` vs. `@Table` (Deferred Compilation), CTEs & Window Functions (`ROWS` vs. `RANGE`): `https://learn.microsoft.com/en-us/sql/t-sql/statements/create-view-transact-sql`, `https://learn.microsoft.com/en-us/sql/relational-databases/user-defined-functions/scalar-udf-inlining`, and `https://learn.microsoft.com/en-us/sql/t-sql/queries/select-over-clause-transact-sql`
+- **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m07-p1.mdx`, `m07-p1.questions.ts`, and `m07-p1.coverage.ts`.

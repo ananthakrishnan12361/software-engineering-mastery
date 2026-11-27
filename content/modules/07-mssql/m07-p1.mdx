@@ -1,0 +1,694 @@
+<Callout variant="info" title="Topics Covered in Part 1 (M07-P1)">
+  <p>
+    This first part of Module 7 covers 18 foundational Microsoft SQL Server (MSSQL) architecture, storage, indexing, and T-SQL topics: <strong>SQL Server architecture</strong>, <strong>SQL Server engine</strong>, <strong>Storage</strong>, <strong>Pages</strong>, <strong>Extents</strong>, <strong>Tables</strong>, <strong>Indexes</strong>, <strong>Clustered indexes</strong>, <strong>Non-clustered indexes</strong>, <strong>Heap tables</strong>, <strong>Stored procedures</strong>, <strong>Functions</strong>, <strong>Views</strong>, <strong>Triggers</strong>, <strong>Temp tables</strong>, <strong>Table variables</strong>, <strong>CTEs</strong>, and <strong>Window functions</strong>.
+  </p>
+</Callout>
+
+<TopicSection id="m07-p1-sec-a" letter="A" title="Topic Introduction">
+
+#### What is this?
+
+**Microsoft SQL Server (MSSQL)** is an enterprise relational database management system powered by **SQLOS**, a user-mode cooperative scheduling and memory-management layer, and **T-SQL** (Transact-SQL). Every database stores rows inside **8 KB pages** grouped into **64 KB extents**, organized as **Heap tables**, **Clustered B+Tree indexes**, and **Non-Clustered indexes** with `INCLUDE` covering columns.
+
+#### Why does it exist & what problem does it solve?
+
+Enterprise OLTP and analytical workloads require deterministic I/O management, fine-grained concurrency, and rich procedural expressiveness. SQL Server solves this by pairing a cost-based query optimizer (with plan caching, parameter sniffing diagnostics, and Adaptive Query Processing in SQL Server 2017–2022) with predictable 8 KB page storage, write-ahead logging (`.ldf`), and rich T-SQL programmability (`#Temp` tables, iTVFs, CTEs, and Window functions).
+
+#### Where is it used in real-world software?
+
+Financial ledgers, healthcare EHR systems, ERP/CRM platforms, .NET / C# microservices, and high-availability Always On Availability Groups running on Windows Server or Linux containers.
+
+</TopicSection>
+
+<TopicSection id="m07-p1-sec-b" letter="B" title="Fundamentals (Simple Mental Models)">
+
+<TopicAnchor id="m07-p1-topic-sql-server-architecture" />
+
+#### 1. SQL Server Architecture: SNI, Relational Engine, Storage Engine & SQLOS
+
+SQL Server processes every request through four tightly integrated layers: **Protocol Layer (SNI)** (SQL Server Network Interface accepting TDS packets over TCP/IP or Named Pipes), **Relational Engine** (T-SQL Parser, Algebrizer, Cost-Based Query Optimizer, and Plan Cache), **Storage Engine** (Access Methods, Buffer Manager, Transaction/Lock Manager), and **SQLOS** (cooperative thread scheduling, memory clerks, and I/O completion).
+
+Unlike PostgreSQL's process-per-connection model, SQL Server runs as a single multithreaded process managed by SQLOS schedulers—one logical scheduler per CPU core. Threads yield cooperatively on waits (`PAGEIOLATCH`, `LCK_M_X`, `SOS_SCHEDULER_YIELD`) rather than relying solely on OS preemption, minimizing context-switching overhead under high concurrency.
+
+<TopicAnchor id="m07-p1-topic-sql-server-engine" />
+
+#### 2. SQL Server Engine: Query Compilation, Plan Cache & Execution
+
+When a T-SQL batch arrives, the **Relational Engine** parses syntax into a query tree, the **Algebrizer** resolves table/column names and data types, and the **Query Optimizer** explores transformation rules using column statistics to produce a physical execution plan cached in the **Plan Cache** (`sys.dm_exec_cached_plans`).
+
+The **Execution Engine** runs that plan using iterator operators (`Clustered Index Seek`, `Hash Match`, `Sort`, `Nested Loops`) that pull rows via `Open()`, `GetRow()`, and `Close()`. Parameterized queries (`sp_executesql` or stored procedures) reuse cached plans to save CPU, whereas ad-hoc concatenated SQL bloats the Plan Cache with single-use plans.
+
+<TopicAnchor id="m07-p1-topic-storage" />
+
+#### 3. Storage: MDF, NDF, LDF Files, Filegroups & Buffer Pool
+
+A SQL Server database maps logical objects onto physical OS files organized into **Filegroups**: a primary data file (`.mdf`, holding system catalogs and user data), optional secondary data files (`.ndf`, enabling parallel I/O across disks or tiered storage), and one or more sequential **transaction log files** (`.ldf`, write-ahead log).
+
+All data pages flow through the **Buffer Pool** (8 KB page cache in RAM). Reads check the Buffer Pool first (`logical reads` vs. `physical reads`); writes modify pages in memory (marking them dirty) and flush log records to `.ldf` before `COMMIT` returns, while the **Checkpoint** and **Lazy Writer** flush dirty data pages asynchronously.
+
+<TopicAnchor id="m07-p1-topic-pages" />
+
+#### 4. Pages: 8 KB Structure, 96-Byte Header, Slot Array & Row-Overflow
+
+<GlossaryTerm definition="The fundamental 8 KB (8,192-byte) unit of storage I/O in SQL Server, containing a 96-byte header, data rows, and a trailing row-offset slot array.">Pages</GlossaryTerm> are the atomic unit of I/O in SQL Server: every data, index, IAM, PFS, GAM, and SGAM page is **8 KB (8,192 bytes)**. Each page reserves a **96-byte header** (page ID, object ID, LSN, free space pointers) and a **2-byte-per-row slot array** at the end, leaving **8,060 bytes** for in-row data.
+
+If variable-length columns (`VARCHAR(8000)`, `NVARCHAR(4000)`) exceed 8,060 bytes on a row, SQL Server moves oversized columns off-row to **Row-Overflow (`ROW_OVERFLOW_DATA`)** pages, leaving a 24-byte pointer in the main row. Large `VARCHAR(MAX)` / `VARBINARY(MAX)` values over 8,000 bytes are stored in **LOB (`LOB_DATA`)** pages.
+
+<TopicAnchor id="m07-p1-topic-extents" />
+
+#### 5. Extents: 64 KB Groups, Uniform vs. Mixed & Allocation Bitmaps
+
+An **Extent** is a contiguous block of **8 physical 8 KB pages (64 KB total)** used to allocate space efficiently without per-page metadata overhead. **Uniform extents** belong to a single object (all 8 pages owned by one table/index), whereas **Mixed extents** can be shared by up to 8 different small objects.
+
+Since **SQL Server 2016**, user databases default to `MIXED_PAGE_ALLOCATION = OFF`, meaning tables always allocate **Uniform extents** immediately—eliminating contention on **SGAM** (Shared Global Allocation Map) pages in `tempdb` and user databases. **GAM** tracks free extents, **PFS** tracks page fullness, and **IAM** (Index Allocation Map) maps which extents belong to a table or index.
+
+<TopicAnchor id="m07-p1-topic-tables" />
+
+#### 6. Tables: Relational Schemas, Constraints & Physical Organization
+
+In SQL Server, a **Table** is stored as one or more partitions, each organized physically either as a **Heap** (no clustered index) or a **Clustered Index** (B+Tree ordered by the clustering key). Tables enforce relational integrity via `PRIMARY KEY`, `UNIQUE`, `FOREIGN KEY`, `CHECK`, and `DEFAULT` constraints, plus **Memory-Optimized** (`In-Memory OLTP`) or **Temporal** (`SYSTEM_VERSIONED`) options.
+
+Every table should declare explicit `NOT NULL` constraints where appropriate, narrow data types (`INT` / `BIGINT` vs. oversized `NVARCHAR(MAX)`), and a well-chosen clustering key. Because `CREATE TABLE` also determines whether the table starts as a Heap or Clustered B+Tree, physical storage decisions begin at table design time.
+
+<TopicAnchor id="m07-p1-topic-indexes" />
+
+#### 7. Indexes: B+Tree Navigation, Seek vs. Scan & Columnstore Overview
+
+SQL Server implements rowstore **Indexes** as balanced **B+Trees** over 8 KB pages: the root and intermediate levels store key ranges and child page pointers, while leaf pages contain either full data rows (clustered) or index keys + row locators (non-clustered). Selective queries descend the B+Tree in `O(log n)` via an **Index Seek**, avoiding an `O(n)` **Index Scan** or **Table Scan**.
+
+For analytical aggregations over millions of rows, SQL Server also supports **Columnstore indexes** (storing compressed column segments in batch mode rather than 8 KB row pages). For OLTP workloads, carefully balance read speedups against `INSERT`/`UPDATE`/`DELETE` index maintenance overhead.
+
+<TopicAnchor id="m07-p1-topic-clustered-indexes" />
+
+#### 8. Clustered Indexes: Physical Row Order, Uniquifier & Key Design
+
+A **Clustered Index** sorts and stores the actual table rows in its B+Tree leaf pages (`IN_ROW_DATA`). Because data rows can only be physically ordered in one sequence, a table can have **at most one clustered index**. If a clustered index is created without `UNIQUE`, SQL Server silently appends a 4-byte hidden **`uniquifier`** to duplicate keys.
+
+The ideal clustering key is **Narrow, Unique, Static, and Ever-increasing (NUSE)**—such as `INT IDENTITY` or `BIGINT IDENTITY`—which appends new rows cleanly to the rightmost leaf page with minimal fragmentation. Avoid wide strings or random `NEWID()` (`UNIQUEIDENTIFIER`) clustering keys, which cause severe 50% page splits; use `NEWSEQUENTIALID()` or `IDENTITY` instead.
+
+<TopicAnchor id="m07-p1-topic-non-clustered-indexes" />
+
+#### 9. Non-Clustered Indexes: Row Locators, Key Lookups & `INCLUDE`
+
+A **Non-Clustered Index** is a separate B+Tree holding `(indexed_columns, row_locator)` in its leaf pages. If the base table has a clustered index, the row locator is the **clustering key**; if the base table is a Heap, the locator is an 8-byte **RID** (`FileId:PageId:SlotId`).
+
+When a non-clustered index finds matching rows that need extra columns not in the index, SQL Server performs a **Key Lookup** (or **RID Lookup** on a Heap) into the base table for every matched row. Adding non-filtered `SELECT` columns via **`INCLUDE (col1, col2)`** stores them at the leaf level only—turning expensive Key Lookups into fast, covering **Index Seeks**.
+
+<TopicAnchor id="m07-p1-topic-heap-tables" />
+
+#### 10. Heap Tables: Unordered Pages, IAM Chains & Forwarding Pointers
+
+A **Heap table** is a table without a clustered index: rows are inserted wherever free space exists in any allocated 8 KB page tracked by **IAM** and **PFS** bitmaps, with no logical ordering. Because there is no B+Tree to maintain on `INSERT`, heaps can ingest bulk staging loads quickly.
+
+However, heaps suffer from two major OLTP flaws: queries without a non-clustered index must read every page (**Table Scan**), and if an `UPDATE` widens a row so it no longer fits on its original page, SQL Server moves the row and leaves behind a **Forwarding Pointer**—forcing readers to follow an extra page hop and never reclaiming empty heap space easily without `ALTER TABLE ... REBUILD`.
+
+<TopicAnchor id="m07-p1-topic-stored-procedures" />
+
+#### 11. Stored Procedures: Compiled T-SQL, Parameters & Plan Reuse
+
+A **Stored Procedure** (`CREATE PROCEDURE dbo.ProcName @Param INT AS ...`) is a pre-parsed, named T-SQL routine that accepts `IN`/`OUTPUT` parameters, supports `TRY...CATCH` error handling and `BEGIN TRAN` / `COMMIT`, and returns result sets or status codes.
+
+Stored procedures encourage parameterized execution and **Plan Cache reuse**, reduce network round-trips for multi-statement operations, and provide a clean permission boundary (`GRANT EXECUTE` without exposing direct table `SELECT`/`DELETE` rights). Watch out for **parameter sniffing** (covered in `M07-P3`), where a cached plan optimized for an atypical first parameter hurts subsequent calls.
+
+<TopicAnchor id="m07-p1-topic-functions" />
+
+#### 12. Functions: Scalar UDFs vs. Inline TVFs vs. Multi-Statement TVFs
+
+T-SQL supports three user-defined **Functions**: **Scalar UDFs** (return a single value), **Inline Table-Valued Functions (iTVFs)** (`RETURN (SELECT ...)` with a single statement), and **Multi-Statement TVFs (mTVFs)** (populate and return a `@table` variable).
+
+Always prefer **Inline TVFs (iTVFs)** over Scalar UDFs and mTVFs: an iTVF expands directly into the caller's query tree like a parameterized view, enabling full index seeks and parallelism. Traditional Scalar UDFs execute **row-by-row (RBAR)** and inhibit parallelism (though SQL Server 2019+ **Scalar UDF Inlining** optimizes eligible simple UDFs automatically).
+
+<TopicAnchor id="m07-p1-topic-views" />
+
+#### 13. Views: Virtual Tables, `SCHEMABINDING` & Indexed Views
+
+A **View** (`CREATE VIEW dbo.vOrders AS SELECT ...`) stores a `SELECT` query rather than physical rows, acting as a reusable abstraction or column/row security layer. Like PostgreSQL views, standard SQL Server views expand into the outer query at compile time so base-table indexes apply directly.
+
+Adding **`WITH SCHEMABINDING`** locks the underlying table schemas against breaking `ALTER TABLE` changes—and is mandatory if you want to materialize a view into a physical **Indexed View** by creating a `UNIQUE CLUSTERED INDEX` on it (SQL Server's equivalent of an automatically maintained materialized view, requiring `SET` options like `ANSI_NULLS ON` and `QUOTED_IDENTIFIER ON`).
+
+<TopicAnchor id="m07-p1-topic-triggers" />
+
+#### 14. Triggers: `inserted`/`deleted` Pseudo-Tables & Set-Based Logic
+
+SQL Server supports **DML Triggers** (`AFTER` and `INSTEAD OF` on `INSERT`, `UPDATE`, `DELETE`) and **DDL Triggers**. Crucially, SQL Server DML triggers fire **once per statement—not once per row**—and expose batch changes through two virtual memory-resident tables: **`inserted`** (new rows) and **`deleted`** (old rows).
+
+A classic T-SQL bug is writing `SELECT @id = id FROM inserted` inside a trigger, which silently processes only **one arbitrary row** when a multi-row `INSERT`/`UPDATE` runs. Always write **set-based** `JOIN` logic against `inserted` and `deleted`, and keep triggers short since they execute inside the triggering transaction.
+
+<TopicAnchor id="m07-p1-topic-temp-tables" />
+
+#### 15. Temp Tables: `#Local`, `##Global`, Statistics & `tempdb`
+
+**Local Temp Tables** (`CREATE TABLE #Work (...)`) live in **`tempdb`**, are scoped to the creating session/procedure, and behave like full InnoDB/B+Tree-capable tables: they maintain **column statistics**, trigger automatic recompilations when rows change, and allow you to create **clustered and non-clustered indexes** on them.
+
+**Global Temp Tables** (`##Shared`) are visible across all sessions until the creator disconnects and no active query references them. Because `#Local` temp tables provide real cardinality statistics, they are the right default for intermediate staging sets larger than a few hundred rows.
+
+<TopicAnchor id="m07-p1-topic-table-variables" />
+
+#### 16. Table Variables: `@tbl`, Transaction Scope & Cardinality Limits
+
+A **Table Variable** (`DECLARE @Work TABLE (id INT PRIMARY KEY, ...)`) also resides in `tempdb` (not purely in RAM, despite the name), is scoped strictly to the current batch/routine, and **does not participate in user transaction `ROLLBACK`**—making it useful for logging audit messages inside a rolled-back transaction.
+
+Historically, `@table` variables had **no column statistics**, causing the optimizer to assume `1` row and choose slow Nested Loops on 100K-row batches. SQL Server 2019 introduced **Table Variable Deferred Compilation** (using actual row count on first compile), yet `#Temp` tables remain superior for large datasets needing multiple non-unique indexes or statistics-driven plans.
+
+<TopicAnchor id="m07-p1-topic-ctes" />
+
+#### 17. CTEs: Non-Materialized Expressions & `WITH` Recursive Queries
+
+A **Common Table Expression (CTE)** (`WITH RankedOrders AS (SELECT ...) SELECT ...`) defines a named, statement-scoped subquery that improves readability and enables **recursive queries** (`anchor UNION ALL recursive_member`, capped at `MAXRECURSION 100` by default) for trees and org charts.
+
+Important SQL Server rule: unlike PostgreSQL's `MATERIALIZED` CTE option, a T-SQL CTE is **never materialized**—it is inlined like a subquery. Referencing the same CTE three times in one `SELECT` re-evaluates its underlying query three times; materialize into a `#Temp` table if you need to compute an expensive intermediate result once and reuse it.
+
+<TopicAnchor id="m07-p1-topic-window-functions" />
+
+#### 18. Window Functions: `OVER`, Ranking, `LAG`/`LEAD` & Framing
+
+**Window Functions** (`ROW_NUMBER()`, `RANK()`, `DENSE_RANK()`, `LAG()`, `LEAD()`, `SUM() OVER (...)`) compute values across a set of rows defined by `PARTITION BY` and `ORDER BY` **without collapsing rows** like `GROUP BY`. They execute logically after `WHERE`, `GROUP BY`, and `HAVING`, and before `ORDER BY`.
+
+Pay attention to the **default window frame**: when `ORDER BY` is present inside `OVER (...)` without an explicit frame, SQL Server defaults to `RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW`, which writes to an on-disk `tempdb` worktable spool! Specifying **`ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW`** uses a much faster in-memory window spool when ties do not need peer grouping.
+
+</TopicSection>
+
+<TopicSection id="m07-p1-sec-c" letter="C" title="Internal Working & Architecture">
+
+#### SQL Server Execution & 8 KB Storage Flow
+
+Every client query enters via **SNI** (TDS protocol), passes through the **Relational Engine** (Parser → Algebrizer → Optimizer → Plan Cache), and pulls 8 KB pages through the **Storage Engine** Buffer Pool. Pages are allocated in **64 KB Uniform Extents** (8 pages each), tracked by **GAM**, **PFS**, and **IAM** bitmaps, while write durability is guaranteed by flushing `.ldf` transaction log records before `COMMIT`.
+
+<DiagramCard title="Figure 7.1 — SQL Server Architecture: SNI, Engines, SQLOS & Storage">
+<svg viewBox="0 0 820 190" xmlns="http://www.w3.org/2000/svg" aria-label="SQL Server architecture showing SNI, Relational Engine, Storage Engine, SQLOS, and MDF/LDF storage">
+  <defs>
+    <style>{`
+      .m71-lbl { font: 600 11px system-ui, sans-serif; fill: var(--token-text-primary); }
+      .m71-sub { font: 400 9.5px system-ui, sans-serif; fill: var(--token-text-secondary); }
+      .m71-hdr { font: 700 10px system-ui, sans-serif; fill: var(--token-text-inverse); }
+      .m71-box { rx: 6; ry: 6; }
+    `}</style>
+    <marker id="arr71" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="var(--token-brand-default)" />
+    </marker>
+  </defs>
+
+  <rect class="m71-box" x="6" y="8" width="124" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
+  <rect x="6" y="8" width="124" height="22" rx="6" ry="6" fill="var(--token-brand-muted)" />
+  <text x="68" y="22" text-anchor="middle" class="m71-hdr">Protocol (SNI)</text>
+  <rect class="m71-box" x="14" y="38" width="108" height="44" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="68" y="56" text-anchor="middle" class="m71-lbl">TDS Packets</text>
+  <text x="68" y="70" text-anchor="middle" class="m71-sub">TCP/IP · TLS · Named</text>
+  <rect class="m71-box" x="14" y="90" width="108" height="84" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="68" y="112" text-anchor="middle" class="m71-lbl">SQLOS</text>
+  <text x="68" y="127" text-anchor="middle" class="m71-sub">1 Scheduler / Core</text>
+  <text x="68" y="141" text-anchor="middle" class="m71-sub">Cooperative Yield</text>
+  <text x="68" y="155" text-anchor="middle" class="m71-sub">Memory Clerks</text>
+
+  <path d="M130 60 L146 60" stroke="var(--token-brand-default)" stroke-width="2" marker-end="url(#arr71)" />
+
+  <rect class="m71-box" x="148" y="8" width="218" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
+  <rect x="148" y="8" width="218" height="22" rx="6" ry="6" fill="var(--token-success-muted)" />
+  <text x="257" y="22" text-anchor="middle" class="m71-hdr">Relational Engine</text>
+  <rect class="m71-box" x="158" y="38" width="198" height="34" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="257" y="54" text-anchor="middle" class="m71-lbl">Parser &amp; Algebrizer</text>
+  <text x="257" y="66" text-anchor="middle" class="m71-sub">Syntax tree + name binding</text>
+  <rect class="m71-box" x="158" y="78" width="198" height="44" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="257" y="96" text-anchor="middle" class="m71-lbl">Query Optimizer &amp; Plan Cache</text>
+  <text x="257" y="110" text-anchor="middle" class="m71-sub">Cost-based · stats · sp_executesql</text>
+  <rect class="m71-box" x="158" y="128" width="198" height="46" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="257" y="146" text-anchor="middle" class="m71-lbl">Query Executor</text>
+  <text x="257" y="160" text-anchor="middle" class="m71-sub">Iterators: Seek · Hash · Sort</text>
+
+  <path d="M366 95 L382 95" stroke="var(--token-brand-default)" stroke-width="2" marker-end="url(#arr71)" />
+
+  <rect class="m71-box" x="384" y="8" width="224" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
+  <rect x="384" y="8" width="224" height="22" rx="6" ry="6" fill="var(--token-warning-muted)" />
+  <text x="496" y="22" text-anchor="middle" class="m71-hdr">Storage Engine</text>
+  <rect class="m71-box" x="394" y="38" width="204" height="42" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="496" y="55" text-anchor="middle" class="m71-lbl">Access Methods</text>
+  <text x="496" y="69" text-anchor="middle" class="m71-sub">Heap · Clustered · Non-Clustered</text>
+  <rect class="m71-box" x="394" y="86" width="204" height="42" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="496" y="103" text-anchor="middle" class="m71-lbl">Buffer Manager (Pool)</text>
+  <text x="496" y="117" text-anchor="middle" class="m71-sub">8 KB pages · Checkpoint · Lazy Writer</text>
+  <rect class="m71-box" x="394" y="134" width="204" height="40" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="496" y="150" text-anchor="middle" class="m71-lbl">Transaction &amp; Lock Mgr</text>
+  <text x="496" y="163" text-anchor="middle" class="m71-sub">WAL flush to .ldf before COMMIT</text>
+
+  <path d="M608 95 L624 95" stroke="var(--token-brand-default)" stroke-width="2" marker-end="url(#arr71)" />
+
+  <rect class="m71-box" x="626" y="8" width="188" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
+  <rect x="626" y="8" width="188" height="22" rx="6" ry="6" fill="var(--token-error-muted)" />
+  <text x="720" y="22" text-anchor="middle" class="m71-hdr">Files &amp; 64 KB Extents</text>
+  <rect class="m71-box" x="636" y="38" width="168" height="40" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="720" y="54" text-anchor="middle" class="m71-lbl">.mdf / .ndf (Filegroups)</text>
+  <text x="720" y="68" text-anchor="middle" class="m71-sub">8 x 8 KB pages = 64 KB Extent</text>
+  <rect class="m71-box" x="636" y="84" width="168" height="42" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="720" y="100" text-anchor="middle" class="m71-lbl">.ldf (Transaction Log)</text>
+  <text x="720" y="114" text-anchor="middle" class="m71-sub">Sequential WAL · VLFs</text>
+  <rect class="m71-box" x="636" y="132" width="168" height="42" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="720" y="148" text-anchor="middle" class="m71-lbl">tempdb</text>
+  <text x="720" y="162" text-anchor="middle" class="m71-sub">#Temp · @Table · Spools · RCSI</text>
+</svg>
+</DiagramCard>
+
+</TopicSection>
+
+<TopicSection id="m07-p1-sec-d" letter="D" title="Practical Examples (Interactive)">
+
+#### Example 1: SQL Server 8 KB Page & 64 KB Extent Allocator (`allocateMssqlExtent`)
+
+This simulator models SQL Server's 8,192-byte page budget (`96`-byte header + `2`-byte slot entry per row = `8,060`-byte in-row payload limit) and 8-page (`64 KB`) Uniform vs. Mixed extent allocation.
+
+<CodeBlock lang="javascript" runnable title="SQL Server 8 KB Page & Extent Allocator" code={`
+function allocateMssqlExtent({ rowBytes, rowCount, mixedPageAllocation = false }) {
+  if (!Number.isInteger(rowBytes) || rowBytes < 1) throw new TypeError("rowBytes must be a positive integer");
+  if (!Number.isInteger(rowCount) || rowCount < 1) throw new TypeError("rowCount must be a positive integer");
+  if (typeof mixedPageAllocation !== "boolean") throw new TypeError("mixedPageAllocation must be a boolean");
+
+  const PAGE_SIZE = 8192;
+  const HEADER_BYTES = 96;
+  const MAX_IN_ROW_BYTES = 8060;
+  const SLOT_BYTES = 2;
+
+  const usesRowOverflow = rowBytes > MAX_IN_ROW_BYTES;
+  const effectiveInRowBytes = usesRowOverflow ? 24 : rowBytes;
+  const usablePerPage = PAGE_SIZE - HEADER_BYTES;
+  const rowsPerPage = Math.floor(usablePerPage / (effectiveInRowBytes + SLOT_BYTES));
+  const dataPagesNeeded = Math.ceil(rowCount / rowsPerPage);
+  const extentsNeeded = Math.ceil(dataPagesNeeded / 8);
+
+  return {
+    extentType: mixedPageAllocation && dataPagesNeeded < 8 ? "MIXED_EXTENT" : "UNIFORM_EXTENT",
+    usesRowOverflow,
+    rowsPerPage,
+    dataPagesNeeded,
+    extentsNeeded,
+    allocatedKb: extentsNeeded * 64
+  };
+}
+
+console.log("Standard OLTP:", JSON.stringify(allocateMssqlExtent({ rowBytes: 200, rowCount: 500 })));
+console.log("Row overflow:", JSON.stringify(allocateMssqlExtent({ rowBytes: 9000, rowCount: 100 })));
+`} />
+
+#### Example 2: Clustered vs. Non-Clustered (`INCLUDE`) vs. Heap Lookup Simulator (`simulateMssqlLookup`)
+
+This simulator compares page I/O across four SQL Server table/index patterns: **Heap Table Scan**, **Heap Non-Clustered + RID Lookup** (plus forwarding pointer hops), **Clustered B+Tree + Key Lookup**, and **Covering Non-Clustered (`INCLUDE`) Seek**.
+
+<CodeBlock lang="javascript" runnable title="SQL Server Lookup I/O Simulator" code={`
+function simulateMssqlLookup({ tableOrg, hasCoveringInclude = false, matchedRows = 10, totalPages = 50000, forwardedRatio = 0 }) {
+  if (tableOrg !== "heap" && tableOrg !== "clustered") {
+    throw new TypeError('tableOrg must be "heap" or "clustered"');
+  }
+  if (typeof hasCoveringInclude !== "boolean") throw new TypeError("hasCoveringInclude must be a boolean");
+  if (!Number.isInteger(matchedRows) || matchedRows < 0) throw new TypeError("matchedRows must be >= 0");
+  if (!Number.isInteger(totalPages) || totalPages < 1) throw new TypeError("totalPages must be >= 1");
+  if (!Number.isFinite(forwardedRatio) || forwardedRatio < 0 || forwardedRatio > 1) {
+    throw new TypeError("forwardedRatio must be in [0, 1]");
+  }
+
+  const btreeDepth = Math.max(2, Math.ceil(Math.log(totalPages) / Math.log(200)) + 1);
+
+  if (matchedRows === 0) {
+    return { operator: "Index Seek", logicalReads: btreeDepth, lookupType: "NONE" };
+  }
+
+  if (hasCoveringInclude) {
+    return {
+      operator: "Index Seek (NonClustered Covering)",
+      logicalReads: btreeDepth + Math.ceil(matchedRows / 100),
+      lookupType: "COVERING_NO_LOOKUP"
+    };
+  }
+
+  if (tableOrg === "clustered") {
+    return {
+      operator: "Index Seek + Key Lookup (Clustered)",
+      logicalReads: btreeDepth + matchedRows * btreeDepth,
+      lookupType: "KEY_LOOKUP"
+    };
+  }
+
+  const extraForwardHops = Math.round(matchedRows * forwardedRatio);
+  return {
+    operator: "Index Seek + RID Lookup (Heap)",
+    logicalReads: btreeDepth + matchedRows + extraForwardHops,
+    lookupType: "RID_LOOKUP"
+  };
+}
+
+console.log("Covering INCLUDE:", JSON.stringify(simulateMssqlLookup({ tableOrg: "clustered", hasCoveringInclude: true, matchedRows: 200 })));
+console.log("Key Lookup:", JSON.stringify(simulateMssqlLookup({ tableOrg: "clustered", hasCoveringInclude: false, matchedRows: 200 })));
+console.log("Heap RID + Forward:", JSON.stringify(simulateMssqlLookup({ tableOrg: "heap", hasCoveringInclude: false, matchedRows: 200, forwardedRatio: 0.25 })));
+`} />
+
+#### T-SQL Example: Clustered PK, `INCLUDE`, Inline TVF, CTE & Window Function
+
+<CodeBlock lang="sql" title="T-SQL Covering Index, Inline TVF, CTE & Window Function" code={`
+-- 1. Clustered PK (NUSE: BIGINT IDENTITY) + Covering Non-Clustered Index with INCLUDE
+CREATE TABLE dbo.Orders (
+  OrderId BIGINT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Orders PRIMARY KEY CLUSTERED,
+  CustomerId BIGINT NOT NULL,
+  Status VARCHAR(20) NOT NULL,
+  TotalCents BIGINT NOT NULL,
+  CreatedAt DATETIME2(3) NOT NULL
+);
+
+CREATE NONCLUSTERED INDEX IX_Orders_Customer_Status
+  ON dbo.Orders (CustomerId, Status)
+  INCLUDE (TotalCents, CreatedAt);
+
+-- 2. Inline Table-Valued Function (expands into caller plan; no RBAR overhead)
+CREATE FUNCTION dbo.fn_GetCustomerOrders (@CustomerId BIGINT)
+RETURNS TABLE
+AS
+RETURN (
+  SELECT OrderId, TotalCents, CreatedAt
+  FROM dbo.Orders
+  WHERE CustomerId = @CustomerId AND Status = 'paid'
+);
+
+-- 3. CTE + Window Function with fast ROWS frame (avoids tempdb RANGE spool)
+WITH Ranked AS (
+  SELECT
+    OrderId,
+    TotalCents,
+    ROW_NUMBER() OVER (ORDER BY CreatedAt DESC, OrderId DESC) AS rn,
+    SUM(TotalCents) OVER (
+      ORDER BY CreatedAt ASC, OrderId ASC
+      ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+    ) AS running_total
+  FROM dbo.fn_GetCustomerOrders(42)
+)
+SELECT OrderId, TotalCents, rn, running_total
+FROM Ranked
+WHERE rn <= 25;
+`} />
+
+</TopicSection>
+
+<TopicSection id="m07-p1-sec-e" letter="E" title="Step-by-Step Walkthrough">
+
+#### How `simulateMssqlLookup` Compares Index & Table Strategies
+
+1. **Validate Physical Inputs:** Confirms `tableOrg` is `"heap"` or `"clustered"`, `matchedRows` is a non-negative integer, and `forwardedRatio` is in `[0, 1]`.
+2. **Compute B+Tree Depth:** Estimates tree levels (~3–4 for 50,000+ pages) representing root-to-leaf page reads per seek.
+3. **Covering `INCLUDE` Fast Path:** When `hasCoveringInclude` is true, reads only the non-clustered leaf pages (`COVERING_NO_LOOKUP`) with zero base-table probes.
+4. **Key Lookup vs. RID Lookup Penalty:** Without `INCLUDE`, a clustered table pays `matchedRows * btreeDepth` Key Lookup reads, while a heap pays direct RID reads plus `extraForwardHops` for forwarded rows.
+
+</TopicSection>
+
+<TopicSection id="m07-p1-sec-f" letter="F" title="Real-World Use Cases">
+
+#### Scenario 1: Eliminating Key Lookups with `INCLUDE` on Order Search
+
+A .NET API filtering `Orders` by `(CustomerId, Status)` and projecting `TotalCents` suffered 1,200+ logical reads per request from **Key Lookups**. Adding `INCLUDE (TotalCents, CreatedAt)` to the non-clustered index cut logical reads to 4 pages.
+
+#### Scenario 2: Replacing a Scalar UDF with an Inline TVF
+
+A billing report calling a Scalar UDF in its `SELECT` list ran single-threaded for 45 seconds (RBAR). Rewriting it as an **Inline Table-Valued Function** (`CROSS APPLY dbo.fn_GetCustomerOrders(...)`) enabled full parallel index seeks and dropped runtime to 300ms.
+
+#### Scenario 3: Fixing Heap Forwarding Pointers on a Staging Table
+
+An ingestion table created without a clustered index accumulated 40% forwarded records after `UPDATE`s enriched `VARCHAR` columns. Adding a narrow `CLUSTERED` `IDENTITY` primary key eliminated forwarding hops and stabilized scan I/O.
+
+</TopicSection>
+
+<TopicSection id="m07-p1-sec-g" letter="G" title="Common Mistakes">
+
+- **Clustering on a Random `UNIQUEIDENTIFIER` (`NEWID()`):** Causes severe 50% B+Tree page splits, fragmentation, and bloats every non-clustered index because the 16-byte GUID is embedded in every leaf row locator.
+- **Writing Row-by-Row Logic Inside T-SQL Triggers:** Reading `SELECT @id = id FROM inserted` breaks silently when multi-row `INSERT`/`UPDATE` statements execute; always join `inserted` and `deleted` set-wise.
+- **Using `@Table` Variables for 50K+ Row Intermediate Results:** Even with SQL Server 2019 deferred compilation, `@table` variables lack column distribution statistics and multi-index flexibility—use `#Temp` tables for large sets.
+- **Assuming CTEs Materialize Intermediate Results:** Referencing a complex T-SQL CTE multiple times re-executes the CTE query each time.
+- **Omitting `ROWS BETWEEN ...` on Running-Total Window Functions:** Leaving the default `RANGE` frame writes an on-disk spool to `tempdb` instead of using fast in-memory window spools.
+
+</TopicSection>
+
+<TopicSection id="m07-p1-sec-h" letter="H" title="Best Practices">
+
+- Choose **NUSE** clustering keys (**N**arrow, **U**nique, **S**tatic, **E**ver-increasing), typically `INT` or `BIGINT IDENTITY`.
+- Use **Non-Clustered `INCLUDE (...)`** columns to cover frequent `SELECT` projections and eliminate Key/RID Lookups.
+- Prefer **Inline TVFs (iTVFs)** over Scalar UDFs and Multi-Statement TVFs for composable, parallelizable query plans.
+- Use `#Temp` tables (with indexes created after or inline) for large intermediate datasets and `@Table` variables only for small sets or rollback-safe audit logging.
+- Always specify `ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW` on ordered running aggregates when peer tie-grouping is not required.
+
+</TopicSection>
+
+<TopicSection id="m07-p1-sec-i" letter="I" title="Performance & Scalability">
+
+- **Uniform Extents (`MIXED_PAGE_ALLOCATION OFF`):** Since SQL Server 2016, Uniform-only extent allocation removes SGAM latch contention in `tempdb` and user databases during concurrent `CREATE TABLE #t` bursts.
+- **`tempdb` File Sizing:** Provision multiple equal-sized `tempdb` data files (up to `min(8, logical_cores)`) so **GAM** and **PFS** allocation bitmaps are striped across files without allocation-page latch bottlenecks.
+
+</TopicSection>
+
+<TopicSection id="m07-p1-sec-j" letter="J" title="Security Considerations">
+
+- **Dynamic SQL Injection inside Stored Procedures:** Never concatenate parameters into `EXEC('SELECT ... ' + @name)` inside a stored procedure; always use **`sp_executesql`** with typed parameter definitions (`@p1 NVARCHAR(100)`), and validate dynamic object names with `QUOTENAME()`.
+- **Ownership Chaining & `EXECUTE AS`:** Understand that stored procedures and views can grant access to underlying tables via ownership chaining when owned by the same schema owner (`dbo`), so audit `GRANT EXECUTE` and avoid `WITH EXECUTE AS OWNER` unless explicitly required.
+
+</TopicSection>
+
+<TopicSection id="m07-p1-sec-k" letter="K" title="Comparisons & Decision Tables">
+
+#### Table K.1 — Heap vs. Clustered Index vs. Non-Clustered (`INCLUDE`)
+
+| Organization | Physical Row Order | Locator / Lookup Cost | Best Use Case |
+| --- | --- | --- | --- |
+| **Heap Table** | Unordered (IAM/PFS) | 8-byte RID; forwarding hops on row growth | Write-once bulk staging tables |
+| **Clustered Index** | Ordered by Clustering Key | Single B+Tree seek (leaf = row) | Primary OLTP table organization (NUSE key) |
+| **Non-Clustered (`INCLUDE`)** | Ordered by Index Key | Single index seek (`COVERING_NO_LOOKUP`) | High-QPS secondary queries avoiding Key Lookups |
+
+#### Table K.2 — `#TempTable` vs. `@TableVariable` vs. `CTE`
+
+| Construct | Storage & Scope | Column Statistics | Rollback Behavior | Best For |
+| --- | --- | --- | --- | --- |
+| **`#TempTable`** | `tempdb`, session/proc | ✅ Full statistics + extra indexes | Rolled back by `ROLLBACK` | Large intermediate sets (over 1K rows) |
+| **`@TableVariable`** | `tempdb`, batch/routine | ❌ None (deferred count in 2019+) | Survives `ROLLBACK` | Small sets (under 500 rows) & error logs |
+| **`CTE` (`WITH`)** | Inlined (not materialized) | Uses base table stats | N/A (single statement) | Readability & `WITH` recursion |
+
+#### Table K.3 — T-SQL User-Defined Functions
+
+| Function Type | Plan Integration | Parallelism | Typical Use Case |
+| --- | --- | --- | --- |
+| **Inline TVF (iTVF)** | Inlined into outer query tree | ✅ Full parallelism | Parameterized reusable `SELECT`s (preferred) |
+| **Multi-Statement TVF** | Materialized into `@table` | ❌ Inhibits outer parallelism | Procedural multi-step row generation |
+| **Scalar UDF** | RBAR (inlined in 2019+ if simple) | ❌ Pre-2019 blocks parallelism | Avoid in hot `WHERE`/`SELECT` paths; prefer iTVF |
+
+</TopicSection>
+
+<TopicSection id="m07-p1-sec-l" letter="L" title="Tips to Remember (Mnemonics & Mental Models)">
+
+- **"NUSE Clustering Key":** **N**arrow, **U**nique, **S**tatic, **E**ver-increasing (`BIGINT IDENTITY`) keeps clustered pages dense and secondary locators tiny.
+- **"8 Pages = 1 Extent = 64 KB (8,060 Bytes In-Row)":** Know the 8 KB page math and why `VARCHAR(8000)` triggers `ROW_OVERFLOW_DATA` when combined columns pass 8,060 bytes.
+- **"`#Temp` Has Stats; `@Table` Survives Rollback; `CTE` Never Materializes":** Pick the right intermediate container every time.
+- **"Triggers Fire Once Per Statement, Not Per Row":** Always join `inserted` and `deleted` set-wise.
+
+</TopicSection>
+
+<TopicSection id="m07-p1-sec-mn" letter="M/N" title="Interview Questions & Detailed Answers">
+
+<InterviewSection lessonId="m07-p1" />
+
+</TopicSection>
+
+<TopicSection id="m07-p1-sec-o" letter="O" title="Practical Exercises">
+
+#### Exercise 1: SQL Server Temp Table vs. Table Variable Selector (`selectMssqlTempContainer`)
+
+<ExerciseCard
+  title="Exercise 1: SQL Server Temp Table vs. Table Variable Selector (selectMssqlTempContainer)"
+  prompt={
+    <p>
+      Implement <code>selectMssqlTempContainer(&#123; estimatedRows, needsSecondaryIndexes, mustSurviveRollback, reusedMultipleTimes &#125;)</code> returning whether to use <code>#TempTable</code>, <code>@TableVariable</code>, or <code>CTE</code> with a clear rationale.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function selectMssqlTempContainer({ estimatedRows, needsSecondaryIndexes = false, mustSurviveRollback = false, reusedMultipleTimes = false }) {
+  if (!Number.isInteger(estimatedRows) || estimatedRows < 0) {
+    throw new TypeError("estimatedRows must be a non-negative integer");
+  }
+  if (typeof needsSecondaryIndexes !== "boolean" || typeof mustSurviveRollback !== "boolean" || typeof reusedMultipleTimes !== "boolean") {
+    throw new TypeError("boolean flags must be booleans");
+  }
+
+  if (mustSurviveRollback) {
+    return { choice: "@TableVariable", reason: "Table variables are outside user transaction rollback scope." };
+  }
+  if (needsSecondaryIndexes || estimatedRows >= 1000) {
+    return { choice: "#TempTable", reason: "Supports full column statistics and non-clustered indexes for large sets." };
+  }
+  if (!reusedMultipleTimes) {
+    return { choice: "CTE", reason: "Clean single-statement inline readability with zero tempdb schema overhead." };
+  }
+  return { choice: "@TableVariable", reason: "Small reused batch set (<1000 rows) with minimal recompilation overhead." };
+}
+
+console.log("Large set:", JSON.stringify(selectMssqlTempContainer({ estimatedRows: 50000, needsSecondaryIndexes: true })));
+console.log("Audit log:", JSON.stringify(selectMssqlTempContainer({ estimatedRows: 10, mustSurviveRollback: true })));
+console.log("Single query:", JSON.stringify(selectMssqlTempContainer({ estimatedRows: 200 })));
+`}
+  />
+</ExerciseCard>
+
+#### Exercise 2: T-SQL Function & View Object Advisor (`selectMssqlObjectType`)
+
+<ExerciseCard
+  title="Exercise 2: T-SQL Function & View Object Advisor (selectMssqlObjectType)"
+  prompt={
+    <p>
+      Implement <code>selectMssqlObjectType(&#123; returnsTable, needsTransactions, needsPrecomputedMaterialization, singleSelectExpression &#125;)</code> selecting between <code>StoredProcedure</code>, <code>IndexedView</code>, <code>InlineTVF</code>, and <code>View</code>.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function selectMssqlObjectType({ returnsTable = true, needsTransactions = false, needsPrecomputedMaterialization = false, singleSelectExpression = true }) {
+  if ([returnsTable, needsTransactions, needsPrecomputedMaterialization, singleSelectExpression].some((v) => typeof v !== "boolean")) {
+    throw new TypeError("All flags must be booleans");
+  }
+
+  if (needsTransactions) {
+    return { objectType: "StoredProcedure", reason: "Only stored procedures can control transactions (BEGIN TRAN / COMMIT) and DML." };
+  }
+  if (needsPrecomputedMaterialization) {
+    return { objectType: "IndexedView", reason: "WITH SCHEMABINDING + UNIQUE CLUSTERED INDEX persists pre-aggregated rows." };
+  }
+  if (returnsTable && singleSelectExpression) {
+    return { objectType: "InlineTVF", reason: "Parameterized inline TVFs expand into the caller query plan with full parallelism." };
+  }
+  return { objectType: "View", reason: "Standard virtual table abstraction without parameters." };
+}
+
+console.log("Txn:", JSON.stringify(selectMssqlObjectType({ needsTransactions: true })));
+console.log("Materialized:", JSON.stringify(selectMssqlObjectType({ needsPrecomputedMaterialization: true })));
+console.log("Param query:", JSON.stringify(selectMssqlObjectType({ returnsTable: true, singleSelectExpression: true })));
+`}
+  />
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m07-p1-sec-p" letter="P" title="Advanced Challenge">
+
+<Callout variant="warning" title="Production Storage Alert: Wide Rows, Row-Overflow & Fragmentation">
+  <p>
+    A high-volume SQL Server table mixes fixed numeric columns with wide <code>VARCHAR</code> fields, risking 8,060-byte in-row overflow pointers and low page density when clustered on a non-sequential key.
+  </p>
+</Callout>
+
+<ExerciseCard
+  title="Challenge: SQL Server 8 KB Page Fit & Key-Design Analyzer (planMssqlPageFit)"
+  prompt={
+    <p>
+      Implement <code>planMssqlPageFit(&#123; fixedBytes, varBytes, clusteringKeyType &#125;)</code> checking whether a row fits within SQL Server's 8,060-byte in-row limit and diagnosing whether the clustering key follows the NUSE rule.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function planMssqlPageFit({ fixedBytes, varBytes = 0, clusteringKeyType }) {
+  if (!Number.isInteger(fixedBytes) || fixedBytes < 1) throw new TypeError("fixedBytes must be >= 1");
+  if (!Number.isInteger(varBytes) || varBytes < 0) throw new TypeError("varBytes must be >= 0");
+  const validKeys = new Set(["bigint_identity", "int_identity", "random_uuid", "wide_varchar"]);
+  if (!validKeys.has(clusteringKeyType)) throw new TypeError("Invalid clusteringKeyType: " + clusteringKeyType);
+
+  const totalRowBytes = fixedBytes + varBytes + 4; // 4-byte row header overhead
+  const fitsInRow = totalRowBytes <= 8060;
+  const nuseCompliant = clusteringKeyType === "bigint_identity" || clusteringKeyType === "int_identity";
+
+  return {
+    totalRowBytes,
+    fitsInRow,
+    storageUnit: fitsInRow ? "IN_ROW_DATA" : "ROW_OVERFLOW_DATA",
+    nuseCompliant,
+    recommendation: !nuseCompliant
+      ? "Replace clustering key with narrow sequential BIGINT/INT IDENTITY to prevent 50% page splits."
+      : fitsInRow
+      ? "Optimal in-row NUSE layout."
+      : "Move wide variable columns to vertical split or LOB to avoid 24-byte row-overflow hops."
+  };
+}
+
+console.log("Optimal:", JSON.stringify(planMssqlPageFit({ fixedBytes: 64, varBytes: 200, clusteringKeyType: "bigint_identity" })));
+console.log("Fragmented overflow:", JSON.stringify(planMssqlPageFit({ fixedBytes: 120, varBytes: 8200, clusteringKeyType: "random_uuid" })));
+`}
+  />
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m07-p1-sec-q" letter="Q" title="Summary & Key Takeaways">
+
+<DiagramCard title="Figure 7.2 — SQL Server 8 KB Page, Heap vs. Clustered & Non-Clustered INCLUDE">
+<svg viewBox="0 0 820 190" xmlns="http://www.w3.org/2000/svg" aria-label="SQL Server 8 KB page layout, Heap RID lookup, Clustered B+Tree, and Non-Clustered INCLUDE">
+  <defs>
+    <style>{`
+      .m72-lbl { font: 600 11px system-ui, sans-serif; fill: var(--token-text-primary); }
+      .m72-sub { font: 400 9.5px system-ui, sans-serif; fill: var(--token-text-secondary); }
+      .m72-hdr { font: 700 10px system-ui, sans-serif; fill: var(--token-text-inverse); }
+      .m72-box { rx: 6; ry: 6; }
+    `}</style>
+    <marker id="arr72" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="var(--token-brand-default)" />
+    </marker>
+  </defs>
+
+  <rect class="m72-box" x="6" y="8" width="192" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
+  <rect x="6" y="8" width="192" height="22" rx="6" ry="6" fill="var(--token-brand-muted)" />
+  <text x="102" y="22" text-anchor="middle" class="m72-hdr">8 KB Page (8,192 Bytes)</text>
+  <rect class="m72-box" x="16" y="38" width="172" height="26" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="102" y="55" text-anchor="middle" class="m72-lbl">96-Byte Page Header</text>
+  <rect class="m72-box" x="16" y="70" width="172" height="66" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="102" y="92" text-anchor="middle" class="m72-lbl">Data Rows (max 8,060 B)</text>
+  <text x="102" y="107" text-anchor="middle" class="m72-sub">&gt;8,060 B → ROW_OVERFLOW_DATA</text>
+  <text x="102" y="121" text-anchor="middle" class="m72-sub">MAX cols → LOB_DATA</text>
+  <rect class="m72-box" x="16" y="142" width="172" height="30" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="102" y="161" text-anchor="middle" class="m72-lbl">2-Byte Slot Array (offsets)</text>
+
+  <rect class="m72-box" x="208" y="8" width="196" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
+  <rect x="208" y="8" width="196" height="22" rx="6" ry="6" fill="var(--token-warning-muted)" />
+  <text x="306" y="22" text-anchor="middle" class="m72-hdr">Heap vs. Clustered Table</text>
+  <rect class="m72-box" x="218" y="38" width="176" height="60" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="306" y="55" text-anchor="middle" class="m72-lbl">Heap (No Clustered Index)</text>
+  <text x="306" y="69" text-anchor="middle" class="m72-sub">Unordered · IAM + PFS</text>
+  <text x="306" y="83" text-anchor="middle" class="m72-sub">Forwarding pointers on growth</text>
+  <rect class="m72-box" x="218" y="106" width="176" height="66" fill="var(--token-surface-raised)" stroke="var(--token-brand-default)" stroke-width="1.2" />
+  <text x="306" y="124" text-anchor="middle" class="m72-lbl">Clustered B+Tree (NUSE PK)</text>
+  <text x="306" y="139" text-anchor="middle" class="m72-sub">Leaf pages = ordered rows</text>
+  <text x="306" y="153" text-anchor="middle" class="m72-sub">1 per table · uniquifier if non-uniq</text>
+
+  <rect class="m72-box" x="414" y="8" width="196" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
+  <rect x="414" y="8" width="196" height="22" rx="6" ry="6" fill="var(--token-success-muted)" />
+  <text x="512" y="22" text-anchor="middle" class="m72-hdr">Non-Clustered + INCLUDE</text>
+  <rect class="m72-box" x="424" y="38" width="176" height="60" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="512" y="55" text-anchor="middle" class="m72-lbl">Without INCLUDE</text>
+  <text x="512" y="69" text-anchor="middle" class="m72-sub">Key + Locator (PK or RID)</text>
+  <text x="512" y="83" text-anchor="middle" class="m72-sub">Triggers Key / RID Lookup</text>
+  <rect class="m72-box" x="424" y="106" width="176" height="66" fill="var(--token-surface-raised)" stroke="var(--token-success-default)" stroke-width="1.2" />
+  <text x="512" y="124" text-anchor="middle" class="m72-lbl">Covering INCLUDE (cols)</text>
+  <text x="512" y="139" text-anchor="middle" class="m72-sub">Extra cols stored in leaf only</text>
+  <text x="512" y="153" text-anchor="middle" class="m72-sub">Zero Key Lookups!</text>
+
+  <rect class="m72-box" x="620" y="8" width="194" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
+  <rect x="620" y="8" width="194" height="22" rx="6" ry="6" fill="var(--token-error-muted)" />
+  <text x="717" y="22" text-anchor="middle" class="m72-hdr">T-SQL Objects</text>
+  <rect class="m72-box" x="630" y="38" width="174" height="40" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="717" y="54" text-anchor="middle" class="m72-lbl">iTVF &amp; Indexed View</text>
+  <text x="717" y="68" text-anchor="middle" class="m72-sub">Parallelizable · SCHEMABINDING</text>
+  <rect class="m72-box" x="630" y="84" width="174" height="42" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="717" y="100" text-anchor="middle" class="m72-lbl">#Temp vs @Table vs CTE</text>
+  <text x="717" y="114" text-anchor="middle" class="m72-sub">#Temp has stats · CTE inlines</text>
+  <rect class="m72-box" x="630" y="132" width="174" height="42" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <text x="717" y="148" text-anchor="middle" class="m72-lbl">Triggers &amp; Windows</text>
+  <text x="717" y="162" text-anchor="middle" class="m72-sub">Batch inserted/deleted · ROWS</text>
+</svg>
+</DiagramCard>
+
+#### Key Takeaways
+
+- **Architecture & Storage:** SQLOS schedules cooperative worker threads per core, caching 8 KB pages (8,060-byte in-row limit) allocated in 64 KB Uniform Extents.
+- **Table & Index Organization:** Choose NUSE clustering keys (`BIGINT IDENTITY`), avoid Heap forwarding pointers in OLTP, and add `INCLUDE` columns to eliminate Key Lookups.
+- **T-SQL Programmability:** Prefer Inline TVFs over Scalar UDFs, write set-based `inserted`/`deleted` trigger logic, use `#Temp` tables when statistics matter, and specify `ROWS BETWEEN ...` on ordered window functions.
+
+</TopicSection>

@@ -51,6 +51,8 @@ import M06P1Mdx from "./modules/06-mysql/m06-p1.mdx";
 import m06p1Raw from "./modules/06-mysql/m06-p1.mdx?raw";
 import M06P2Mdx from "./modules/06-mysql/m06-p2.mdx";
 import m06p2Raw from "./modules/06-mysql/m06-p2.mdx?raw";
+import M07P1Mdx from "./modules/07-mssql/m07-p1.mdx";
+import m07p1Raw from "./modules/07-mssql/m07-p1.mdx?raw";
 import { m01p1Questions } from "./interviews/m01-p1.questions";
 import { m01p2Questions } from "./interviews/m01-p2.questions";
 import { m01p3Questions } from "./interviews/m01-p3.questions";
@@ -73,6 +75,7 @@ import { m05p3Questions } from "./interviews/m05-p3.questions";
 import { m05p4Questions } from "./interviews/m05-p4.questions";
 import { m06p1Questions } from "./interviews/m06-p1.questions";
 import { m06p2Questions } from "./interviews/m06-p2.questions";
+import { m07p1Questions } from "./interviews/m07-p1.questions";
 import { SYLLABUS_MODULES } from "./syllabus";
 
 export interface HandbookCatalog {
@@ -229,6 +232,17 @@ const modules: ModuleRecord[] = [
       "Scope (Parts 1–2): Complete MySQL — Architecture, Storage Engines, InnoDB, MVCC, Transactions, ACID, Isolation Levels, Locking, Deadlocks, Indexes, Query Optimization, EXPLAIN, Replication, Partitioning & PITR",
     lead: "Master MySQL InnoDB internals end-to-end: buffer pool, redo/undo logs, MVCC, ACID, isolation levels, locks, deadlocks, clustered/secondary/covering indexes, EXPLAIN, GTID replication, partitioning, ProxySQL, and XtraBackup PITR.",
     lessonIds: ["m06-p1", "m06-p2"]
+  },
+  {
+    id: "module-7",
+    number: 7,
+    title: "Microsoft SQL Server (MSSQL)",
+    category: "databases",
+    partSummary: "Parts 1–3 of 3 (Part 1 Complete)",
+    scopeSummary:
+      "Scope (Parts 1–3): Microsoft SQL Server — Architecture, SQLOS, 8 KB Pages, 64 KB Extents, Clustered/Non-Clustered/Heap Tables, T-SQL Objects, Transactions, Locking, Execution Plans & Tuning",
+    lead: "Master Microsoft SQL Server internals: SQLOS, 8 KB pages, 64 KB extents, Heap vs. Clustered vs. INCLUDE indexes, T-SQL objects (iTVFs, Indexed Views, #Temp vs @Table, CTEs, Window functions), transactions, and tuning.",
+    lessonIds: ["m07-p1"]
   }
 ];
 
@@ -1508,8 +1522,65 @@ const lessons: LessonRecord[] = [
       }
     ],
     prevLessonId: "m06-p1",
-    nextLessonId: null,
+    nextLessonId: "m07-p1",
     Content: M06P2Mdx
+  },
+  {
+    id: "m07-p1",
+    moduleId: "module-7",
+    moduleNumber: 7,
+    moduleTitle: "Microsoft SQL Server (MSSQL)",
+    partLabel: "Lesson M07-P1",
+    title: "Part 1: SQL Server Architecture, 8 KB Pages, 64 KB Extents, Indexes & T-SQL Objects",
+    category: "databases",
+    duration: "95 min (40m theory · 35m practice · 20m review)",
+    objectives: [
+      "Trace SQL Server's 4-layer architecture (SNI, Relational Engine, Storage Engine, SQLOS) and 8 KB page / 64 KB Uniform extent storage.",
+      "Compare Heap tables (RID + forwarding pointers), Clustered B+Trees (NUSE keys), and Non-Clustered `INCLUDE` covering indexes.",
+      "Choose cleanly among Stored Procedures, Inline TVFs vs. Scalar UDFs, `SCHEMABINDING` Indexed Views, and set-based `inserted`/`deleted` Triggers.",
+      "Pick the right intermediate container (`#Temp`, `@Table`, non-materialized `CTE`) and optimize Window Functions with `ROWS` framing."
+    ],
+    sections: [
+      { id: "m07-p1-objectives", title: "Learning Objectives" },
+      { id: "m07-p1-sec-a", letter: "A", title: "Topic Introduction" },
+      { id: "m07-p1-sec-b", letter: "B", title: "Fundamentals (Simple Mental Models)" },
+      { id: "m07-p1-sec-c", letter: "C", title: "Internal Working & Architecture" },
+      { id: "m07-p1-sec-d", letter: "D", title: "Practical Examples (Interactive)" },
+      { id: "m07-p1-sec-e", letter: "E", title: "Step-by-Step Walkthrough" },
+      { id: "m07-p1-sec-f", letter: "F", title: "Real-World Use Cases" },
+      { id: "m07-p1-sec-g", letter: "G", title: "Common Mistakes" },
+      { id: "m07-p1-sec-h", letter: "H", title: "Best Practices" },
+      { id: "m07-p1-sec-i", letter: "I", title: "Performance & Scalability" },
+      { id: "m07-p1-sec-j", letter: "J", title: "Security Considerations" },
+      { id: "m07-p1-sec-k", letter: "K", title: "Comparisons & Decision Tables" },
+      { id: "m07-p1-sec-l", letter: "L", title: "Tips to Remember (Mnemonics & Mental Models)" },
+      { id: "m07-p1-sec-mn", letter: "M/N", title: "Interview Questions & Detailed Answers" },
+      { id: "m07-p1-sec-o", letter: "O", title: "Practical Exercises" },
+      { id: "m07-p1-sec-p", letter: "P", title: "Advanced Challenge" },
+      { id: "m07-p1-sec-q", letter: "Q", title: "Summary & Key Takeaways" },
+      { id: "m07-p1-mastery", title: "Mastery Assessment" }
+    ],
+    masteryItems: [
+      {
+        id: "m07-p1-m1",
+        label: "I can explain SQLOS, 8 KB page layout (8,060-byte limit), and 64 KB Uniform vs. Mixed extents."
+      },
+      {
+        id: "m07-p1-m2",
+        label: "I can compare Heap tables, NUSE Clustered B+Trees, and Non-Clustered INCLUDE indexes."
+      },
+      {
+        id: "m07-p1-m3",
+        label: "I can choose between #Temp tables, @Table variables, CTEs, Inline TVFs, Indexed Views, and set-based Triggers."
+      },
+      {
+        id: "m07-p1-m4",
+        label: "I completed all M07-P1 coding exercises and can answer the interview questions without notes."
+      }
+    ],
+    prevLessonId: "m06-p2",
+    nextLessonId: null,
+    Content: M07P1Mdx
   }
 ];
 
@@ -1535,7 +1606,8 @@ const questionsByLesson: Record<string, InterviewQuestion[]> = {
   "m05-p3": m05p3Questions,
   "m05-p4": m05p4Questions,
   "m06-p1": m06p1Questions,
-  "m06-p2": m06p2Questions
+  "m06-p2": m06p2Questions,
+  "m07-p1": m07p1Questions
 };
 
 const allQuestions: InterviewQuestion[] = [
@@ -1560,7 +1632,8 @@ const allQuestions: InterviewQuestion[] = [
   ...m05p3Questions,
   ...m05p4Questions,
   ...m06p1Questions,
-  ...m06p2Questions
+  ...m06p2Questions,
+  ...m07p1Questions
 ];
 
 function mergeGlossaryEntries(...batches: GlossaryEntry[][]): GlossaryEntry[] {
@@ -1598,7 +1671,8 @@ const glossaryEntries: GlossaryEntry[] = mergeGlossaryEntries(
   extractGlossaryFromMdx(m05p3Raw, "m05-p3"),
   extractGlossaryFromMdx(m05p4Raw, "m05-p4"),
   extractGlossaryFromMdx(m06p1Raw, "m06-p1"),
-  extractGlossaryFromMdx(m06p2Raw, "m06-p2")
+  extractGlossaryFromMdx(m06p2Raw, "m06-p2"),
+  extractGlossaryFromMdx(m07p1Raw, "m07-p1")
 );
 
 function buildSearchRecords(): SearchRecord[] {
@@ -1639,6 +1713,7 @@ function buildSearchRecords(): SearchRecord[] {
   records.push(...extractSearchRecordsFromMdx(m05p4Raw, "m05-p4", lessons[19].title, 5));
   records.push(...extractSearchRecordsFromMdx(m06p1Raw, "m06-p1", lessons[20].title, 6));
   records.push(...extractSearchRecordsFromMdx(m06p2Raw, "m06-p2", lessons[21].title, 6));
+  records.push(...extractSearchRecordsFromMdx(m07p1Raw, "m07-p1", lessons[22].title, 7));
 
   for (const mod of SYLLABUS_MODULES) {
     for (const topic of mod.topics) {

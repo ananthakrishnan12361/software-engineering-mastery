@@ -359,20 +359,20 @@ Split into 3 parts:
 - **M07-P3**: Query execution plans, optimization, statistics, execution plan analysis, index maintenance, fragmentation, parameter sniffing, query tuning, partitioning, SQL Server Agent, backup & recovery, performance monitoring
 
 #### Topics
-- [ ] SQL Server architecture
-- [ ] SQL Server engine
-- [ ] Storage
-- [ ] Pages
-- [ ] Extents
-- [ ] Tables
-- [ ] Indexes
-- [ ] Clustered indexes
-- [ ] Non-clustered indexes
-- [ ] Heap tables
-- [ ] Stored procedures
-- [ ] Functions
-- [ ] Views
-- [ ] Triggers
+- [x] SQL Server architecture
+- [x] SQL Server engine
+- [x] Storage
+- [x] Pages
+- [x] Extents
+- [x] Tables
+- [x] Indexes
+- [x] Clustered indexes
+- [x] Non-clustered indexes
+- [x] Heap tables
+- [x] Stored procedures
+- [x] Functions
+- [x] Views
+- [x] Triggers
 - [ ] Transactions
 - [ ] Locking
 - [ ] Isolation levels
@@ -385,10 +385,10 @@ Split into 3 parts:
 - [ ] Fragmentation
 - [ ] Parameter sniffing
 - [ ] Query tuning
-- [ ] Temp tables
-- [ ] Table variables
-- [ ] CTEs
-- [ ] Window functions
+- [x] Temp tables
+- [x] Table variables
+- [x] CTEs
+- [x] Window functions
 - [ ] Partitioning
 - [ ] SQL Server Agent
 - [ ] Backup and recovery
