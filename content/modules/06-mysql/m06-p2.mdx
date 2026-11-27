@@ -156,59 +156,59 @@ A **secondary index** (`INDEX (email)`) is a separate B+Tree whose leaf pages co
 <svg viewBox="0 0 820 190" xmlns="http://www.w3.org/2000/svg" aria-label="InnoDB clustered index vs secondary index double lookup and covering index shortcut">
   <defs>
     <style>{`
-      .m6p2-lbl { font: 600 11px system-ui, sans-serif; fill: var(--token-text-primary); }
-      .m6p2-sub { font: 400 9.5px system-ui, sans-serif; fill: var(--token-text-secondary); }
-      .m6p2-hdr { font: 700 10px system-ui, sans-serif; fill: var(--token-text-inverse); }
+      .m6p2-lbl { font: 600 11px system-ui, sans-serif; fill: var(--text-primary); }
+      .m6p2-sub { font: 400 9.5px system-ui, sans-serif; fill: var(--text-secondary); }
+      .m6p2-hdr { font: 700 10px system-ui, sans-serif; fill: var(--accent-contrast); }
       .m6p2-box { rx: 6; ry: 6; }
     `}</style>
     <marker id="arr63" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-      <path d="M0,0 L6,3 L0,6 Z" fill="var(--token-brand-default)" />
+      <path d="M0,0 L6,3 L0,6 Z" fill="var(--accent)" />
     </marker>
     <marker id="arr63g" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-      <path d="M0,0 L6,3 L0,6 Z" fill="var(--token-success-default)" />
+      <path d="M0,0 L6,3 L0,6 Z" fill="var(--success)" />
     </marker>
   </defs>
 
-  <rect class="m6p2-box" x="6" y="8" width="252" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
-  <rect x="6" y="8" width="252" height="22" rx="6" ry="6" fill="var(--token-brand-muted)" />
+  <rect class="m6p2-box" x="6" y="8" width="252" height="174" fill="var(--bg-subtle)" stroke="var(--border)" stroke-width="1.2" />
+  <rect x="6" y="8" width="252" height="22" rx="6" ry="6" fill="var(--accent-soft)" />
   <text x="132" y="22" text-anchor="middle" class="m6p2-hdr">Secondary Index: idx(email)</text>
-  <rect class="m6p2-box" x="52" y="38" width="160" height="26" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m6p2-box" x="52" y="38" width="160" height="26" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="132" y="55" text-anchor="middle" class="m6p2-lbl">Root Page (email ranges)</text>
-  <path d="M132 64 L132 76" stroke="var(--token-brand-default)" stroke-width="1.6" marker-end="url(#arr63)" />
-  <rect class="m6p2-box" x="28" y="78" width="208" height="26" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <path d="M132 64 L132 76" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#arr63)" />
+  <rect class="m6p2-box" x="28" y="78" width="208" height="26" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="132" y="95" text-anchor="middle" class="m6p2-lbl">Branch Page (a@..m@ | n@..z@)</text>
-  <path d="M132 104 L132 116" stroke="var(--token-brand-default)" stroke-width="1.6" marker-end="url(#arr63)" />
-  <rect class="m6p2-box" x="16" y="118" width="232" height="54" fill="var(--token-surface-raised)" stroke="var(--token-brand-default)" stroke-width="1.2" />
+  <path d="M132 104 L132 116" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#arr63)" />
+  <rect class="m6p2-box" x="16" y="118" width="232" height="54" fill="var(--bg-elevated)" stroke="var(--accent)" stroke-width="1.2" />
   <text x="132" y="134" text-anchor="middle" class="m6p2-lbl">Leaf: ('a@b.com', PK=42)</text>
   <text x="132" y="148" text-anchor="middle" class="m6p2-sub">Stores indexed key + PK only</text>
   <text x="132" y="162" text-anchor="middle" class="m6p2-sub">Step 1: Get PK=42 (or return if covering)</text>
 
-  <path d="M258 145 L288 70" stroke="var(--token-brand-default)" stroke-width="2" marker-end="url(#arr63)" />
+  <path d="M258 145 L288 70" stroke="var(--accent)" stroke-width="2" marker-end="url(#arr63)" />
   <text x="274" y="96" text-anchor="middle" class="m6p2-sub">PK=42</text>
 
-  <rect class="m6p2-box" x="290" y="8" width="276" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
-  <rect x="290" y="8" width="276" height="22" rx="6" ry="6" fill="var(--token-warning-muted)" />
+  <rect class="m6p2-box" x="290" y="8" width="276" height="174" fill="var(--bg-subtle)" stroke="var(--border)" stroke-width="1.2" />
+  <rect x="290" y="8" width="276" height="22" rx="6" ry="6" fill="var(--warning-soft)" />
   <text x="428" y="22" text-anchor="middle" class="m6p2-hdr">Clustered Index (PK B+Tree)</text>
-  <rect class="m6p2-box" x="348" y="38" width="160" height="26" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m6p2-box" x="348" y="38" width="160" height="26" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="428" y="55" text-anchor="middle" class="m6p2-lbl">Root Page (PK 1..10M)</text>
-  <path d="M428 64 L428 76" stroke="var(--token-brand-default)" stroke-width="1.6" marker-end="url(#arr63)" />
-  <rect class="m6p2-box" x="320" y="78" width="216" height="26" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <path d="M428 64 L428 76" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#arr63)" />
+  <rect class="m6p2-box" x="320" y="78" width="216" height="26" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="428" y="95" text-anchor="middle" class="m6p2-lbl">Branch Page (PK 1..500 | 501..1000)</text>
-  <path d="M428 104 L428 116" stroke="var(--token-brand-default)" stroke-width="1.6" marker-end="url(#arr63)" />
-  <rect class="m6p2-box" x="300" y="118" width="256" height="54" fill="var(--token-surface-raised)" stroke="var(--token-warning-default)" stroke-width="1.2" />
+  <path d="M428 104 L428 116" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#arr63)" />
+  <rect class="m6p2-box" x="300" y="118" width="256" height="54" fill="var(--bg-elevated)" stroke="var(--warning)" stroke-width="1.2" />
   <text x="428" y="134" text-anchor="middle" class="m6p2-lbl">Leaf: PK=42 → Full Row Data</text>
   <text x="428" y="148" text-anchor="middle" class="m6p2-sub">email, total_cents, status, DB_TRX_ID</text>
   <text x="428" y="162" text-anchor="middle" class="m6p2-sub">Step 2: Double lookup fetches row</text>
 
-  <rect class="m6p2-box" x="576" y="8" width="238" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
-  <rect x="576" y="8" width="238" height="22" rx="6" ry="6" fill="var(--token-success-muted)" />
+  <rect class="m6p2-box" x="576" y="8" width="238" height="174" fill="var(--bg-subtle)" stroke="var(--border)" stroke-width="1.2" />
+  <rect x="576" y="8" width="238" height="22" rx="6" ry="6" fill="var(--success-soft)" />
   <text x="695" y="22" text-anchor="middle" class="m6p2-hdr">Covering Shortcut (Using index)</text>
-  <rect class="m6p2-box" x="588" y="40" width="214" height="52" fill="var(--token-surface-raised)" stroke="var(--token-success-default)" stroke-width="1.2" />
+  <rect class="m6p2-box" x="588" y="40" width="214" height="52" fill="var(--bg-elevated)" stroke="var(--success)" stroke-width="1.2" />
   <text x="695" y="57" text-anchor="middle" class="m6p2-lbl">idx(email, total_cents)</text>
   <text x="695" y="71" text-anchor="middle" class="m6p2-sub">Leaf: ('a@b.com', 4900, PK=42)</text>
   <text x="695" y="84" text-anchor="middle" class="m6p2-sub">0 clustered probes needed!</text>
-  <path d="M695 92 L695 108" stroke="var(--token-success-default)" stroke-width="1.8" marker-end="url(#arr63g)" />
-  <rect class="m6p2-box" x="588" y="110" width="214" height="62" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <path d="M695 92 L695 108" stroke="var(--success)" stroke-width="1.8" marker-end="url(#arr63g)" />
+  <rect class="m6p2-box" x="588" y="110" width="214" height="62" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="695" y="127" text-anchor="middle" class="m6p2-lbl">Result Returned Directly</text>
   <text x="695" y="142" text-anchor="middle" class="m6p2-sub">Keep PK small (BIGINT 8B)</text>
   <text x="695" y="156" text-anchor="middle" class="m6p2-sub">Sequential PK avoids page splits</text>
@@ -683,68 +683,68 @@ console.log("Fallback primary:", JSON.stringify(routeReplicaAndPartition({
 <svg viewBox="0 0 820 190" xmlns="http://www.w3.org/2000/svg" aria-label="MySQL 8.0 GTID replication, ProxySQL read/write split, range partitioning, and XtraBackup PITR">
   <defs>
     <style>{`
-      .m64-lbl { font: 600 11px system-ui, sans-serif; fill: var(--token-text-primary); }
-      .m64-sub { font: 400 9.5px system-ui, sans-serif; fill: var(--token-text-secondary); }
-      .m64-hdr { font: 700 10px system-ui, sans-serif; fill: var(--token-text-inverse); }
+      .m64-lbl { font: 600 11px system-ui, sans-serif; fill: var(--text-primary); }
+      .m64-sub { font: 400 9.5px system-ui, sans-serif; fill: var(--text-secondary); }
+      .m64-hdr { font: 700 10px system-ui, sans-serif; fill: var(--accent-contrast); }
       .m64-box { rx: 6; ry: 6; }
     `}</style>
     <marker id="arr64" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-      <path d="M0,0 L6,3 L0,6 Z" fill="var(--token-brand-default)" />
+      <path d="M0,0 L6,3 L0,6 Z" fill="var(--accent)" />
     </marker>
   </defs>
 
-  <rect class="m64-box" x="6" y="8" width="166" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
-  <rect x="6" y="8" width="166" height="22" rx="6" ry="6" fill="var(--token-brand-muted)" />
+  <rect class="m64-box" x="6" y="8" width="166" height="174" fill="var(--bg-subtle)" stroke="var(--border)" stroke-width="1.2" />
+  <rect x="6" y="8" width="166" height="22" rx="6" ry="6" fill="var(--accent-soft)" />
   <text x="89" y="22" text-anchor="middle" class="m64-hdr">App + ProxySQL Pool</text>
-  <rect class="m64-box" x="16" y="38" width="146" height="36" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m64-box" x="16" y="38" width="146" height="36" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="89" y="54" text-anchor="middle" class="m64-lbl">Writes + RYW Reads</text>
   <text x="89" y="67" text-anchor="middle" class="m64-sub">Multiplexed to Primary</text>
-  <rect class="m64-box" x="16" y="82" width="146" height="36" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m64-box" x="16" y="82" width="146" height="36" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="89" y="98" text-anchor="middle" class="m64-lbl">Read-Only Queries</text>
   <text x="89" y="111" text-anchor="middle" class="m64-sub">Routed if lag &lt; threshold</text>
-  <rect class="m64-box" x="16" y="126" width="146" height="46" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m64-box" x="16" y="126" width="146" height="46" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="89" y="143" text-anchor="middle" class="m64-lbl">Thread Budget</text>
   <text x="89" y="156" text-anchor="middle" class="m64-sub">Threads_running ~ 2x vCPU</text>
 
-  <path d="M172 56 L196 56" stroke="var(--token-brand-default)" stroke-width="2" marker-end="url(#arr64)" />
+  <path d="M172 56 L196 56" stroke="var(--accent)" stroke-width="2" marker-end="url(#arr64)" />
 
-  <rect class="m64-box" x="198" y="8" width="212" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
-  <rect x="198" y="8" width="212" height="22" rx="6" ry="6" fill="var(--token-success-muted)" />
+  <rect class="m64-box" x="198" y="8" width="212" height="174" fill="var(--bg-subtle)" stroke="var(--border)" stroke-width="1.2" />
+  <rect x="198" y="8" width="212" height="22" rx="6" ry="6" fill="var(--success-soft)" />
   <text x="304" y="22" text-anchor="middle" class="m64-hdr">Primary + GTID Replication</text>
-  <rect class="m64-box" x="208" y="38" width="192" height="40" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m64-box" x="208" y="38" width="192" height="40" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="304" y="54" text-anchor="middle" class="m64-lbl">Source Primary (ROW Binlog)</text>
   <text x="304" y="68" text-anchor="middle" class="m64-sub">gtid_mode=ON · uuid:seq</text>
-  <path d="M304 78 L304 94" stroke="var(--token-brand-default)" stroke-width="1.6" marker-end="url(#arr64)" />
-  <rect class="m64-box" x="208" y="96" width="192" height="36" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <path d="M304 78 L304 94" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#arr64)" />
+  <rect class="m64-box" x="208" y="96" width="192" height="36" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="304" y="112" text-anchor="middle" class="m64-lbl">Replica (Relay Log → Workers)</text>
   <text x="304" y="125" text-anchor="middle" class="m64-sub">LOGICAL_CLOCK parallel apply</text>
-  <rect class="m64-box" x="208" y="138" width="192" height="34" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m64-box" x="208" y="138" width="192" height="34" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="304" y="153" text-anchor="middle" class="m64-lbl">Semi-Sync / Group Rep</text>
   <text x="304" y="165" text-anchor="middle" class="m64-sub">Zero-RPO ACK or Paxos HA</text>
 
-  <rect class="m64-box" x="420" y="8" width="192" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
-  <rect x="420" y="8" width="192" height="22" rx="6" ry="6" fill="var(--token-warning-muted)" />
+  <rect class="m64-box" x="420" y="8" width="192" height="174" fill="var(--bg-subtle)" stroke="var(--border)" stroke-width="1.2" />
+  <rect x="420" y="8" width="192" height="22" rx="6" ry="6" fill="var(--warning-soft)" />
   <text x="516" y="22" text-anchor="middle" class="m64-hdr">Range Partitioning</text>
-  <rect class="m64-box" x="430" y="38" width="172" height="36" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m64-box" x="430" y="38" width="172" height="36" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="516" y="54" text-anchor="middle" class="m64-lbl">p2026_10 (Pruned ✗)</text>
   <text x="516" y="67" text-anchor="middle" class="m64-sub">DROP PARTITION in ms</text>
-  <rect class="m64-box" x="430" y="82" width="172" height="36" fill="var(--token-surface-raised)" stroke="var(--token-brand-default)" stroke-width="1.2" />
+  <rect class="m64-box" x="430" y="82" width="172" height="36" fill="var(--bg-elevated)" stroke="var(--accent)" stroke-width="1.2" />
   <text x="516" y="98" text-anchor="middle" class="m64-lbl">p2026_11 (Scanned ✓)</text>
   <text x="516" y="111" text-anchor="middle" class="m64-sub">WHERE created_at matches</text>
-  <rect class="m64-box" x="430" y="126" width="172" height="46" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m64-box" x="430" y="126" width="172" height="46" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="516" y="143" text-anchor="middle" class="m64-lbl">PK Rule</text>
   <text x="516" y="156" text-anchor="middle" class="m64-sub">All unique keys include part col</text>
 
-  <rect class="m64-box" x="622" y="8" width="192" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
-  <rect x="622" y="8" width="192" height="22" rx="6" ry="6" fill="var(--token-error-muted)" />
+  <rect class="m64-box" x="622" y="8" width="192" height="174" fill="var(--bg-subtle)" stroke="var(--border)" stroke-width="1.2" />
+  <rect x="622" y="8" width="192" height="22" rx="6" ry="6" fill="var(--danger-soft)" />
   <text x="718" y="22" text-anchor="middle" class="m64-hdr">Backup &amp; PITR</text>
-  <rect class="m64-box" x="632" y="38" width="172" height="36" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m64-box" x="632" y="38" width="172" height="36" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="718" y="54" text-anchor="middle" class="m64-lbl">1. Full Physical Backup</text>
   <text x="718" y="67" text-anchor="middle" class="m64-sub">Percona XtraBackup (hot)</text>
-  <rect class="m64-box" x="632" y="82" width="172" height="36" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m64-box" x="632" y="82" width="172" height="36" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="718" y="98" text-anchor="middle" class="m64-lbl">2. Archived Binary Logs</text>
   <text x="718" y="111" text-anchor="middle" class="m64-sub">mysqlbinlog --stop-datetime</text>
-  <rect class="m64-box" x="632" y="126" width="172" height="46" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m64-box" x="632" y="126" width="172" height="46" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="718" y="143" text-anchor="middle" class="m64-lbl">3. Automated Drills</text>
   <text x="718" y="156" text-anchor="middle" class="m64-sub">Verify restore before incidents</text>
 </svg>

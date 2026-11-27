@@ -404,6 +404,45 @@ async function runBrowserLayoutAndSvgAudit(lessons) {
   }
 }
 
+// Every colour variable used inside a <DiagramCard> must be defined by the app's CSS (src/**/*.css).
+// An undefined variable makes SVG fills fall back to black and text invisible in dark mode.
+function checkDiagramColorVariables() {
+  const declared = new Set();
+  const srcDir = path.join(ROOT, "src");
+  for (const entry of fs.readdirSync(srcDir, { recursive: true })) {
+    const p = path.join(srcDir, String(entry));
+    if (/\.css$/.test(p) && fs.statSync(p).isFile()) {
+      for (const m of fs.readFileSync(p, "utf8").matchAll(/(--[a-zA-Z0-9_-]+)\s*:/g)) declared.add(m[1]);
+    }
+  }
+  assert(declared.size > 0, "No CSS custom properties found under src/ (the diagram colour check cannot run)");
+
+  const problems = [];
+  const modulesDir = path.join(ROOT, "content", "modules");
+  for (const entry of fs.readdirSync(modulesDir, { recursive: true })) {
+    const p = path.join(modulesDir, String(entry));
+    if (!/\.mdx$/.test(p) || !fs.statSync(p).isFile()) continue;
+    const text = fs.readFileSync(p, "utf8");
+    for (const card of text.matchAll(/<DiagramCard[\s\S]*?<\/DiagramCard>/g)) {
+      const local = new Set([...card[0].matchAll(/(--[a-zA-Z0-9_-]+)\s*:/g)].map((m) => m[1]));
+      for (const ref of card[0].matchAll(/var\(\s*(--[a-zA-Z0-9_-]+)\s*(,[^)]*)?\)/g)) {
+        if (ref[2]) continue; // an explicit fallback value is allowed
+        if (!declared.has(ref[1]) && !local.has(ref[1])) {
+          const line = text.slice(0, card.index + ref.index).split(/\r?\n/).length;
+          problems.push(path.relative(ROOT, p) + ":" + line + " uses undefined CSS variable " + ref[1]);
+        }
+      }
+    }
+  }
+  assert.equal(
+    problems.length,
+    0,
+    "Diagram colour variables are not defined in the src/ stylesheets (they render black and invisible):\n" +
+      problems.slice(0, 12).join("\n") +
+      (problems.length > 12 ? "\n... and " + (problems.length - 12) + " more" : "")
+  );
+}
+
 // ======================= MAIN QUALITY GATE EXECUTION =======================
 const promptText = fs.readFileSync(MASTER_PROMPT, "utf8");
 
@@ -417,6 +456,9 @@ for (const dir of ["content/modules", "content/interviews", "content/coverage"])
     }
   }
 }
+
+// 1b. Diagram colour variables must exist in the app stylesheets
+checkDiagramColorVariables();
 
 const vite = await createServer({
   server: { middlewareMode: true },

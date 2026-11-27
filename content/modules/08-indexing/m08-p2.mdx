@@ -1,0 +1,1182 @@
+<Callout variant="info" title="Topics Covered in Part 2 (M08-P2)">
+  <p>
+    This second part of Module 8 covers 11 specialised-index and statistics topics: <strong>Composite indexes</strong>, <strong>Covering indexes</strong>, <strong>Partial indexes</strong>, <strong>Filtered indexes</strong>, <strong>Functional indexes</strong>, <strong>Expression indexes</strong>, <strong>Full-text indexes</strong>, <strong>Spatial indexes</strong>, <strong>Index selectivity</strong>, <strong>Cardinality</strong>, and <strong>Index statistics</strong>. Part 1 covered the B+ Tree foundations these build on; Part 3 covers how queries use them (column order, leftmost prefix, scans and seeks).
+  </p>
+</Callout>
+
+<TopicSection id="m08-p2-sec-a" letter="A" title="Topic Introduction">
+
+#### What is this?
+
+A plain single-column B+ Tree answers one question well: "find rows by this one value". Real workloads ask richer questions: filter by tenant **and** status **and** date, return only a few columns, look at only the active rows, search by `LOWER(email)`, find documents containing a word, or find shops within 2 km. **Specialised indexes** adapt the same sorted-structure idea to those questions: composite and covering indexes widen what one tree can answer, partial, filtered, functional and expression indexes narrow or transform what goes into it, and full-text and spatial indexes replace the B+ Tree with a structure that fits the data. **Statistics** (selectivity, cardinality, histograms) are the numbers the planner uses to decide whether any of them is worth using.
+
+#### Why does it exist & what problem does it solve?
+
+A generic index has two weaknesses. It can be **too small in scope**, forcing a table lookup per row, or too many single-column indexes that the planner cannot combine cheaply. And it can be **too large in scope**, indexing millions of rows (deleted, archived, completed) that no query ever asks about, which costs space and write time. Specialised indexes tune size and shape to the real query. Without statistics the planner cannot choose between them: it would guess whether a predicate matches 5 rows or 5 million, and a wrong guess turns a millisecond query into a table scan.
+
+#### Where is it used in real-world software?
+
+Multi-tenant SaaS schemas use composite `(tenant_id, created_at)` indexes and partial or filtered indexes for "active" rows and soft deletes. Job queues index only `status = 'pending'`. Authentication stores `LOWER(email)` expression indexes for case-insensitive login. Product search uses full-text indexes; delivery, ride-hailing and store locators use spatial indexes. Every one of these relies on fresh statistics, which is why `ANALYZE` and `UPDATE STATISTICS` appear in production runbooks.
+
+</TopicSection>
+
+<TopicSection id="m08-p2-sec-b" letter="B" title="Fundamentals (Simple Mental Models)">
+
+<TopicAnchor id="m08-p2-topic-composite-indexes" />
+
+#### 1. Composite Indexes: Multi-Column Keys and Tuple Order
+
+A **composite** (multi-column) index stores the **tuple** of several columns as its key, for example `(tenant_id, status, created_at)`, and keeps entries sorted by the first column, then the second within equal first values, then the third. Think of a phone book sorted by last name, then first name: it finds "Smith, Anna" instantly but cannot find "everyone called Anna" without reading the whole book. The same asymmetry applies to a database: equality on the leading columns narrows the search, and only the column right after that equality prefix can still bound a range.
+
+Because of that, **column order is a design decision**, not a detail. Put columns that queries compare with equality first, then the column used for `ORDER BY`, then the column used for a range (the equality-sort-range rule): once a column is compared with a range, later key columns can no longer provide sorted output. One composite index replaces several single-column indexes only if the queries share a leading prefix; separate single-column indexes can sometimes be combined (PostgreSQL bitmap AND, MySQL index merge, SQL Server index intersection) but that is usually slower than one well-ordered composite. Limits differ by engine (PostgreSQL 32 columns by default, MySQL 16, SQL Server 32 key columns with 900-byte clustered and 1,700-byte nonclustered key limits). Example 1 counts index entries scanned for several query shapes; Part 3 develops the leftmost-prefix rules in depth, including MySQL 8.0.13+ skip scan, which can sometimes cope with a missing leading column.
+
+<TopicAnchor id="m08-p2-topic-covering-indexes" />
+
+#### 2. Covering Indexes: Answering Queries from the Index Alone
+
+An index **covers** a query when it contains every column the query reads (select list, `WHERE`, `ORDER BY`), so the engine never visits the table. This removes the extra hop per matching row that Part 1 showed to be the dominant cost of secondary-index lookups. SQL Server and PostgreSQL 11+ let you add non-key **`INCLUDE`** columns that are stored in the leaf only (they cannot be used to seek or sort but they avoid lookups); MySQL has no `INCLUDE`, so you append the columns to the key. InnoDB secondary entries already contain the primary key, so a query that selects only the key columns plus the primary key is covered for free.
+
+The price is a wider index: more space, more cache pressure, and more write work whenever an included column changes. In PostgreSQL an **index-only scan** also needs the **visibility map**: if `VACUUM` has not marked pages all-visible, the engine still visits the heap to check row visibility (`Heap Fetches` in `EXPLAIN`). You can recognise a covered query in plans as `Index Only Scan` (PostgreSQL), `Using index` in the `Extra` column (MySQL), or the absence of a `Key Lookup` operator (SQL Server). MongoDB calls this a **covered query**: all fields in the filter and projection are in one index and `_id` is excluded from the projection.
+
+<TopicAnchor id="m08-p2-topic-partial-indexes" />
+
+#### 3. Partial Indexes: Indexing Only the Rows You Query
+
+A **partial index** (PostgreSQL's term) indexes only the rows that satisfy a `WHERE` predicate: `CREATE INDEX ON jobs (created_at) WHERE status = 'pending'`. If 99 percent of a jobs table is `done`, the index is about one percent the size, rows outside the predicate cost nothing to insert, and the hot path (`pending` rows) is served by a tiny, cache-resident tree. A **partial unique index** is the standard soft-delete pattern: `CREATE UNIQUE INDEX ON users (email) WHERE deleted_at IS NULL` forbids two live accounts with one email while still allowing deleted rows to repeat it.
+
+The catch is that the planner may use a partial index only when it can **prove the query's `WHERE` implies the index predicate**. A query with the literal `status = 'pending'` qualifies; a parameterised `status = $1` generally does not, because a generic prepared plan must work for every value. MySQL has no partial indexes (the usual workaround is a generated column that is `NULL` outside the condition plus an index on it; `NULL`s are skipped by unique checks). MongoDB offers partial indexes through `partialFilterExpression`, supporting a limited set of predicates such as equality, `$exists: true` and comparison operators. Exercise 2 models both the implication rule and the soft-delete uniqueness.
+
+<TopicAnchor id="m08-p2-topic-filtered-indexes" />
+
+#### 4. Filtered Indexes: SQL Server's WHERE-Clause Indexes
+
+A **filtered index** is SQL Server's version of the same idea: a nonclustered index created with a `WHERE` clause, `CREATE NONCLUSTERED INDEX IX_Orders_Open ON dbo.Orders (CustomerId) WHERE Status = 'Open'`. It stores and maintains only matching rows, which makes it smaller, cheaper to maintain, and able to keep **filtered statistics** that describe just that subset (often far more accurate than whole-column statistics when the data is skewed). A **filtered unique index** is also the classic way to allow many NULLs in a unique column, because SQL Server's ordinary unique index permits only one: `CREATE UNIQUE INDEX UX_Users_Email ON dbo.Users (Email) WHERE Email IS NOT NULL`.
+
+Filtered indexes have sharper restrictions than PostgreSQL's partial indexes. The filter is limited to simple comparison logic (it cannot call functions or reference computed columns), and the session must use the required `SET` options (for example `QUOTED_IDENTIFIER` and `ANSI_NULLS` on) when modifying the table. Most importantly, a query that compares to a **variable or parameter** (`WHERE Status = @s`) cannot use the filtered index unless the optimizer sees the literal, for example through `OPTION (RECOMPILE)`. Treat "partial" and "filtered" as one concept with vendor-specific rules, and test the plan, not the theory.
+
+<TopicAnchor id="m08-p2-topic-functional-indexes" />
+
+#### 5. Functional Indexes: Indexing the Result of a Function
+
+A **functional index** stores the result of a function applied to a column, so predicates that wrap the column in that function become index-friendly. Without it, `WHERE LOWER(email) = 'ann@example.com'` is **non-sargable**: the engine must evaluate `LOWER` for every row because the index holds `email`, not `LOWER(email)`. With a functional index the engine computes the function once, at write time, and stores the result in the B+ Tree, so the lookup is an ordinary seek.
+
+Engines expose this differently. MySQL 8.0.13+ supports **functional key parts**, written with an extra pair of parentheses: `CREATE INDEX idx_email_lower ON users ((LOWER(email)))` (internally a hidden virtual generated column). SQL Server indexes a **computed column** that wraps the function, and the function must be deterministic. PostgreSQL uses its general expression index (next topic). MongoDB has no functional indexes: you either store a normalised derived field or use an index with a case-insensitive collation. In every engine the query must apply the **same function** to the column as the index definition, and collations matter: MySQL's default case-insensitive collation often makes a `LOWER` index unnecessary.
+
+<TopicAnchor id="m08-p2-topic-expression-indexes" />
+
+#### 6. Expression Indexes: Any Deterministic Expression
+
+An **expression index** generalises the functional index: the key can be any deterministic computation over columns of the same row, not only a single function call. PostgreSQL's syntax is the model: `CREATE INDEX ON orders ((price * quantity))`, `CREATE INDEX ON events ((payload ->> 'type'))` for a JSON field, or `CREATE INDEX ON logs (date_trunc('day', created_at AT TIME ZONE 'UTC'))`. PostgreSQL requires every function in the expression to be marked `IMMUTABLE`, which is why indexing `date(created_at)` on a `timestamptz` fails (the result depends on the session time zone) while the `AT TIME ZONE 'UTC'` form works.
+
+Expression indexes cost CPU on every write that touches the referenced columns, because the expression is re-evaluated, and they only help queries whose predicate repeats the exact expression. PostgreSQL's `ANALYZE` collects statistics on the expression itself, so the planner can estimate it accurately. MySQL 8.0.13+ accepts arithmetic and other expressions as functional key parts, SQL Server uses indexed computed columns, and MongoDB again needs a stored derived field. Exercise 3 models the key rule: a lookup that applies the same expression uses the index, while a bare-column predicate silently falls back to a scan.
+
+<TopicAnchor id="m08-p2-topic-full-text-indexes" />
+
+#### 7. Full-Text Indexes: Inverted Indexes for Text Search
+
+A B+ Tree can answer `LIKE 'abc%'` (a prefix) but not `LIKE '%abc%'` or "documents about indexing", because the sort order only helps from the left edge of the string. A **full-text index** is an **inverted index**: the text is split into **tokens** (lower-cased words, with stop words such as "the" removed and often **stemmed**, so "indexes" and "indexing" match), and the index maps each term to a **posting list** of the documents that contain it, with frequencies or positions. A multi-word query intersects or unions posting lists, and **ranking** (for example TF-IDF or BM25) orders the matches by relevance.
+
+Each engine ships its own implementation. PostgreSQL stores a `tsvector` in a **GIN** index: `CREATE INDEX ON docs USING GIN (to_tsvector('english', body))`, queried with `to_tsvector(...) @@ plainto_tsquery(...)` (the `pg_trgm` extension adds GIN or GiST trigram indexes for substring `LIKE`). MySQL InnoDB offers `FULLTEXT` indexes (5.6+) queried with `MATCH(col) AGAINST('words')`, with an `ngram` parser for languages without spaces. SQL Server uses a separate full-text catalog and index (`CREATE FULLTEXT INDEX`, queried with `CONTAINS` or `FREETEXT`) that requires a unique single-column key and is populated asynchronously, so results can lag writes. MongoDB provides one text index per collection (`$text`) and offers Atlas Search for Lucene-style relevance. The Advanced Challenge builds the posting-list mechanism end to end with a deliberately simple ASCII-only tokenizer; real engines use language-aware dictionaries and stemmers.
+
+<TopicAnchor id="m08-p2-topic-spatial-indexes" />
+
+#### 8. Spatial Indexes: R-Trees, GiST and Geospatial Search
+
+Location data is two-dimensional, and a single sorted order cannot answer "which points lie in this rectangle or within 2 km": sorting by latitude alone leaves every longitude to scan. A **spatial index** instead groups nearby objects into **minimum bounding rectangles (MBRs)** arranged in a tree (the **R-Tree** family), so a query can discard whole regions whose rectangle does not touch the search area. Queries run in two phases: the index finds candidates whose MBR intersects the search shape (the **filter** step), and the engine then tests the exact geometry on those candidates (the **refine** step).
+
+Implementations differ. PostgreSQL with PostGIS uses **GiST** (and SP-GiST) indexes: `CREATE INDEX ON shops USING GIST (geom)`, queried with `ST_DWithin` or the KNN operator `<->`. MySQL provides `SPATIAL` indexes (R-Tree) on `NOT NULL` geometry columns, and InnoDB supports them from 5.7. SQL Server builds a B-tree over a multi-level **grid tessellation** of the plane for `geometry` and `geography` columns, used by methods such as `STIntersects` and `STDistance`. MongoDB offers `2dsphere` indexes (S2 cells on a sphere) for `$near` and `$geoWithin`. When only a plain B+ Tree is available, **geohash** or **H3** cell ids turn proximity into prefix or equality searches. Real spatial engines depend on geometry libraries, so this topic is explained with SQL and a diagram rather than a runnable simulator.
+
+<TopicAnchor id="m08-p2-topic-index-selectivity" />
+
+#### 9. Index Selectivity: How Much of the Table a Predicate Selects
+
+**Selectivity** describes how well a column or predicate narrows the table. For a column, a common measure is `distinct values / non-NULL rows`: a primary key is 1.0 (every value unique), a boolean is close to 0. For a predicate, the more useful measure is the **fraction of rows it returns**: `status = 'banned'` matching 5 of 1,000 rows is highly selective (0.5 percent), while `status = 'active'` matching 700 of 1,000 is not. A B+ Tree index pays off when the predicate returns a small fraction, because each match costs random I/O; there is no universal cut-off, but once a predicate returns more than a modest share of the table a sequential scan usually wins.
+
+Selectivity is a property of the **value**, not only the column. A skewed column can be useless for common values and excellent for rare ones, which is exactly what **partial** indexes and **most-common-value (MCV)** statistics exploit: index only the rare, interesting values, and let the planner scan for the common ones. Low-selectivity columns also gain value as the second or third column of a composite index, where the leading columns have already narrowed the candidates. Example 2 computes column selectivity and per-value estimates from a skewed `status` column.
+
+<TopicAnchor id="m08-p2-topic-cardinality" />
+
+#### 10. Cardinality: Distinct Values and Row-Count Estimates
+
+**Cardinality** has two related meanings and interviews mix them. First, **column or index cardinality** is the number of **distinct values**: `SHOW INDEX` in MySQL reports it per index prefix, and PostgreSQL's `pg_stats.n_distinct` stores it (a negative value means a fraction of the row count and scales as the table grows). High cardinality means high selectivity potential. Second, **cardinality estimation** is the planner's prediction of **how many rows each plan operator will produce**, shown as `rows=` in `EXPLAIN`, `Estimated Number of Rows` in SQL Server plans, and `rows` in MySQL `EXPLAIN`.
+
+The second meaning drives plan quality: join order, join algorithm and index choice all follow from the estimated row counts, and errors **compound** through joins, so a 100x underestimate early can produce a nested loop over millions of rows. Estimates come from statistics. For an equality predicate the planner uses the MCV frequency when the value is common, and otherwise spreads the remaining rows evenly across the remaining distinct values: `rows × (1 − nullFraction − mcvTotal) ÷ (distinct − mcvCount)`. Example 2 implements exactly that formula. Cardinality also differs per composite prefix: the first column of `(tenant, status)` may have 9 distinct values while the pair has 27.
+
+<TopicAnchor id="m08-p2-topic-index-statistics" />
+
+#### 11. Index Statistics: Histograms, MCVs and Keeping Them Fresh
+
+**Statistics** are small summaries of column data that the planner reads instead of the table: row count, the fraction of NULLs, the number of distinct values, a list of **most common values** with their frequencies, and an **equi-height histogram** (bucket boundaries chosen so each bucket holds about the same number of the remaining rows) for range predicates. PostgreSQL exposes them in `pg_stats` (`null_frac`, `n_distinct`, `most_common_vals`, `histogram_bounds`, `correlation`), gathers them with `ANALYZE` (also automatically through autovacuum's auto-analyze), and sizes them by `default_statistics_target` (100 by default). SQL Server keeps up to 200 histogram steps per statistic (`DBCC SHOW_STATISTICS`), creates and updates statistics automatically, and samples large tables. MySQL 8.0 adds optional **column histograms** (`ANALYZE TABLE t UPDATE HISTOGRAM ON col WITH 100 BUCKETS`) on top of sampled InnoDB index statistics.
+
+Statistics are only a snapshot, so they go **stale** after bulk loads, big deletes or data-distribution shifts, and the plan quality degrades silently: an index that was ideal yesterday can look useless today. Run `ANALYZE` (PostgreSQL), `ANALYZE TABLE` (MySQL) or `UPDATE STATISTICS` (SQL Server) after bulk changes, raise the statistics target for skewed columns, and use **extended statistics** (`CREATE STATISTICS` in PostgreSQL) when columns are correlated, because the planner otherwise multiplies their selectivities as if they were independent. MongoDB takes a different approach: it has no histograms and instead trial-runs candidate plans and caches the winner.
+
+</TopicSection>
+
+<TopicSection id="m08-p2-sec-c" letter="C" title="Internal Working & Architecture">
+
+#### How Composite Ordering, Covering and Specialised Structures Fit Together
+
+Every specialised index is still a tree of pages built from sorted keys, so the Part 1 mechanics (descend to a leaf, follow a locator, split pages when full) carry over. A composite index sorts by the whole tuple, so the engine can binary-search the first column, then the second inside it, and so on; the moment a column is skipped, the matching entries are no longer contiguous and the engine must scan or filter. A covering index simply stores more columns in the leaf so the locator hop disappears. Partial, filtered, functional and expression indexes change **what is stored** (a subset, or a computed value) rather than how it is stored. Full-text and spatial indexes change the **structure**: a term dictionary with posting lists, or a tree of bounding rectangles. Figure 8.3 summarises the three layers.
+
+<DiagramCard title="Figure 8.3 — Composite Key Order, Seek Rules and the Specialised Index Family">
+<svg viewBox="0 0 820 190" xmlns="http://www.w3.org/2000/svg" aria-label="Sorted composite index entries, which query shapes can seek, and the family of specialised index types">
+  <defs>
+    <style>{`
+      .m8c-label { font: 600 11px/1.3 system-ui, sans-serif; fill: var(--text-primary); }
+      .m8c-sub   { font: 400 9.5px/1.3 system-ui, sans-serif; fill: var(--text-secondary); }
+      .m8c-hdr   { font: 700 10px system-ui, sans-serif; fill: var(--accent-contrast); }
+      .m8c-box   { rx: 6; ry: 6; }
+    `}</style>
+  </defs>
+
+  <rect class="m8c-box" x="4" y="6" width="260" height="176" fill="var(--bg-subtle)" stroke="var(--border)" stroke-width="1.2"/>
+  <rect x="4" y="6" width="260" height="20" rx="6" ry="6" fill="var(--accent)"/>
+  <text x="134" y="19" text-anchor="middle" class="m8c-hdr">Index (tenant, status, created)</text>
+  <rect class="m8c-box" x="14" y="34" width="240" height="22" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1"/>
+  <text x="134" y="49" text-anchor="middle" class="m8c-sub">t1 · new · 05</text>
+  <rect class="m8c-box" x="14" y="58" width="240" height="22" fill="var(--success-soft)" stroke="var(--border)" stroke-width="1"/>
+  <text x="134" y="73" text-anchor="middle" class="m8c-sub">t1 · paid · 03</text>
+  <rect class="m8c-box" x="14" y="82" width="240" height="22" fill="var(--success-soft)" stroke="var(--border)" stroke-width="1"/>
+  <text x="134" y="97" text-anchor="middle" class="m8c-sub">t1 · paid · 09</text>
+  <rect class="m8c-box" x="14" y="106" width="240" height="22" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1"/>
+  <text x="134" y="121" text-anchor="middle" class="m8c-sub">t2 · new · 01</text>
+  <rect class="m8c-box" x="14" y="130" width="240" height="22" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1"/>
+  <text x="134" y="145" text-anchor="middle" class="m8c-sub">t2 · paid · 02</text>
+  <text x="134" y="172" text-anchor="middle" class="m8c-sub">Sorted by tenant, then status, then created</text>
+
+  <rect class="m8c-box" x="280" y="6" width="260" height="176" fill="var(--bg-subtle)" stroke="var(--border)" stroke-width="1.2"/>
+  <rect x="280" y="6" width="260" height="20" rx="6" ry="6" fill="var(--success)"/>
+  <text x="410" y="19" text-anchor="middle" class="m8c-hdr">Which queries can seek?</text>
+  <text x="292" y="46" class="m8c-label">tenant = ? AND status = ?</text>
+  <text x="292" y="59" class="m8c-sub">Seek on 2 columns, contiguous run</text>
+  <text x="292" y="86" class="m8c-label">tenant = ? AND created &gt; ?</text>
+  <text x="292" y="99" class="m8c-sub">Seek tenant, filter created inside</text>
+  <text x="292" y="126" class="m8c-label">status = ?</text>
+  <text x="292" y="139" class="m8c-sub">Gap: scan every entry (no skip scan)</text>
+  <text x="292" y="168" class="m8c-sub">Equality, then sort, then range (ESR)</text>
+
+  <rect class="m8c-box" x="556" y="6" width="260" height="176" fill="var(--bg-subtle)" stroke="var(--border)" stroke-width="1.2"/>
+  <rect x="556" y="6" width="260" height="20" rx="6" ry="6" fill="var(--warning)"/>
+  <text x="686" y="19" text-anchor="middle" class="m8c-hdr">Specialised Index Family</text>
+  <text x="568" y="48" class="m8c-sub">Covering: INCLUDE columns, no table hop</text>
+  <text x="568" y="72" class="m8c-sub">Partial / filtered: only a WHERE subset</text>
+  <text x="568" y="96" class="m8c-sub">Functional / expression: stored result</text>
+  <text x="568" y="120" class="m8c-sub">Full-text: inverted index of terms</text>
+  <text x="568" y="144" class="m8c-sub">Spatial: R-Tree, GiST or S2 cells</text>
+  <text x="568" y="168" class="m8c-sub">Statistics tell the planner which to use</text>
+</svg>
+</DiagramCard>
+
+#### Posting Lists, Bounding Rectangles and Histograms Under the Hood
+
+A full-text index stores a sorted **term dictionary** and, for each term, a compressed posting list of document ids (and often positions). PostgreSQL's GIN keeps a small unsorted **pending list** so single-row inserts are cheap and merges it into the main structure later (`fastupdate`), which is why GIN trades slower writes and larger size for fast reads. An R-Tree stores, in each internal entry, the bounding rectangle that covers all rectangles below it; searching descends only into entries whose rectangle intersects the query. Histograms are built by sampling: the engine reads a random sample of pages, sorts the values, picks the most common ones into the MCV list, and splits the remainder into equal-count buckets.
+
+#### Write Cost and Consistency of Specialised Indexes
+
+Each specialised index is maintained inside the transaction (PostgreSQL, InnoDB and SQL Server log it with the table), with one notable exception: SQL Server full-text indexes are populated **asynchronously** by a crawl or change-tracking process, so a just-written row may not be searchable yet. Two cost notes also apply: expression and functional indexes re-evaluate their expression on every relevant write, and partial or filtered indexes are updated only when a row enters, leaves or changes inside the filtered set, which makes them the cheapest way to index a hot table.
+
+</TopicSection>
+
+<TopicSection id="m08-p2-sec-d" letter="D" title="Practical Examples (Interactive)">
+
+#### Example 1: Composite Index Simulator (createCompositeIndex)
+
+This simulator keeps entries sorted by the full column tuple and counts how many **index entries** each query shape must scan. Compare the four queries it prints: an equality prefix plus a range on the next column touches only the matching run, a tenant-only query scans the whole tenant, a query that skips the leading column scans every entry, and a query that skips the middle column must scan the tenant and filter the date.
+
+<CodeBlock lang="javascript" runnable title="Composite Index Simulator" code={`
+// createCompositeIndex — entries sorted by the whole column tuple; an equality prefix (plus one range column) can seek
+function createCompositeIndex(columns) {
+  if (!Array.isArray(columns) || columns.length < 2 || columns.length > 8) {
+    throw new RangeError("columns must be an array of 2 to 8 column names");
+  }
+  const known = new Set();
+  for (const name of columns) {
+    if (typeof name !== "string" || name.length === 0) throw new TypeError("column names must be non-empty strings");
+    if (known.has(name)) throw new TypeError("duplicate column: " + name);
+    known.add(name);
+  }
+  const cols = columns.slice();
+  const types = new Array(cols.length).fill(null);
+  const entries = []; // { key: [...], rowId }
+  const seenRowIds = new Set();
+
+  function compare(a, b) {
+    const n = Math.min(a.length, b.length); // a shorter tuple acts as a prefix
+    for (let i = 0; i < n; i++) {
+      if (a[i] < b[i]) return -1;
+      if (a[i] > b[i]) return 1;
+    }
+    return 0;
+  }
+  function lowerBound(target) {
+    let lo = 0;
+    let hi = entries.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (compare(entries[mid].key, target) < 0) lo = mid + 1;
+      else hi = mid;
+    }
+    return lo;
+  }
+  function keyOf(row) {
+    if (row === null || typeof row !== "object" || Array.isArray(row)) throw new TypeError("row must be a plain object");
+    return cols.map((name, i) => {
+      if (!Object.hasOwn(row, name)) throw new TypeError("row is missing column: " + name);
+      const v = row[name];
+      if (typeof v === "number" ? !Number.isFinite(v) : typeof v !== "string") {
+        throw new TypeError("column values must be strings or finite numbers");
+      }
+      if (types[i] !== null && types[i] !== typeof v) throw new TypeError("column " + name + " mixes value types");
+      return v;
+    });
+  }
+
+  function checkQueryValue(label, columnIndex, v) {
+    if (typeof v === "number" ? !Number.isFinite(v) : typeof v !== "string") throw new TypeError(label + " must be a string or finite number");
+    if (types[columnIndex] !== null && types[columnIndex] !== typeof v) throw new TypeError(label + " does not match the column type");
+  }
+
+  function insert(rowId, row) {
+    if (!Number.isSafeInteger(rowId) || rowId < 0) throw new RangeError("rowId must be a non-negative integer");
+    if (seenRowIds.has(rowId)) throw new Error("rowId already indexed: " + rowId);
+    const key = keyOf(row);
+    key.forEach((v, i) => { types[i] = typeof v; });
+    let pos = lowerBound(key);
+    while (pos < entries.length && compare(entries[pos].key, key) === 0 && entries[pos].rowId < rowId) pos++;
+    entries.splice(pos, 0, { key, rowId });
+    seenRowIds.add(rowId);
+  }
+
+  // eq: equality values by column name; range: { column, min?, max? } (inclusive)
+  function query(eq = {}, range = null) {
+    if (eq === null || typeof eq !== "object" || Array.isArray(eq)) throw new TypeError("eq must be a plain object");
+    for (const name of Object.keys(eq)) {
+      if (!known.has(name)) throw new TypeError("unknown column: " + name);
+    }
+    for (const name of Object.keys(eq)) checkQueryValue("eq." + name, cols.indexOf(name), eq[name]);
+    const prefix = [];
+    for (const name of cols) {
+      if (!Object.hasOwn(eq, name)) break; // the first gap ends the usable equality prefix
+      prefix.push(eq[name]);
+    }
+    const residual = Object.keys(eq).filter((name) => cols.indexOf(name) >= prefix.length);
+    let rangeIdx = -1;
+    let rangeSeeks = false;
+    if (range !== null) {
+      if (typeof range !== "object" || Array.isArray(range) || !known.has(range.column)) {
+        throw new TypeError("range.column must be an indexed column");
+      }
+      rangeIdx = cols.indexOf(range.column);
+      if (rangeIdx < prefix.length) throw new RangeError("range column is already fixed by an equality");
+      for (const bound of ["min", "max"]) {
+        if (range[bound] !== undefined) checkQueryValue("range." + bound, rangeIdx, range[bound]);
+      }
+      if (range.min !== undefined && range.max !== undefined && range.min > range.max) {
+        throw new RangeError("range.min must be <= range.max");
+      }
+      rangeSeeks = rangeIdx === prefix.length; // only the column right after the prefix can bound the scan
+    }
+
+    const seekKey = rangeSeeks && range.min !== undefined ? prefix.concat([range.min]) : prefix;
+    const rowIds = [];
+    let entriesScanned = 0;
+    for (let i = lowerBound(seekKey); i < entries.length; i++) {
+      const { key, rowId } = entries[i];
+      if (prefix.length > 0 && compare(key, prefix) !== 0) break;
+      if (rangeSeeks && range.max !== undefined && key[rangeIdx] > range.max) break;
+      entriesScanned++;
+      if (residual.some((name) => key[cols.indexOf(name)] !== eq[name])) continue;
+      if (range !== null && !rangeSeeks) {
+        if (range.min !== undefined && key[rangeIdx] < range.min) continue;
+        if (range.max !== undefined && key[rangeIdx] > range.max) continue;
+      }
+      rowIds.push(rowId);
+    }
+    return {
+      rowIds,
+      entriesScanned,
+      seekColumns: cols.slice(0, prefix.length + (rangeSeeks ? 1 : 0)),
+      filterColumns: [...new Set(residual.concat(range !== null && !rangeSeeks ? [range.column] : []))]
+    };
+  }
+
+  return { insert, query, size: () => entries.length };
+}
+
+const idx = createCompositeIndex(["tenant", "status", "created"]);
+const statuses = ["new", "paid", "shipped"];
+for (let i = 0; i < 900; i++) {
+  idx.insert(i, { tenant: "t" + (i % 9), status: statuses[i % 3], created: 20240100 + (i % 30) });
+}
+const full = idx.query({ tenant: "t4", status: "paid" }, { column: "created", min: 20240105, max: 20240110 });
+console.log("tenant+status+range:", full.rowIds.length, "rows,", full.entriesScanned, "entries scanned, seek on", JSON.stringify(full.seekColumns));
+const tenantOnly = idx.query({ tenant: "t4" });
+console.log("tenant only:", tenantOnly.rowIds.length, "rows,", tenantOnly.entriesScanned, "entries scanned");
+const gap = idx.query({ status: "paid" });
+console.log("status only (gap in prefix):", gap.rowIds.length, "rows,", gap.entriesScanned, "entries scanned, seek on", JSON.stringify(gap.seekColumns));
+const skip = idx.query({ tenant: "t4" }, { column: "created", min: 20240105, max: 20240110 });
+console.log("tenant + created (skips status):", skip.rowIds.length, "rows,", skip.entriesScanned, "entries scanned, filter on", JSON.stringify(skip.filterColumns));
+
+try { idx.query({ nope: 1 }); } catch (e) { console.log("Error:", e.name, e.message); }
+try { idx.query({ tenant: 5 }); } catch (e) { console.log("Error:", e.name, e.message); }
+try { idx.insert(1000, { tenant: "t1", status: "new" }); } catch (e) { console.log("Error:", e.name, e.message); }
+try { createCompositeIndex(["only"]); } catch (e) { console.log("Error:", e.name, e.message); }
+`} />
+
+#### Example 2: Column Statistics and Row Estimator (buildColumnStatistics)
+
+This model builds the statistics a planner keeps for one column (distinct count, NULL fraction, most common values, equi-height histogram) and then estimates how many rows a predicate returns. Watch the skewed `status` column: `= 'active'` is read straight from the MCV list, a rare value falls back to the even-spread formula, and a uniform `amount` column gets accurate range estimates from the histogram.
+
+<CodeBlock lang="javascript" runnable title="Column Statistics and Row Estimator" code={`
+// buildColumnStatistics + estimateRows — cardinality, selectivity, most-common values and an equi-height histogram
+function buildColumnStatistics(values, options = {}) {
+  if (!Array.isArray(values)) throw new TypeError("values must be an array");
+  if (options === null || typeof options !== "object" || Array.isArray(options)) throw new TypeError("options must be a plain object");
+  const { buckets = 4, mcvCount = 2 } = options;
+  if (!Number.isInteger(buckets) || buckets < 1 || buckets > 100) throw new RangeError("buckets must be an integer between 1 and 100");
+  if (!Number.isInteger(mcvCount) || mcvCount < 0 || mcvCount > 20) throw new RangeError("mcvCount must be an integer between 0 and 20");
+
+  let nulls = 0;
+  let kind = null;
+  const counts = new Map();
+  for (const v of values) {
+    if (v === null) { nulls++; continue; }
+    if (typeof v === "number" ? !Number.isFinite(v) : typeof v !== "string") {
+      throw new TypeError("values must be null, strings or finite numbers");
+    }
+    if (kind !== null && kind !== typeof v) throw new TypeError("values must all have the same type");
+    kind = typeof v;
+    counts.set(v, (counts.get(v) ?? 0) + 1);
+  }
+
+  const rowCount = values.length;
+  const nonNull = rowCount - nulls;
+  const mostCommon = [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))
+    .slice(0, mcvCount)
+    .filter(([, n]) => n > 1) // a value seen once is not "common"
+    .map(([value, n]) => ({ value, frequency: n / rowCount }));
+  const commonSet = new Set(mostCommon.map((m) => m.value));
+  const rest = [];
+  for (const [value, n] of counts) {
+    if (!commonSet.has(value)) for (let i = 0; i < n; i++) rest.push(value);
+  }
+  rest.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  const bucketCount = Math.min(buckets, Math.max(rest.length - 1, 0));
+  const bounds = [];
+  for (let j = 0; j <= bucketCount; j++) bounds.push(rest[Math.round((j * (rest.length - 1)) / bucketCount)]);
+
+  return {
+    rowCount,
+    kind, // "number", "string" or null when the column has no values
+    nullFraction: rowCount === 0 ? 0 : nulls / rowCount,
+    cardinality: counts.size, // number of distinct non-null values
+    selectivity: nonNull === 0 ? 0 : counts.size / nonNull, // 1 = unique, near 0 = very repetitive
+    mostCommon,
+    histogramBounds: bucketCount === 0 ? [] : bounds
+  };
+}
+
+function estimateRows(stats, op, value) {
+  if (stats === null || typeof stats !== "object" || !("kind" in stats) || !Array.isArray(stats.mostCommon) || !Array.isArray(stats.histogramBounds)) {
+    throw new TypeError("stats must come from buildColumnStatistics");
+  }
+  if (!["=", "<", "<=", ">", ">="].includes(op)) throw new TypeError("op must be one of =, <, <=, >, >=");
+  if (typeof value === "number" ? !Number.isFinite(value) : typeof value !== "string") {
+    throw new TypeError("value must be a string or finite number");
+  }
+  if (stats.kind !== null && typeof value !== stats.kind) throw new TypeError("value type does not match the column statistics");
+  const mcvTotal = stats.mostCommon.reduce((sum, m) => sum + m.frequency, 0);
+  const restFraction = Math.max(0, 1 - stats.nullFraction - mcvTotal);
+
+  function histogramFractionBelow() {
+    const b = stats.histogramBounds;
+    if (b.length < 2) return 0;
+    if (value <= b[0]) return 0;
+    if (value > b[b.length - 1]) return 1;
+    const n = b.length - 1;
+    for (let j = 0; j < n; j++) {
+      if (value <= b[j + 1]) {
+        const span = b[j + 1] - b[j];
+        const within = typeof value === "number" && span > 0 ? (value - b[j]) / span : 0.5;
+        return (j + within) / n;
+      }
+    }
+    return 1;
+  }
+  function fractionLess(inclusive) {
+    let fraction = 0;
+    for (const m of stats.mostCommon) {
+      if (m.value < value || (inclusive && m.value === value)) fraction += m.frequency;
+    }
+    return fraction + restFraction * histogramFractionBelow();
+  }
+
+  let fraction;
+  if (op === "=") {
+    const hit = stats.mostCommon.find((m) => m.value === value);
+    const restDistinct = stats.cardinality - stats.mostCommon.length;
+    fraction = hit ? hit.frequency : restDistinct > 0 ? restFraction / restDistinct : 0;
+  } else if (op === "<") fraction = fractionLess(false);
+  else if (op === "<=") fraction = fractionLess(true);
+  else if (op === ">") fraction = 1 - stats.nullFraction - fractionLess(true);
+  else fraction = 1 - stats.nullFraction - fractionLess(false);
+  return Math.max(0, Math.round(Math.min(1, fraction) * stats.rowCount));
+}
+
+const statuses = [];
+for (let i = 0; i < 700; i++) statuses.push("active");
+for (let i = 0; i < 250; i++) statuses.push("pending");
+for (const rare of ["suspended", "banned", "archived", "deleted", "locked"]) statuses.push(rare);
+for (let i = 0; i < 45; i++) statuses.push(null);
+const s = buildColumnStatistics(statuses, { buckets: 2, mcvCount: 2 });
+console.log("cardinality:", s.cardinality, "selectivity:", Math.round(s.selectivity * 1000) / 1000, "nullFraction:", s.nullFraction);
+console.log("most common:", JSON.stringify(s.mostCommon));
+console.log("= active:", estimateRows(s, "=", "active"), "= banned:", estimateRows(s, "=", "banned"), "= unknown:", estimateRows(s, "=", "unknown"));
+
+const amounts = [];
+for (let i = 1; i <= 1000; i++) amounts.push(i);
+const a = buildColumnStatistics(amounts, { buckets: 10, mcvCount: 0 });
+console.log("amount selectivity:", a.selectivity, "bounds:", JSON.stringify(a.histogramBounds));
+console.log("amount < 250:", estimateRows(a, "<", 250), "amount >= 900:", estimateRows(a, ">=", 900));
+
+try { buildColumnStatistics([1, "2"]); } catch (e) { console.log("Error:", e.name, e.message); }
+try { estimateRows(s, "LIKE", "a"); } catch (e) { console.log("Error:", e.name, e.message); }
+try { estimateRows(a, "<", "abc"); } catch (e) { console.log("Error:", e.name, e.message); }
+`} />
+
+#### SQL Example: Specialised Indexes and Statistics Across Engines
+
+<CodeBlock lang="sql" title="Specialised Index DDL and Statistics Commands (PostgreSQL, MySQL, SQL Server, MongoDB)" code={`
+-- PostgreSQL ---------------------------------------------------------------
+CREATE INDEX idx_orders_tenant_status_created ON orders (tenant_id, status, created_at);      -- composite
+CREATE INDEX idx_orders_cust_cover ON orders (customer_id, status) INCLUDE (total);            -- covering (11+)
+CREATE INDEX idx_jobs_pending ON jobs (created_at) WHERE status = 'pending';                   -- partial
+CREATE UNIQUE INDEX uq_users_email_live ON users (email) WHERE deleted_at IS NULL;             -- partial unique
+CREATE INDEX idx_users_email_lower ON users (lower(email));                                    -- expression
+CREATE INDEX idx_docs_fts ON docs USING GIN (to_tsvector('english', body));                    -- full-text
+CREATE INDEX idx_shops_geom ON shops USING GIST (geom);                                        -- spatial (PostGIS)
+ANALYZE orders;
+SELECT attname, n_distinct, null_frac, most_common_vals, histogram_bounds FROM pg_stats WHERE tablename = 'orders';
+CREATE STATISTICS st_city_zip (dependencies) ON city, zip FROM addresses;                      -- correlated columns
+
+-- MySQL 8.0 ----------------------------------------------------------------
+CREATE INDEX idx_orders_cust_status_total ON orders (customer_id, status, total);              -- covering via key columns
+CREATE INDEX idx_users_email_lower ON users ((LOWER(email)));                                  -- functional key part (8.0.13+)
+ALTER TABLE docs ADD FULLTEXT INDEX ft_body (body);
+SELECT id FROM docs WHERE MATCH(body) AGAINST('inverted index' IN NATURAL LANGUAGE MODE);
+ALTER TABLE shops ADD SPATIAL INDEX sp_loc (loc);                                              -- loc must be NOT NULL
+ANALYZE TABLE orders;
+ANALYZE TABLE orders UPDATE HISTOGRAM ON status WITH 100 BUCKETS;
+SHOW INDEX FROM orders;                                                                         -- Cardinality column
+
+-- SQL Server ---------------------------------------------------------------
+CREATE NONCLUSTERED INDEX IX_Orders_Cust ON dbo.Orders (CustomerId, Status) INCLUDE (Total);   -- covering
+CREATE NONCLUSTERED INDEX IX_Orders_Open ON dbo.Orders (CustomerId) WHERE Status = 'Open';     -- filtered
+CREATE UNIQUE NONCLUSTERED INDEX UX_Users_Email ON dbo.Users (Email) WHERE Email IS NOT NULL;  -- filtered unique
+ALTER TABLE dbo.Users ADD EmailLower AS LOWER(Email);
+CREATE INDEX IX_Users_EmailLower ON dbo.Users (EmailLower);                                    -- indexed computed column
+CREATE FULLTEXT CATALOG ftCatalog;
+CREATE FULLTEXT INDEX ON dbo.Docs (Body) KEY INDEX PK_Docs ON ftCatalog;          -- needs a unique, single-column, non-nullable key index
+CREATE SPATIAL INDEX SIX_Shops ON dbo.Shops (Location) USING GEOGRAPHY_AUTO_GRID; -- geography column; the table needs a clustered primary key
+UPDATE STATISTICS dbo.Orders WITH FULLSCAN;
+DBCC SHOW_STATISTICS ('dbo.Orders', IX_Orders_Cust);
+
+-- MongoDB (mongosh) ----------------------------------------------------------
+-- db.orders.createIndex({ tenantId: 1, status: 1, createdAt: -1 })                              // compound
+-- db.jobs.createIndex({ createdAt: 1 }, { partialFilterExpression: { status: "pending" } })     // partial
+-- db.docs.createIndex({ body: "text" })                                                          // text
+-- db.shops.createIndex({ location: "2dsphere" })                                                 // spatial
+`} />
+
+</TopicSection>
+
+<TopicSection id="m08-p2-sec-e" letter="E" title="Step-by-Step Walkthrough">
+
+#### How the Planner Picks an Index for `WHERE tenant_id = 7 AND status = 'pending' AND created_at > '2024-06-01'`
+
+1. **Collect candidate indexes:** The optimizer lists indexes whose leading columns appear in the predicates: the composite `(tenant_id, status, created_at)`, a partial index on `status = 'pending'`, and single-column indexes. Indexes whose predicate it cannot prove (a parameter against a partial index) are discarded here.
+2. **Read the statistics:** For each predicate it looks up cardinality, the MCV list and the histogram. `tenant_id = 7` is found in the MCV list at 4 percent; `status = 'pending'` is a rare value at 0.5 percent; `created_at > ...` falls in the last histogram bucket at about 2 percent.
+3. **Estimate the combined row count:** Assuming independence, it multiplies the selectivities: `rows × 0.04 × 0.005 × 0.02`. If the columns are actually correlated the estimate is too low, which is what extended statistics correct.
+4. **Cost each plan:** For each candidate it adds descent cost, leaf pages for the estimated matches, and a table fetch per match unless the index covers the query, then compares the result with a sequential scan of the table.
+5. **Choose and execute:** The cheapest plan wins, for example a seek on the composite index covering all three predicates, or the tiny partial index if it covers `status` and is smaller. The executor descends the tree once and reads one contiguous run of leaf entries.
+6. **Verify with the plan:** `EXPLAIN` shows the chosen index, estimated versus actual rows, and any heap fetches. A large gap between estimated and actual rows is the signal to refresh statistics, raise the statistics target, or add extended statistics.
+
+</TopicSection>
+
+<TopicSection id="m08-p2-sec-f" letter="F" title="Real-World Use Cases">
+
+#### Multi-Tenant Order Dashboard with a Composite Index
+
+A SaaS dashboard lists a tenant's recent orders filtered by status: `WHERE tenant_id = ? AND status = ? ORDER BY created_at DESC LIMIT 50`. A composite index on `(tenant_id, status, created_at)` seeks straight to the tenant and status run, and the entries are already sorted by date, so the database reads 50 entries and stops with no sort step. Three single-column indexes would force a bitmap merge and a sort over thousands of rows.
+
+#### Job Queue with a Partial Index on Pending Work
+
+A background worker polls `WHERE status = 'pending' ORDER BY created_at LIMIT 10 FOR UPDATE SKIP LOCKED` on a table holding 200 million completed jobs and a few thousand pending ones. A partial index `ON jobs (created_at) WHERE status = 'pending'` contains only the pending rows and stays small (vacuum or reindexing reclaims the space left by churn). Completed jobs never touch the index, so write cost stays flat as history grows.
+
+#### Case-Insensitive Login with an Expression Index
+
+An authentication endpoint must treat `Ann@Example.com` and `ann@example.com` as the same account. Storing the email as typed and indexing `lower(email)` (PostgreSQL), a functional key part (MySQL 8.0.13+) or an indexed computed column (SQL Server) makes `WHERE lower(email) = lower(?)` a 3 or 4 page seek, and a unique variant enforces the one-account rule in the database.
+
+#### Product Search and Store Locator
+
+An e-commerce site searches a catalogue of 5 million products by free text and shows the nearest stores. A GIN or `FULLTEXT` index on the title and description answers "waterproof hiking boots" through posting lists with ranking, and a spatial index on store coordinates answers "within 5 km" with a bounding-box filter followed by an exact distance check. Using `LIKE '%boots%'` and a latitude sort instead would scan the whole table for each request.
+
+</TopicSection>
+
+<TopicSection id="m08-p2-sec-g" letter="G" title="Common Mistakes">
+
+- **Putting the range column before the equality columns:** An index on `(created_at, tenant_id)` cannot seek by tenant for a date range, because entries are sorted by date first. Put equality columns first, then the sort column, then the range column.
+- **Creating one index per column and hoping the planner combines them:** Bitmap or merge plans exist but cost far more than one composite index that matches the query shape.
+- **Over-widening a covering index:** Including a dozen columns to cover every query inflates the index, evicts hot pages from cache and multiplies write cost. Cover only the hot queries.
+- **Expecting a partial or filtered index to work with parameters:** A prepared `status = $1` (PostgreSQL) or `@status` (SQL Server) usually cannot be proven to match the index predicate, so the planner ignores the index. Use literals, a recompile hint, or a different design.
+- **Writing the query differently from the index expression:** `WHERE email = ...` cannot use an index on `lower(email)`, and `lower(trim(email))` cannot use an index on `lower(email)`. The expression must match exactly.
+- **Using a non-deterministic expression:** Indexing `now()`, `random()` or a time-zone-dependent conversion is rejected (PostgreSQL requires `IMMUTABLE`) or silently returns stale results where allowed.
+- **Using a B+ Tree for substring or word search:** `LIKE '%term%'` ignores a normal index. Use full-text (or trigram) indexing.
+- **Trusting stale statistics:** After a bulk load or mass delete the planner still believes the old row counts and picks the wrong plan. Refresh statistics after bulk changes.
+- **Assuming column statistics describe correlated columns:** `city = 'Paris' AND country = 'France'` is not independent; without extended statistics the estimate is far too low.
+
+</TopicSection>
+
+<TopicSection id="m08-p2-sec-h" letter="H" title="Best Practices">
+
+- **Order composite columns by usage:** Equality columns first (their relative order does not change seek cost), then the `ORDER BY` column, then the range column, and verify the plan.
+- **Cover only the hot path:** Add `INCLUDE` columns for a handful of high-frequency queries and confirm an index-only scan or the absence of key lookups; keep the visibility map healthy with regular vacuuming in PostgreSQL.
+- **Use partial or filtered indexes for skewed or lifecycle data:** Index only active, pending or non-deleted rows, and add a partial unique index for soft-delete uniqueness.
+- **Mirror the index expression in the query:** Centralise the expression in one repository function or a view so application code cannot drift from the index definition.
+- **Prefer full-text or trigram indexes for text search:** Choose the engine's native search for relevance, stemming and ranking, and move to a dedicated search service when you need faceting or heavy relevance tuning.
+- **Pick the spatial type the engine supports:** GiST with PostGIS, `SPATIAL` in MySQL, grid-based spatial indexes in SQL Server, `2dsphere` in MongoDB, and set the correct SRID or coordinate system.
+- **Refresh statistics deliberately:** Run `ANALYZE` or `UPDATE STATISTICS` after bulk loads, raise the statistics target on skewed filter columns, and add extended statistics for correlated columns.
+- **Compare estimated and actual rows:** `EXPLAIN ANALYZE` and actual execution plans show where estimates diverge; investigate any 10x or larger gap.
+
+</TopicSection>
+
+<TopicSection id="m08-p2-sec-i" letter="I" title="Performance & Scalability">
+
+#### Read Path: Narrower Scans, Fewer Lookups, Smaller Indexes
+
+A well-ordered composite index replaces thousands of table visits with one contiguous leaf run, and a covering variant removes the remaining per-row lookup, often improving a query dramatically. Partial and filtered indexes shrink the structure to the hot subset, so more of it stays in memory and scans are shorter. Full-text and spatial indexes turn otherwise unbounded scans into posting-list intersections and bounding-box probes. Everything depends on the planner choosing them, which makes accurate statistics part of read performance.
+
+#### Write Path: Index Count, Width and Maintenance Cost
+
+Every index multiplies write work, and specialised ones have their own profiles. Covering indexes are rewritten when any included column changes, expression indexes recompute on every write, GIN indexes buffer updates in a pending list and pay later at merge time, and spatial indexes may rebalance rectangles. Partial and filtered indexes are the exception: rows outside the predicate cost nothing. Keep the index count low on write-heavy tables, drop duplicates (an index on `(a)` is redundant next to `(a, b)`), and monitor index size and usage so every index justifies its cost.
+
+</TopicSection>
+
+<TopicSection id="m08-p2-sec-j" letter="J" title="Security Considerations">
+
+#### Data Exposure and Access Through Indexes
+
+Covering and full-text indexes copy column contents into a second structure, so sensitive text (emails, notes, personal identifiers) is stored in index pages and in backups even if the base table is protected by column privileges or application masking. Encrypt tablespaces or volumes, avoid indexing raw secrets, and remember that full-text search can reveal the existence of terms to anyone allowed to query the search endpoint. Row-level security policies (PostgreSQL) and filtered views apply at query time and do not remove data from the index, so classify indexed columns together with table columns.
+
+#### Integrity, Enumeration and Resource-Exhaustion Angles
+
+Partial and expression unique indexes are security controls: they enforce one live account per normalised email and prevent duplicates that differ only by case or whitespace, which attackers use for account takeover and enumeration tricks. Search and geospatial endpoints are expensive by nature, so cap result limits and radii, validate query syntax (full-text operators and wildcard patterns can force heavy scans), set statement timeouts, and parameterise queries to avoid injection that changes the predicate shape. Stale or manipulated statistics can also degrade plans, so restrict who can run `ANALYZE`, `UPDATE STATISTICS` and statistics-altering commands in production.
+
+</TopicSection>
+
+<TopicSection id="m08-p2-sec-k" letter="K" title="Comparisons & Decision Tables">
+
+#### Table K.1 — Which Specialised Index for Which Problem
+
+| Index type | What it stores | Best for | Main cost |
+| --- | --- | --- | --- |
+| Composite | Sorted tuple of several columns | Equality prefix plus one range or sort column | Column order is rigid; wider keys |
+| Covering | Key plus extra leaf columns | Hot queries that read few columns | Bigger index, more write work |
+| Partial / filtered | Only rows matching a `WHERE` predicate | Lifecycle or skewed data, soft-delete uniqueness | Planner must prove the predicate; parameters can block it |
+| Functional / expression | Stored result of an expression | `LOWER(email)`, JSON fields, arithmetic | Recomputed on every write; query must match exactly |
+| Full-text | Inverted index of terms and postings | Word search, relevance ranking | Slower, larger writes; async in SQL Server |
+| Spatial | Bounding rectangles or grid cells | Within-radius, intersects, nearest neighbour | Needs geometry support; filter-then-refine |
+
+#### Table K.2 — Feature Support Across Engines
+
+| Feature | PostgreSQL | MySQL 8.0 / InnoDB | SQL Server | MongoDB |
+| --- | --- | --- | --- | --- |
+| Composite | Multicolumn B-Tree (32 columns by default) | Up to 16 columns | Up to 32 key columns | Compound index |
+| Covering | `INCLUDE` (11+), index-only scan | Extra key columns, `Using index` | `INCLUDE` columns | Covered query on the index fields |
+| Partial / filtered | Partial index (`WHERE`) | None natively (generated-column workaround) | Filtered index (`WHERE`) | `partialFilterExpression` |
+| Functional / expression | Expression index (immutable functions) | Functional key part (8.0.13+) | Indexed computed column | No (store a derived field or use a collation) |
+| Full-text | GIN on `tsvector`, `pg_trgm` for substrings | InnoDB `FULLTEXT`, `MATCH ... AGAINST` | Full-text catalog and index, `CONTAINS` | Text index (one per collection) |
+| Spatial | GiST / SP-GiST (PostGIS) | `SPATIAL` (R-Tree) | Grid-tessellation spatial index | `2dsphere`, `2d` |
+
+#### Table K.3 — Statistics Tooling Across Engines
+
+| Aspect | PostgreSQL | MySQL 8.0 | SQL Server | MongoDB |
+| --- | --- | --- | --- | --- |
+| Gather | `ANALYZE`, auto-analyze via autovacuum | `ANALYZE TABLE`, sampled persistent InnoDB statistics | Auto create and update, `UPDATE STATISTICS` | None (plan cache and trial runs) |
+| Inspect | `pg_stats` | `SHOW INDEX`, `information_schema.COLUMN_STATISTICS` | `DBCC SHOW_STATISTICS` | `explain`, `$indexStats` |
+| Histogram | MCV plus equi-height, target 100 by default | Optional (`UPDATE HISTOGRAM`, up to 1,024 buckets) | Up to 200 steps per statistic | No histograms |
+| Correlated columns | `CREATE STATISTICS` (extended) | Not supported | Multi-column statistics (density only) | Not applicable |
+
+</TopicSection>
+
+<TopicSection id="m08-p2-sec-l" letter="L" title="Tips to Remember (Mnemonics & Mental Models)">
+
+- **"Phone book order":** A composite index is sorted like last name then first name; you can look up a last name, or a last-and-first pair, but not a first name alone.
+- **"Equality, then sort, then range":** Order composite columns by how queries use them: equality columns first, then the sort column, then the range column (a range ends the usable ordering).
+- **"Cover the hot path, not the world":** Add `INCLUDE` columns for a few frequent queries; a covering index for everything is a table copy.
+- **"The query must prove it":** Partial, filtered and expression indexes are used only when the query visibly matches the predicate or expression; parameters and different spellings break the proof.
+- **"Index the rare, scan the common":** Skewed columns are worth indexing for their rare values (partial index) and not for the dominant one.
+- **"Words need a dictionary, places need rectangles":** Full-text indexes are inverted term dictionaries; spatial indexes group nearby objects into bounding boxes and then refine.
+- **"Cardinality is two words":** Distinct values in a column, and the row count the planner expects from an operator; bad estimates compound through joins.
+- **"Stale stats, wrong plan":** After bulk changes, refresh statistics before blaming the index.
+
+</TopicSection>
+
+<TopicSection id="m08-p2-sec-mn" letter="M/N" title="Interview Questions & Detailed Answers">
+
+<InterviewSection lessonId="m08-p2" />
+
+</TopicSection>
+
+<TopicSection id="m08-p2-sec-o" letter="O" title="Practical Exercises">
+
+#### Exercise 1: Covering Index Checker (planCoveringIndex)
+
+<ExerciseCard
+  title="Exercise 1: Covering Index Checker (planCoveringIndex)"
+  prompt={
+    <p>
+      Implement <code>planCoveringIndex(query, index, widths)</code> that reports whether an index covers a query (select, equality <code>where</code>, <code>range</code> and order-by columns), which leading key columns can seek (equality columns, then at most one range column), whether the index already serves the <code>ORDER BY</code> (a range column ends the usable ordering), and the estimated entry size when column widths are supplied. Allow engine-implicit columns such as the InnoDB primary key, reject a column that is both key and include, and reject missing widths.
+    </p>
+  }
+>
+
+<CodeBlock lang="javascript" runnable title="Exercise 1: planCoveringIndex" code={`
+// planCoveringIndex — can an index answer a query without touching the table, and what does it still cost?
+function planCoveringIndex(query, index, widths) {
+  function names(list, label) {
+    if (list === undefined) return [];
+    if (!Array.isArray(list)) throw new TypeError(label + " must be an array of column names");
+    for (const name of list) {
+      if (typeof name !== "string" || name.trim().length === 0) throw new TypeError(label + " must contain non-empty strings");
+    }
+    return [...new Set(list)];
+  }
+  if (query === null || typeof query !== "object" || Array.isArray(query)) throw new TypeError("query must be a plain object");
+  if (index === null || typeof index !== "object" || Array.isArray(index)) throw new TypeError("index must be a plain object");
+  const select = names(query.select, "query.select");
+  const where = names(query.where, "query.where"); // columns compared with equality
+  const range = names(query.range, "query.range"); // columns compared with a range (>, <, BETWEEN)
+  const orderBy = names(query.orderBy, "query.orderBy");
+  const keyColumns = names(index.keyColumns, "index.keyColumns");
+  const includeColumns = names(index.includeColumns, "index.includeColumns");
+  const implicitColumns = names(index.implicitColumns, "index.implicitColumns"); // e.g. the primary key stored in every InnoDB secondary entry
+  if (keyColumns.length === 0) throw new RangeError("index.keyColumns must not be empty");
+  if (includeColumns.some((c) => keyColumns.includes(c))) throw new TypeError("a column cannot be both key and include");
+
+  const needed = [...new Set([...select, ...where, ...range, ...orderBy])];
+  const available = new Set([...keyColumns, ...includeColumns, ...implicitColumns]);
+  const missingColumns = needed.filter((c) => !available.has(c)).sort();
+
+  let seekLength = 0; // leading key columns fixed by equality
+  while (seekLength < keyColumns.length && where.includes(keyColumns[seekLength])) seekLength++;
+  const rangeColumn = seekLength < keyColumns.length && range.includes(keyColumns[seekLength]) ? keyColumns[seekLength] : null;
+  // inside the equality run, entries are sorted by the remaining key columns (columns fixed by equality drop out)
+  const afterEquality = keyColumns.slice(seekLength).filter((c) => !where.includes(c));
+  const effectiveOrder = orderBy.filter((c) => !where.includes(c)); // a column fixed by equality is trivially ordered
+  const orderServed = orderBy.length > 0 && effectiveOrder.every((c, i) => afterEquality[i] === c);
+
+  let entryBytes = null;
+  if (widths !== undefined) {
+    if (widths === null || typeof widths !== "object" || Array.isArray(widths)) throw new TypeError("widths must be a plain object");
+    entryBytes = 8; // per-entry overhead (locator and header), a simplification
+    for (const column of [...keyColumns, ...includeColumns]) {
+      const w = Object.hasOwn(widths, column) ? widths[column] : undefined;
+      if (!Number.isSafeInteger(w) || w < 1 || w > 1000000) throw new RangeError("widths." + column + " must be a positive integer up to 1000000");
+      entryBytes += w;
+    }
+  }
+
+  return {
+    covering: missingColumns.length === 0,
+    missingColumns,
+    seekColumns: keyColumns.slice(0, seekLength + (rangeColumn === null ? 0 : 1)),
+    orderServedByIndex: orderServed,
+    estimatedEntryBytes: entryBytes,
+    advice:
+      missingColumns.length === 0
+        ? "Index-only scan possible: no table (heap or clustered) lookups are needed."
+        : "Add " + missingColumns.join(", ") + " as INCLUDE columns (SQL Server, PostgreSQL 11+) or trailing key columns (MySQL)."
+  };
+}
+
+const query = { select: ["id", "total"], where: ["customer_id", "status"], orderBy: ["created_at"] };
+const narrow = planCoveringIndex(query, { keyColumns: ["customer_id", "status"], implicitColumns: ["id"] });
+console.log("narrow:", JSON.stringify(narrow));
+const covering = planCoveringIndex(
+  query,
+  { keyColumns: ["customer_id", "status", "created_at"], includeColumns: ["total"], implicitColumns: ["id"] },
+  { customer_id: 8, status: 1, created_at: 8, total: 8 }
+);
+console.log("covering:", JSON.stringify(covering));
+const withRange = planCoveringIndex(
+  { select: ["id"], where: ["customer_id"], range: ["status"], orderBy: ["created_at"] },
+  { keyColumns: ["customer_id", "status", "created_at"], implicitColumns: ["id"] }
+);
+console.log("range on status, order by created_at:", withRange.seekColumns.join(","), "orderServed:", withRange.orderServedByIndex);
+
+try { planCoveringIndex(query, { keyColumns: [] }); } catch (e) { console.log("Error:", e.name, e.message); }
+try { planCoveringIndex(query, { keyColumns: ["a"], includeColumns: ["a"] }); } catch (e) { console.log("Error:", e.name, e.message); }
+try { planCoveringIndex(query, { keyColumns: ["a"] }, { b: 4 }); } catch (e) { console.log("Error:", e.name, e.message); }
+`} />
+
+</ExerciseCard>
+
+#### Exercise 2: Partial Index with Predicate Implication (createPartialIndex)
+
+<ExerciseCard
+  title="Exercise 2: Partial Index with Predicate Implication (createPartialIndex)"
+  prompt={
+    <p>
+      Implement <code>createPartialIndex(&#123; keyColumn, predicate, unique &#125;)</code> that indexes only rows matching a predicate (<code>=</code>, <code>IS NULL</code>, <code>IS NOT NULL</code>), enforces uniqueness only among indexed rows (soft-delete pattern), keeps <code>update</code> atomic, and answers <code>lookup</code> only when the query conditions imply the predicate. A parameterised equality must not count as proof.
+    </p>
+  }
+>
+
+<CodeBlock lang="javascript" runnable title="Exercise 2: createPartialIndex" code={`
+// createPartialIndex — index only the rows that match a predicate; the planner may use it only if the query implies that predicate
+function createPartialIndex(options) {
+  if (options === null || typeof options !== "object" || Array.isArray(options)) throw new TypeError("options must be a plain object");
+  const { keyColumn, predicate, unique = false } = options;
+  if (typeof keyColumn !== "string" || keyColumn.length === 0) throw new TypeError("keyColumn must be a non-empty string");
+  if (predicate === null || typeof predicate !== "object" || typeof predicate.column !== "string" || predicate.column.length === 0) {
+    throw new TypeError("predicate.column must be a non-empty string");
+  }
+  const OPS = ["=", "IS NULL", "IS NOT NULL"];
+  if (!OPS.includes(predicate.op)) throw new TypeError("predicate.op must be one of: " + OPS.join(", "));
+  if (predicate.op === "=" && typeof predicate.value !== "string" && !(typeof predicate.value === "number" && Number.isFinite(predicate.value))) {
+    throw new TypeError("predicate.value must be a string or finite number");
+  }
+  if (typeof unique !== "boolean") throw new TypeError("unique must be a boolean");
+
+  const byKey = new Map(); // key -> Set of rowIds (only rows that satisfy the predicate)
+  const rowKeys = new Map(); // rowId -> key (or undefined when the row is outside the index)
+  let totalRows = 0;
+
+  function checkRow(row) {
+    if (row === null || typeof row !== "object" || Array.isArray(row)) throw new TypeError("row must be a plain object");
+    for (const column of [keyColumn, predicate.column]) {
+      if (!Object.hasOwn(row, column)) throw new TypeError("row is missing column: " + column);
+    }
+    if (row[predicate.column] === undefined) throw new TypeError("row." + predicate.column + " must not be undefined (use null for NULL)");
+  }
+  function matches(row) {
+    const v = row[predicate.column];
+    if (predicate.op === "IS NULL") return v === null;
+    if (predicate.op === "IS NOT NULL") return v !== null && v !== undefined;
+    return v === predicate.value;
+  }
+  function keyOf(row) {
+    const k = row[keyColumn];
+    if (typeof k !== "string" && !(typeof k === "number" && Number.isFinite(k))) throw new TypeError("key values must be strings or finite numbers");
+    return k;
+  }
+  function duplicate() {
+    const e = new Error("Duplicate entry for partial unique index on " + keyColumn);
+    e.name = "DuplicateKeyError";
+    return e;
+  }
+  function place(rowId, row, ignoreRow) {
+    checkRow(row);
+    if (!matches(row)) return undefined;
+    const key = keyOf(row);
+    const holders = byKey.get(key);
+    if (unique && holders && [...holders].some((id) => id !== ignoreRow)) throw duplicate();
+    return key;
+  }
+  function attach(rowId, key) {
+    if (key === undefined) return;
+    if (!byKey.has(key)) byKey.set(key, new Set());
+    byKey.get(key).add(rowId);
+  }
+  function detach(rowId) {
+    const key = rowKeys.get(rowId);
+    if (key === undefined) return;
+    const holders = byKey.get(key);
+    holders.delete(rowId);
+    if (holders.size === 0) byKey.delete(key);
+  }
+  function checkId(rowId) {
+    if (!Number.isSafeInteger(rowId) || rowId < 0) throw new RangeError("rowId must be a non-negative integer");
+  }
+
+  function insert(rowId, row) {
+    checkId(rowId);
+    if (rowKeys.has(rowId)) throw new Error("rowId already exists: " + rowId);
+    const key = place(rowId, row, null);
+    rowKeys.set(rowId, key);
+    attach(rowId, key);
+    totalRows++;
+  }
+  function update(rowId, row) {
+    checkId(rowId);
+    if (!rowKeys.has(rowId)) throw new Error("rowId does not exist: " + rowId);
+    const key = place(rowId, row, rowId); // throws before anything changes: atomic
+    detach(rowId);
+    rowKeys.set(rowId, key);
+    attach(rowId, key);
+  }
+
+  // conditions: the query's AND-ed conditions, each { column, op, value?, parameter? }
+  function canServe(conditions) {
+    if (!Array.isArray(conditions)) throw new TypeError("conditions must be an array");
+    return conditions.some(
+      (c) =>
+        c !== null &&
+        typeof c === "object" &&
+        c.column === predicate.column &&
+        c.op === predicate.op &&
+        (predicate.op !== "=" || (c.parameter !== true && c.value === predicate.value))
+    );
+  }
+  function lookup(key, conditions) {
+    if (!canServe(conditions)) {
+      return { usedIndex: false, rowIds: null, reason: "query does not imply the index predicate" };
+    }
+    return { usedIndex: true, rowIds: [...(byKey.get(key) ?? [])].sort((a, b) => a - b) };
+  }
+  return { insert, update, lookup, canServe, stats: () => ({ indexedRows: rowKeys.size === 0 ? 0 : [...rowKeys.values()].filter((k) => k !== undefined).length, totalRows }) };
+}
+
+const active = createPartialIndex({ keyColumn: "email", predicate: { column: "deleted_at", op: "IS NULL" }, unique: true });
+active.insert(1, { email: "ann@example.com", deleted_at: null });
+active.insert(2, { email: "bob@example.com", deleted_at: "2024-01-01" });
+active.insert(3, { email: "bob@example.com", deleted_at: null }); // allowed: row 2 is soft-deleted, outside the index
+console.log("stats:", JSON.stringify(active.stats()));
+console.log("matching query:", JSON.stringify(active.lookup("bob@example.com", [{ column: "deleted_at", op: "IS NULL" }])));
+console.log("query without the predicate:", JSON.stringify(active.lookup("bob@example.com", [])));
+try { active.insert(4, { email: "ann@example.com", deleted_at: null }); } catch (e) { console.log(e.name + ":", e.message); }
+
+const orders = createPartialIndex({ keyColumn: "customer", predicate: { column: "status", op: "=", value: "open" } });
+console.log("literal ok:", orders.canServe([{ column: "status", op: "=", value: "open" }]));
+console.log("parameter blocks it:", orders.canServe([{ column: "status", op: "=", value: "open", parameter: true }]));
+try { createPartialIndex({ keyColumn: "a", predicate: { column: "b", op: "LIKE" } }); } catch (e) { console.log("Error:", e.name, e.message); }
+`} />
+
+</ExerciseCard>
+
+#### Exercise 3: Expression Index Matching (createExpressionIndex)
+
+<ExerciseCard
+  title="Exercise 3: Expression Index Matching (createExpressionIndex)"
+  prompt={
+    <p>
+      Implement <code>createExpressionIndex(name, options)</code> over an allow-list of deterministic expressions (<code>lower</code>, <code>upper</code>, <code>trim</code>, <code>emailDomain</code>, <code>dateOnly</code>). Evaluate the expression once at write time, support a unique variant that collapses case, make <code>lookup</code> use the index only when the query applies the same expression, and reject unknown or non-deterministic names such as <code>random</code>, <code>now</code>, <code>constructor</code> and <code>__proto__</code>.
+    </p>
+  }
+>
+
+<CodeBlock lang="javascript" runnable title="Exercise 3: createExpressionIndex" code={`
+// createExpressionIndex — an index over a deterministic expression; queries must repeat the SAME expression to use it
+const EXPRESSIONS = Object.freeze({
+  lower: (v) => v.toLowerCase(),
+  upper: (v) => v.toUpperCase(),
+  trim: (v) => v.trim(),
+  emailDomain: (v) => {
+    const at = v.lastIndexOf("@");
+    if (at < 1 || at === v.length - 1) throw new RangeError("value is not an email address");
+    return v.slice(at + 1).toLowerCase();
+  },
+  dateOnly: (v) => {
+    if (!/^[0-9]{4}-[0-9]{2}-[0-9]{2}([T ].*)?$/.test(v)) throw new RangeError("value must start with YYYY-MM-DD");
+    const year = Number(v.slice(0, 4));
+    const month = Number(v.slice(5, 7));
+    const day = Number(v.slice(8, 10));
+    const check = new Date(0);
+    check.setUTCFullYear(year, month - 1, day);
+    if (check.getUTCFullYear() !== year || check.getUTCMonth() !== month - 1 || check.getUTCDate() !== day) {
+      throw new RangeError("value is not a valid calendar date");
+    }
+    return v.slice(0, 10);
+  }
+});
+
+function createExpressionIndex(expressionName, options = {}) {
+  if (typeof expressionName !== "string" || !Object.hasOwn(EXPRESSIONS, expressionName)) {
+    throw new TypeError("unsupported or non-deterministic expression: " + String(expressionName));
+  }
+  if (options === null || typeof options !== "object" || Array.isArray(options)) throw new TypeError("options must be a plain object");
+  const { unique = false } = options;
+  if (typeof unique !== "boolean") throw new TypeError("unique must be a boolean");
+
+  const evaluate = EXPRESSIONS[expressionName];
+  const byKey = new Map(); // expression result -> Set of rowIds
+  const rowKeys = new Map(); // rowId -> expression result
+
+  function checkId(rowId) {
+    if (!Number.isSafeInteger(rowId) || rowId < 0) throw new RangeError("rowId must be a non-negative integer");
+  }
+  function checkValue(value) {
+    if (typeof value !== "string") throw new TypeError("value must be a string");
+  }
+
+  function insert(rowId, value) {
+    checkId(rowId);
+    checkValue(value);
+    if (rowKeys.has(rowId)) throw new Error("rowId already indexed: " + rowId);
+    const key = evaluate(value); // evaluated once, at write time, and stored in the index
+    if (unique && byKey.has(key)) {
+      const error = new Error("Duplicate entry for unique expression index (" + expressionName + ")");
+      error.name = "DuplicateKeyError";
+      throw error;
+    }
+    if (!byKey.has(key)) byKey.set(key, new Set());
+    byKey.get(key).add(rowId);
+    rowKeys.set(rowId, key);
+  }
+  function remove(rowId) {
+    checkId(rowId);
+    if (!rowKeys.has(rowId)) return false;
+    const key = rowKeys.get(rowId);
+    const holders = byKey.get(key);
+    holders.delete(rowId);
+    if (holders.size === 0) byKey.delete(key);
+    rowKeys.delete(rowId);
+    return true;
+  }
+  // queryExpression: the expression the SQL predicate applies, or "none" for a bare-column predicate
+  function lookup(queryExpression, value) {
+    checkValue(value);
+    if (queryExpression !== expressionName) {
+      return { usedIndex: false, rowIds: null, reason: "predicate expression must match the indexed expression exactly" };
+    }
+    return { usedIndex: true, rowIds: [...(byKey.get(evaluate(value)) ?? [])].sort((a, b) => a - b) };
+  }
+  return { insert, remove, lookup, size: () => rowKeys.size };
+}
+
+const emails = createExpressionIndex("lower");
+emails.insert(1, "Ann@Example.com");
+emails.insert(2, "bob@example.com");
+emails.insert(3, "ANN@EXAMPLE.COM");
+console.log("WHERE LOWER(email) = 'ann@example.com':", JSON.stringify(emails.lookup("lower", "ann@example.com")));
+console.log("WHERE email = 'ann@example.com':", JSON.stringify(emails.lookup("none", "ann@example.com")));
+
+const uniqueLower = createExpressionIndex("lower", { unique: true });
+uniqueLower.insert(1, "Ann@Example.com");
+try { uniqueLower.insert(2, "ann@example.com"); } catch (e) { console.log(e.name + ":", e.message); }
+
+const domains = createExpressionIndex("emailDomain");
+domains.insert(1, "x@Sales.Example.com");
+console.log("domain lookup:", JSON.stringify(domains.lookup("emailDomain", "someone@sales.example.com")));
+
+for (const bad of ["random", "now", "constructor", "__proto__"]) {
+  try { createExpressionIndex(bad); } catch (e) { console.log("Error:", e.name, e.message); }
+}
+try { domains.insert(2, "not-an-email"); } catch (e) { console.log("Error:", e.name, e.message); }
+`} />
+
+</ExerciseCard>
+
+#### Exercise 4: Estimate Selectivity by Hand and Choose a Spatial Index
+
+<ExerciseCard
+  title="Exercise 4: Estimate Selectivity by Hand and Choose a Spatial Index"
+  prompt={
+    <p>
+      (a) A 2,000,000-row table has a <code>status</code> column with no NULLs and 12 distinct values: <code>active</code> 1,400,000 rows, <code>pending</code> 500,000 rows, and ten rare values with 10,000 rows each. With a two-entry MCV list, estimate the rows for <code>status = 'active'</code>, <code>status = 'pending'</code> and <code>status = 'archived'</code> (a rare value), and compute the column selectivity. (b) Which index would you build to serve the rare statuses? (c) A store locator must return the 20 nearest shops within 3 km in PostgreSQL, MySQL and MongoDB. Name the index type and query form for each.
+    </p>
+  }
+>
+
+<p>
+  <strong>(a)</strong> <code>active</code> and <code>pending</code> come from the MCV list: 70 percent and 25 percent, so 1,400,000 and 500,000 rows. For a rare value the remaining fraction is <code>1 - 0 - 0.95 = 0.05</code>, spread over <code>12 - 2 = 10</code> distinct values, so <code>0.005 x 2,000,000 = 10,000</code> rows for <code>archived</code>. Column selectivity (distinct over non-null rows) is <code>12 / 2,000,000 = 0.000006</code>, which says the column alone is a poor index, even though a rare value is 0.5 percent of the table.
+</p>
+<p>
+  <strong>(b)</strong> A partial or filtered index such as <code>CREATE INDEX ON orders (created_at) WHERE status NOT IN ('active', 'pending')</code> (PostgreSQL) or a filtered index with <code>Status &lt;&gt; 'active' AND Status &lt;&gt; 'pending'</code> (SQL Server; write the filter with simple comparisons) holds about 100,000 of the 2,000,000 rows. MySQL needs a different design (for example a generated column that is NULL for common statuses, indexed). The query must repeat the literal condition so the planner can prove it.
+</p>
+<p>
+  <strong>(c)</strong> PostgreSQL with PostGIS: <code>GIST (geom)</code> and <code>ORDER BY geom &lt;-&gt; point LIMIT 20</code> combined with <code>ST_DWithin</code>. MySQL: a <code>SPATIAL</code> index on a <code>NOT NULL</code> geometry column, filtered with <code>MBRContains</code> or <code>ST_Contains</code> on a bounding box and then refined by distance. MongoDB: a <code>2dsphere</code> index with <code>$near</code> and <code>$maxDistance: 3000</code> and <code>limit(20)</code>.
+</p>
+
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m08-p2-sec-p" letter="P" title="Advanced Challenge">
+
+<Callout variant="warning" title="Production Search: Stale Postings, Stop Words and Unbounded Queries">
+  <p>
+    A full-text index is only as good as its maintenance and its limits. Re-indexed documents must replace, not duplicate, their old postings; empty or stop-word-only queries must fail clearly instead of returning the whole corpus; and result limits must be bounded so a single request cannot force the engine to rank millions of matches.
+  </p>
+</Callout>
+
+<ExerciseCard
+  title="Challenge: Full-Text Inverted Index (createFullTextIndex)"
+  prompt={
+    <p>
+      Implement <code>createFullTextIndex(options)</code> with <code>addDocument(id, text)</code> (re-indexing replaces old postings), <code>removeDocument(id)</code> and <code>search(query, &#123; mode, limit &#125;)</code>. Tokenise to lower-case terms, drop stop words and tokens shorter than <code>minTokenLength</code>, keep term frequencies in posting lists, support <code>AND</code> and <code>OR</code>, rank with TF-IDF, and reject empty queries, unknown modes and unbounded limits.
+    </p>
+  }
+>
+
+<CodeBlock lang="javascript" runnable title="Advanced Challenge: Full-Text Inverted Index" code={`
+// createFullTextIndex — an inverted index: term -> postings (document -> term frequency), ranked with TF-IDF
+function createFullTextIndex(options = {}) {
+  if (options === null || typeof options !== "object" || Array.isArray(options)) throw new TypeError("options must be a plain object");
+  const { stopWords = ["the", "a", "an", "and", "or", "of", "to", "in", "is", "it"], minTokenLength = 2 } = options;
+  if (!Array.isArray(stopWords) || stopWords.some((w) => typeof w !== "string")) throw new TypeError("stopWords must be an array of strings");
+  if (!Number.isInteger(minTokenLength) || minTokenLength < 1 || minTokenLength > 10) {
+    throw new RangeError("minTokenLength must be an integer between 1 and 10");
+  }
+  const stop = new Set(stopWords.map((w) => w.toLowerCase()));
+  const postings = new Map(); // term -> Map(docId -> term frequency)
+  const docTerms = new Map(); // docId -> Set of terms (so a document can be replaced or removed)
+
+  function tokenize(text) {
+    // ASCII-only on purpose: real engines use language-aware dictionaries, stemmers and Unicode analyzers
+    return text
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter((t) => t.length >= minTokenLength && !stop.has(t));
+  }
+  function checkId(id) {
+    if (typeof id !== "string" || id.length === 0) throw new TypeError("document id must be a non-empty string");
+  }
+
+  function removeDocument(id) {
+    checkId(id);
+    const terms = docTerms.get(id);
+    if (!terms) return false;
+    for (const term of terms) {
+      const docs = postings.get(term);
+      docs.delete(id);
+      if (docs.size === 0) postings.delete(term);
+    }
+    docTerms.delete(id);
+    return true;
+  }
+  function addDocument(id, text) {
+    checkId(id);
+    if (typeof text !== "string") throw new TypeError("text must be a string");
+    removeDocument(id); // re-indexing replaces the old postings
+    const tokens = tokenize(text);
+    const frequencies = new Map();
+    for (const token of tokens) frequencies.set(token, (frequencies.get(token) ?? 0) + 1);
+    for (const [term, tf] of frequencies) {
+      if (!postings.has(term)) postings.set(term, new Map());
+      postings.get(term).set(id, tf);
+    }
+    docTerms.set(id, new Set(frequencies.keys()));
+    return frequencies.size;
+  }
+
+  function search(query, searchOptions = {}) {
+    if (typeof query !== "string") throw new TypeError("query must be a string");
+    if (searchOptions === null || typeof searchOptions !== "object" || Array.isArray(searchOptions)) throw new TypeError("searchOptions must be a plain object");
+    const { mode = "AND", limit = 10 } = searchOptions;
+    if (mode !== "AND" && mode !== "OR") throw new TypeError('mode must be "AND" or "OR"');
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100) throw new RangeError("limit must be an integer between 1 and 100");
+    const terms = [...new Set(tokenize(query))];
+    if (terms.length === 0) throw new Error("query contains no searchable terms");
+
+    const totalDocs = docTerms.size;
+    const scores = new Map();
+    const hits = new Map();
+    for (const term of terms) {
+      const docs = postings.get(term);
+      if (!docs) continue;
+      const idf = Math.log(1 + totalDocs / docs.size);
+      for (const [id, tf] of docs) {
+        scores.set(id, (scores.get(id) ?? 0) + tf * idf);
+        hits.set(id, (hits.get(id) ?? 0) + 1);
+      }
+    }
+    return [...scores.entries()]
+      .filter(([id]) => mode === "OR" || hits.get(id) === terms.length)
+      .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))
+      .slice(0, limit)
+      .map(([id, score]) => ({ id, score: Math.round(score * 1000) / 1000 }));
+  }
+  return { addDocument, removeDocument, search, termCount: () => postings.size, documentCount: () => docTerms.size };
+}
+
+const fts = createFullTextIndex();
+fts.addDocument("d1", "Postgres GIN indexes make full text search fast");
+fts.addDocument("d2", "A B-Tree index cannot speed up a LIKE '%search%' query");
+fts.addDocument("d3", "Full text search ranks documents by relevance");
+fts.addDocument("d4", "The inverted index maps each term to the documents containing it");
+console.log("AND full search:", JSON.stringify(fts.search("full search")));
+console.log("OR index:", JSON.stringify(fts.search("index", { mode: "OR" })));
+console.log("terms:", fts.termCount(), "docs:", fts.documentCount());
+fts.addDocument("d1", "completely different content about vacuum");
+console.log("after re-index search:", JSON.stringify(fts.search("full search")));
+console.log("removed d3:", fts.removeDocument("d3"), "again:", fts.removeDocument("d3"));
+
+try { fts.search("the of and"); } catch (e) { console.log("Error:", e.name, e.message); }
+try { fts.search("x", { mode: "XOR" }); } catch (e) { console.log("Error:", e.name, e.message); }
+try { fts.addDocument("", "text"); } catch (e) { console.log("Error:", e.name, e.message); }
+`} />
+
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m08-p2-sec-q" letter="Q" title="Summary & Key Takeaways">
+
+<DiagramCard title="Figure 8.4 — Statistics Drive Estimates, Estimates Drive Index Choice">
+<svg viewBox="0 0 820 190" xmlns="http://www.w3.org/2000/svg" aria-label="Column statistics, how the planner turns them into row estimates, and what to do when estimates go wrong">
+  <defs>
+    <style>{`
+      .m8d-label { font: 600 11px system-ui, sans-serif; fill: var(--text-primary); }
+      .m8d-sub   { font: 400 9.5px system-ui, sans-serif; fill: var(--text-secondary); }
+      .m8d-hdr   { font: 700 10px system-ui, sans-serif; fill: var(--accent-contrast); }
+      .m8d-box   { rx: 5; ry: 5; }
+    `}</style>
+    <marker id="arr8d" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--accent)"/></marker>
+  </defs>
+
+  <rect class="m8d-box" x="4" y="6" width="244" height="176" fill="var(--bg-subtle)" stroke="var(--border)" stroke-width="1.2"/>
+  <rect x="4" y="6" width="244" height="20" rx="5" ry="5" fill="var(--accent)"/>
+  <text x="126" y="19" text-anchor="middle" class="m8d-hdr">Column Statistics</text>
+  <rect class="m8d-box" x="14" y="34" width="224" height="30" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1"/>
+  <text x="126" y="48" text-anchor="middle" class="m8d-label">Cardinality</text>
+  <text x="126" y="60" text-anchor="middle" class="m8d-sub">distinct values, null fraction</text>
+  <rect class="m8d-box" x="14" y="70" width="224" height="30" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1"/>
+  <text x="126" y="84" text-anchor="middle" class="m8d-label">Most common values</text>
+  <text x="126" y="96" text-anchor="middle" class="m8d-sub">value and frequency pairs</text>
+  <rect class="m8d-box" x="14" y="106" width="224" height="30" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1"/>
+  <text x="126" y="120" text-anchor="middle" class="m8d-label">Histogram bounds</text>
+  <text x="126" y="132" text-anchor="middle" class="m8d-sub">equal-row buckets for ranges</text>
+  <rect class="m8d-box" x="14" y="142" width="224" height="30" fill="var(--warning-soft)" stroke="var(--border)" stroke-width="1"/>
+  <text x="126" y="156" text-anchor="middle" class="m8d-label">Refreshed by</text>
+  <text x="126" y="168" text-anchor="middle" class="m8d-sub">ANALYZE / UPDATE STATISTICS</text>
+
+  <path d="M250 94 L274 94" stroke="var(--accent)" stroke-width="2" marker-end="url(#arr8d)"/>
+
+  <rect class="m8d-box" x="276" y="6" width="268" height="176" fill="var(--bg-subtle)" stroke="var(--border)" stroke-width="1.2"/>
+  <rect x="276" y="6" width="268" height="20" rx="5" ry="5" fill="var(--success)"/>
+  <text x="410" y="19" text-anchor="middle" class="m8d-hdr">Planner Estimate</text>
+  <text x="288" y="50" class="m8d-sub">Common value: MCV frequency x rows</text>
+  <text x="288" y="74" class="m8d-sub">Rare value: rest fraction / rest distinct</text>
+  <text x="288" y="98" class="m8d-sub">Range: count histogram buckets</text>
+  <text x="288" y="122" class="m8d-sub">AND: multiply selectivities (independent)</text>
+  <text x="288" y="146" class="m8d-sub">Then cost: index seek vs sequential scan</text>
+  <text x="288" y="170" class="m8d-sub">Errors compound through joins</text>
+
+  <path d="M546 94 L570 94" stroke="var(--accent)" stroke-width="2" marker-end="url(#arr8d)"/>
+
+  <rect class="m8d-box" x="572" y="6" width="244" height="176" fill="var(--bg-subtle)" stroke="var(--border)" stroke-width="1.2"/>
+  <rect x="572" y="6" width="244" height="20" rx="5" ry="5" fill="var(--danger)"/>
+  <text x="694" y="19" text-anchor="middle" class="m8d-hdr">When Estimates Go Wrong</text>
+  <text x="584" y="50" class="m8d-sub">Stale: refresh after bulk changes</text>
+  <text x="584" y="74" class="m8d-sub">Skew: raise the statistics target</text>
+  <text x="584" y="98" class="m8d-sub">Correlated columns: extended stats</text>
+  <text x="584" y="122" class="m8d-sub">Parameters: custom plan / recompile</text>
+  <text x="584" y="146" class="m8d-sub">Check estimated rows vs actual rows</text>
+  <text x="584" y="170" class="m8d-sub">Then change index or query</text>
+</svg>
+</DiagramCard>
+
+#### Key Takeaways
+
+- **Composite order is the design:** Put equality columns first, then the sort column, then the range column; an index only seeks on a contiguous prefix of its tuple.
+- **Covering indexes remove the table hop:** `INCLUDE` columns (or extra key columns in MySQL) avoid per-row lookups, at the price of a wider index and more write work.
+- **Partial and filtered indexes index the interesting subset:** They shrink the index and make soft-delete uniqueness possible, but the query must visibly imply the predicate and parameters can defeat that.
+- **Functional and expression indexes make wrapped predicates sargable:** The query has to repeat the exact deterministic expression, and the expression is recomputed on every write.
+- **Full-text indexes are inverted indexes; spatial indexes are bounding-box trees:** Use the engine's native types (GIN, `FULLTEXT`, SQL Server full-text, text indexes; GiST, `SPATIAL`, spatial grids, `2dsphere`) instead of `LIKE '%x%'` and latitude sorts.
+- **Selectivity and cardinality decide whether an index is worth using:** A predicate returning a small fraction of rows benefits from an index; skew means the same column can be great for rare values and useless for common ones.
+- **Statistics are a snapshot:** Refresh them after bulk changes, raise targets for skewed columns, add extended statistics for correlated ones, and always compare estimated with actual rows.
+
+</TopicSection>

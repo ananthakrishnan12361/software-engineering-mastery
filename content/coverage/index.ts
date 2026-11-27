@@ -24,6 +24,7 @@ import { m07p1Coverage } from "./m07-p1.coverage";
 import { m07p2Coverage } from "./m07-p2.coverage";
 import { m07p3Coverage } from "./m07-p3.coverage";
 import { m08p1Coverage } from "./m08-p1.coverage";
+import { m08p2Coverage } from "./m08-p2.coverage";
 import type { LessonCoverageSpec, ModuleCoverageTarget } from "./types";
 
 export type {
@@ -61,7 +62,8 @@ export const LESSON_COVERAGE_SPECS: LessonCoverageSpec[] = [
   m07p1Coverage,
   m07p2Coverage,
   m07p3Coverage,
-  m08p1Coverage
+  m08p1Coverage,
+  m08p2Coverage
 ];
 
 export const MODULE_INTERVIEW_TARGETS: ModuleCoverageTarget[] = [
@@ -137,7 +139,7 @@ export const MODULE_INTERVIEW_TARGETS: ModuleCoverageTarget[] = [
   },
   {
     moduleNumber: 8,
-    complete: false, // Module 8 Part 1 of 4 complete — M08-P2..P4 pending
+    complete: false, // Module 8 Parts 1-2 of 4 complete — M08-P3..P4 pending
     targets: {
       basic: 10,
       intermediate: 10,

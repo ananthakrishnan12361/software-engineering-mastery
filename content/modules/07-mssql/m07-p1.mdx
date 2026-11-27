@@ -178,70 +178,70 @@ Every client query enters via **SNI** (TDS protocol), passes through the **Relat
 <svg viewBox="0 0 820 190" xmlns="http://www.w3.org/2000/svg" aria-label="SQL Server architecture showing SNI, Relational Engine, Storage Engine, SQLOS, and MDF/LDF storage">
   <defs>
     <style>{`
-      .m71-lbl { font: 600 11px system-ui, sans-serif; fill: var(--token-text-primary); }
-      .m71-sub { font: 400 9.5px system-ui, sans-serif; fill: var(--token-text-secondary); }
-      .m71-hdr { font: 700 10px system-ui, sans-serif; fill: var(--token-text-inverse); }
+      .m71-lbl { font: 600 11px system-ui, sans-serif; fill: var(--text-primary); }
+      .m71-sub { font: 400 9.5px system-ui, sans-serif; fill: var(--text-secondary); }
+      .m71-hdr { font: 700 10px system-ui, sans-serif; fill: var(--accent-contrast); }
       .m71-box { rx: 6; ry: 6; }
     `}</style>
     <marker id="arr71" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-      <path d="M0,0 L6,3 L0,6 Z" fill="var(--token-brand-default)" />
+      <path d="M0,0 L6,3 L0,6 Z" fill="var(--accent)" />
     </marker>
   </defs>
 
-  <rect class="m71-box" x="6" y="8" width="124" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
-  <rect x="6" y="8" width="124" height="22" rx="6" ry="6" fill="var(--token-brand-muted)" />
+  <rect class="m71-box" x="6" y="8" width="124" height="174" fill="var(--bg-subtle)" stroke="var(--border)" stroke-width="1.2" />
+  <rect x="6" y="8" width="124" height="22" rx="6" ry="6" fill="var(--accent-soft)" />
   <text x="68" y="22" text-anchor="middle" class="m71-hdr">Protocol (SNI)</text>
-  <rect class="m71-box" x="14" y="38" width="108" height="44" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m71-box" x="14" y="38" width="108" height="44" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="68" y="56" text-anchor="middle" class="m71-lbl">TDS Packets</text>
   <text x="68" y="70" text-anchor="middle" class="m71-sub">TCP/IP · TLS · Named</text>
-  <rect class="m71-box" x="14" y="90" width="108" height="84" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m71-box" x="14" y="90" width="108" height="84" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="68" y="112" text-anchor="middle" class="m71-lbl">SQLOS</text>
   <text x="68" y="127" text-anchor="middle" class="m71-sub">1 Scheduler / Core</text>
   <text x="68" y="141" text-anchor="middle" class="m71-sub">Cooperative Yield</text>
   <text x="68" y="155" text-anchor="middle" class="m71-sub">Memory Clerks</text>
 
-  <path d="M130 60 L146 60" stroke="var(--token-brand-default)" stroke-width="2" marker-end="url(#arr71)" />
+  <path d="M130 60 L146 60" stroke="var(--accent)" stroke-width="2" marker-end="url(#arr71)" />
 
-  <rect class="m71-box" x="148" y="8" width="218" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
-  <rect x="148" y="8" width="218" height="22" rx="6" ry="6" fill="var(--token-success-muted)" />
+  <rect class="m71-box" x="148" y="8" width="218" height="174" fill="var(--bg-subtle)" stroke="var(--border)" stroke-width="1.2" />
+  <rect x="148" y="8" width="218" height="22" rx="6" ry="6" fill="var(--success-soft)" />
   <text x="257" y="22" text-anchor="middle" class="m71-hdr">Relational Engine</text>
-  <rect class="m71-box" x="158" y="38" width="198" height="34" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m71-box" x="158" y="38" width="198" height="34" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="257" y="54" text-anchor="middle" class="m71-lbl">Parser &amp; Algebrizer</text>
   <text x="257" y="66" text-anchor="middle" class="m71-sub">Syntax tree + name binding</text>
-  <rect class="m71-box" x="158" y="78" width="198" height="44" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m71-box" x="158" y="78" width="198" height="44" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="257" y="96" text-anchor="middle" class="m71-lbl">Query Optimizer &amp; Plan Cache</text>
   <text x="257" y="110" text-anchor="middle" class="m71-sub">Cost-based · stats · sp_executesql</text>
-  <rect class="m71-box" x="158" y="128" width="198" height="46" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m71-box" x="158" y="128" width="198" height="46" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="257" y="146" text-anchor="middle" class="m71-lbl">Query Executor</text>
   <text x="257" y="160" text-anchor="middle" class="m71-sub">Iterators: Seek · Hash · Sort</text>
 
-  <path d="M366 95 L382 95" stroke="var(--token-brand-default)" stroke-width="2" marker-end="url(#arr71)" />
+  <path d="M366 95 L382 95" stroke="var(--accent)" stroke-width="2" marker-end="url(#arr71)" />
 
-  <rect class="m71-box" x="384" y="8" width="224" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
-  <rect x="384" y="8" width="224" height="22" rx="6" ry="6" fill="var(--token-warning-muted)" />
+  <rect class="m71-box" x="384" y="8" width="224" height="174" fill="var(--bg-subtle)" stroke="var(--border)" stroke-width="1.2" />
+  <rect x="384" y="8" width="224" height="22" rx="6" ry="6" fill="var(--warning-soft)" />
   <text x="496" y="22" text-anchor="middle" class="m71-hdr">Storage Engine</text>
-  <rect class="m71-box" x="394" y="38" width="204" height="42" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m71-box" x="394" y="38" width="204" height="42" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="496" y="55" text-anchor="middle" class="m71-lbl">Access Methods</text>
   <text x="496" y="69" text-anchor="middle" class="m71-sub">Heap · Clustered · Non-Clustered</text>
-  <rect class="m71-box" x="394" y="86" width="204" height="42" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m71-box" x="394" y="86" width="204" height="42" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="496" y="103" text-anchor="middle" class="m71-lbl">Buffer Manager (Pool)</text>
   <text x="496" y="117" text-anchor="middle" class="m71-sub">8 KB pages · Checkpoint · Lazy Writer</text>
-  <rect class="m71-box" x="394" y="134" width="204" height="40" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m71-box" x="394" y="134" width="204" height="40" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="496" y="150" text-anchor="middle" class="m71-lbl">Transaction &amp; Lock Mgr</text>
   <text x="496" y="163" text-anchor="middle" class="m71-sub">WAL flush to .ldf before COMMIT</text>
 
-  <path d="M608 95 L624 95" stroke="var(--token-brand-default)" stroke-width="2" marker-end="url(#arr71)" />
+  <path d="M608 95 L624 95" stroke="var(--accent)" stroke-width="2" marker-end="url(#arr71)" />
 
-  <rect class="m71-box" x="626" y="8" width="188" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
-  <rect x="626" y="8" width="188" height="22" rx="6" ry="6" fill="var(--token-error-muted)" />
+  <rect class="m71-box" x="626" y="8" width="188" height="174" fill="var(--bg-subtle)" stroke="var(--border)" stroke-width="1.2" />
+  <rect x="626" y="8" width="188" height="22" rx="6" ry="6" fill="var(--danger-soft)" />
   <text x="720" y="22" text-anchor="middle" class="m71-hdr">Files &amp; 64 KB Extents</text>
-  <rect class="m71-box" x="636" y="38" width="168" height="40" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m71-box" x="636" y="38" width="168" height="40" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="720" y="54" text-anchor="middle" class="m71-lbl">.mdf / .ndf (Filegroups)</text>
   <text x="720" y="68" text-anchor="middle" class="m71-sub">8 x 8 KB pages = 64 KB Extent</text>
-  <rect class="m71-box" x="636" y="84" width="168" height="42" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m71-box" x="636" y="84" width="168" height="42" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="720" y="100" text-anchor="middle" class="m71-lbl">.ldf (Transaction Log)</text>
   <text x="720" y="114" text-anchor="middle" class="m71-sub">Sequential WAL · VLFs</text>
-  <rect class="m71-box" x="636" y="132" width="168" height="42" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m71-box" x="636" y="132" width="168" height="42" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="720" y="148" text-anchor="middle" class="m71-lbl">tempdb</text>
   <text x="720" y="162" text-anchor="middle" class="m71-sub">#Temp · @Table · Spools · RCSI</text>
 </svg>
@@ -624,62 +624,62 @@ console.log("Fragmented overflow:", JSON.stringify(planMssqlPageFit({ fixedBytes
 <svg viewBox="0 0 820 190" xmlns="http://www.w3.org/2000/svg" aria-label="SQL Server 8 KB page layout, Heap RID lookup, Clustered B+Tree, and Non-Clustered INCLUDE">
   <defs>
     <style>{`
-      .m72-lbl { font: 600 11px system-ui, sans-serif; fill: var(--token-text-primary); }
-      .m72-sub { font: 400 9.5px system-ui, sans-serif; fill: var(--token-text-secondary); }
-      .m72-hdr { font: 700 10px system-ui, sans-serif; fill: var(--token-text-inverse); }
+      .m72-lbl { font: 600 11px system-ui, sans-serif; fill: var(--text-primary); }
+      .m72-sub { font: 400 9.5px system-ui, sans-serif; fill: var(--text-secondary); }
+      .m72-hdr { font: 700 10px system-ui, sans-serif; fill: var(--accent-contrast); }
       .m72-box { rx: 6; ry: 6; }
     `}</style>
     <marker id="arr72" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-      <path d="M0,0 L6,3 L0,6 Z" fill="var(--token-brand-default)" />
+      <path d="M0,0 L6,3 L0,6 Z" fill="var(--accent)" />
     </marker>
   </defs>
 
-  <rect class="m72-box" x="6" y="8" width="192" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
-  <rect x="6" y="8" width="192" height="22" rx="6" ry="6" fill="var(--token-brand-muted)" />
+  <rect class="m72-box" x="6" y="8" width="192" height="174" fill="var(--bg-subtle)" stroke="var(--border)" stroke-width="1.2" />
+  <rect x="6" y="8" width="192" height="22" rx="6" ry="6" fill="var(--accent-soft)" />
   <text x="102" y="22" text-anchor="middle" class="m72-hdr">8 KB Page (8,192 Bytes)</text>
-  <rect class="m72-box" x="16" y="38" width="172" height="26" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m72-box" x="16" y="38" width="172" height="26" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="102" y="55" text-anchor="middle" class="m72-lbl">96-Byte Page Header</text>
-  <rect class="m72-box" x="16" y="70" width="172" height="66" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m72-box" x="16" y="70" width="172" height="66" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="102" y="92" text-anchor="middle" class="m72-lbl">Data Rows (max 8,060 B)</text>
   <text x="102" y="107" text-anchor="middle" class="m72-sub">&gt;8,060 B → ROW_OVERFLOW_DATA</text>
   <text x="102" y="121" text-anchor="middle" class="m72-sub">MAX cols → LOB_DATA</text>
-  <rect class="m72-box" x="16" y="142" width="172" height="30" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m72-box" x="16" y="142" width="172" height="30" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="102" y="161" text-anchor="middle" class="m72-lbl">2-Byte Slot Array (offsets)</text>
 
-  <rect class="m72-box" x="208" y="8" width="196" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
-  <rect x="208" y="8" width="196" height="22" rx="6" ry="6" fill="var(--token-warning-muted)" />
+  <rect class="m72-box" x="208" y="8" width="196" height="174" fill="var(--bg-subtle)" stroke="var(--border)" stroke-width="1.2" />
+  <rect x="208" y="8" width="196" height="22" rx="6" ry="6" fill="var(--warning-soft)" />
   <text x="306" y="22" text-anchor="middle" class="m72-hdr">Heap vs. Clustered Table</text>
-  <rect class="m72-box" x="218" y="38" width="176" height="60" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m72-box" x="218" y="38" width="176" height="60" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="306" y="55" text-anchor="middle" class="m72-lbl">Heap (No Clustered Index)</text>
   <text x="306" y="69" text-anchor="middle" class="m72-sub">Unordered · IAM + PFS</text>
   <text x="306" y="83" text-anchor="middle" class="m72-sub">Forwarding pointers on growth</text>
-  <rect class="m72-box" x="218" y="106" width="176" height="66" fill="var(--token-surface-raised)" stroke="var(--token-brand-default)" stroke-width="1.2" />
+  <rect class="m72-box" x="218" y="106" width="176" height="66" fill="var(--bg-elevated)" stroke="var(--accent)" stroke-width="1.2" />
   <text x="306" y="124" text-anchor="middle" class="m72-lbl">Clustered B+Tree (NUSE PK)</text>
   <text x="306" y="139" text-anchor="middle" class="m72-sub">Leaf pages = ordered rows</text>
   <text x="306" y="153" text-anchor="middle" class="m72-sub">1 per table · uniquifier if non-uniq</text>
 
-  <rect class="m72-box" x="414" y="8" width="196" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
-  <rect x="414" y="8" width="196" height="22" rx="6" ry="6" fill="var(--token-success-muted)" />
+  <rect class="m72-box" x="414" y="8" width="196" height="174" fill="var(--bg-subtle)" stroke="var(--border)" stroke-width="1.2" />
+  <rect x="414" y="8" width="196" height="22" rx="6" ry="6" fill="var(--success-soft)" />
   <text x="512" y="22" text-anchor="middle" class="m72-hdr">Non-Clustered + INCLUDE</text>
-  <rect class="m72-box" x="424" y="38" width="176" height="60" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m72-box" x="424" y="38" width="176" height="60" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="512" y="55" text-anchor="middle" class="m72-lbl">Without INCLUDE</text>
   <text x="512" y="69" text-anchor="middle" class="m72-sub">Key + Locator (PK or RID)</text>
   <text x="512" y="83" text-anchor="middle" class="m72-sub">Triggers Key / RID Lookup</text>
-  <rect class="m72-box" x="424" y="106" width="176" height="66" fill="var(--token-surface-raised)" stroke="var(--token-success-default)" stroke-width="1.2" />
+  <rect class="m72-box" x="424" y="106" width="176" height="66" fill="var(--bg-elevated)" stroke="var(--success)" stroke-width="1.2" />
   <text x="512" y="124" text-anchor="middle" class="m72-lbl">Covering INCLUDE (cols)</text>
   <text x="512" y="139" text-anchor="middle" class="m72-sub">Extra cols stored in leaf only</text>
   <text x="512" y="153" text-anchor="middle" class="m72-sub">Zero Key Lookups!</text>
 
-  <rect class="m72-box" x="620" y="8" width="194" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
-  <rect x="620" y="8" width="194" height="22" rx="6" ry="6" fill="var(--token-error-muted)" />
+  <rect class="m72-box" x="620" y="8" width="194" height="174" fill="var(--bg-subtle)" stroke="var(--border)" stroke-width="1.2" />
+  <rect x="620" y="8" width="194" height="22" rx="6" ry="6" fill="var(--danger-soft)" />
   <text x="717" y="22" text-anchor="middle" class="m72-hdr">T-SQL Objects</text>
-  <rect class="m72-box" x="630" y="38" width="174" height="40" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m72-box" x="630" y="38" width="174" height="40" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="717" y="54" text-anchor="middle" class="m72-lbl">iTVF &amp; Indexed View</text>
   <text x="717" y="68" text-anchor="middle" class="m72-sub">Parallelizable · SCHEMABINDING</text>
-  <rect class="m72-box" x="630" y="84" width="174" height="42" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m72-box" x="630" y="84" width="174" height="42" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="717" y="100" text-anchor="middle" class="m72-lbl">#Temp vs @Table vs CTE</text>
   <text x="717" y="114" text-anchor="middle" class="m72-sub">#Temp has stats · CTE inlines</text>
-  <rect class="m72-box" x="630" y="132" width="174" height="42" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m72-box" x="630" y="132" width="174" height="42" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="717" y="148" text-anchor="middle" class="m72-lbl">Triggers &amp; Windows</text>
   <text x="717" y="162" text-anchor="middle" class="m72-sub">Batch inserted/deleted · ROWS</text>
 </svg>

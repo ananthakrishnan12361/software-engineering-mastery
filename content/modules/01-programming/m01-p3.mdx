@@ -145,7 +145,7 @@ Understanding memory layout explains why theoretical `O(1)` can still vary drama
   <svg viewBox="0 0 820 235" role="img" aria-label="Big O growth tiers and Ring Buffer Queue versus Array.shift">
     <rect x="10" y="10" width="800" height="215" rx="10" fill="var(--bg-subtle)" stroke="var(--border)" />
 
-    <rect x="28" y="28" width="365" height="178" rx="8" fill="var(--bg-surface)" stroke="var(--border-strong)" />
+    <rect x="28" y="28" width="365" height="178" rx="8" fill="var(--bg-surface)" stroke="var(--border-control)" />
     <text x="46" y="54" fill="var(--accent-strong)" fontSize="13.5" fontWeight="700" fontFamily="sans-serif">Big O Growth Tiers (at n = 100,000)</text>
     <text x="46" y="82" fill="var(--success)" fontSize="12" fontWeight="700" fontFamily="monospace">O(1)       ~1 op      (Hash lookup / Push)</text>
     <text x="46" y="106" fill="var(--success)" fontSize="12" fontWeight="700" fontFamily="monospace">O(log n)   ~17 ops    (Binary Search)</text>
@@ -153,7 +153,7 @@ Understanding memory layout explains why theoretical `O(1)` can still vary drama
     <text x="46" y="154" fill="var(--warning)" fontSize="12" fontWeight="700" fontFamily="monospace">O(n log n) ~1.66M     (Merge / Timsort)</text>
     <text x="46" y="178" fill="var(--danger)" fontSize="12" fontWeight="700" fontFamily="monospace">O(n^2)     10^10 ops  (Nested loop timeout)</text>
 
-    <rect x="415" y="28" width="377" height="178" rx="8" fill="var(--bg-surface)" stroke="var(--border-strong)" />
+    <rect x="415" y="28" width="377" height="178" rx="8" fill="var(--bg-surface)" stroke="var(--border-control)" />
     <text x="433" y="54" fill="var(--accent-strong)" fontSize="13.5" fontWeight="700" fontFamily="sans-serif">Queue Dequeue: Array.shift() vs. Ring Buffer</text>
 
     <rect x="433" y="70" width="340" height="54" rx="6" fill="var(--danger-soft)" stroke="var(--danger)" />
@@ -175,7 +175,7 @@ Understanding memory layout explains why theoretical `O(1)` can still vary drama
   <svg viewBox="0 0 820 220" role="img" aria-label="Graph adjacency list and BFS versus DFS traversal">
     <rect x="10" y="10" width="800" height="200" rx="10" fill="var(--bg-subtle)" stroke="var(--border)" />
 
-    <rect x="28" y="28" width="230" height="164" rx="8" fill="var(--bg-surface)" stroke="var(--border-strong)" />
+    <rect x="28" y="28" width="230" height="164" rx="8" fill="var(--bg-surface)" stroke="var(--border-control)" />
     <text x="44" y="52" fill="var(--accent-strong)" fontSize="13" fontWeight="700" fontFamily="sans-serif">Adjacency List (O(V + E))</text>
     <text x="44" y="80" fill="var(--text-primary)" fontSize="12" fontFamily="monospace">A -&gt; ["B", "C"]</text>
     <text x="44" y="104" fill="var(--text-primary)" fontSize="12" fontFamily="monospace">B -&gt; ["D"]</text>

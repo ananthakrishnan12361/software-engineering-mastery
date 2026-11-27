@@ -66,55 +66,55 @@ Every row modification acquires `IX` on the Table (`OBJECT`), `IX` on the `PAGE`
 <svg viewBox="0 0 820 190" xmlns="http://www.w3.org/2000/svg" aria-label="SQL Server lock hierarchy from OBJECT to PAGE to KEY/RID with Intent locks and 5000-lock escalation">
   <defs>
     <style>{`
-      .m73-lbl { font: 600 11px system-ui, sans-serif; fill: var(--token-text-primary); }
-      .m73-sub { font: 400 9.5px system-ui, sans-serif; fill: var(--token-text-secondary); }
-      .m73-hdr { font: 700 10px system-ui, sans-serif; fill: var(--token-text-inverse); }
+      .m73-lbl { font: 600 11px system-ui, sans-serif; fill: var(--text-primary); }
+      .m73-sub { font: 400 9.5px system-ui, sans-serif; fill: var(--text-secondary); }
+      .m73-hdr { font: 700 10px system-ui, sans-serif; fill: var(--accent-contrast); }
       .m73-box { rx: 6; ry: 6; }
     `}</style>
     <marker id="arr73" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-      <path d="M0,0 L6,3 L0,6 Z" fill="var(--token-brand-default)" />
+      <path d="M0,0 L6,3 L0,6 Z" fill="var(--accent)" />
     </marker>
     <marker id="arr73e" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-      <path d="M0,0 L6,3 L0,6 Z" fill="var(--token-error-default)" />
+      <path d="M0,0 L6,3 L0,6 Z" fill="var(--danger)" />
     </marker>
   </defs>
 
-  <rect class="m73-box" x="6" y="8" width="268" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
-  <rect x="6" y="8" width="268" height="22" rx="6" ry="6" fill="var(--token-brand-muted)" />
+  <rect class="m73-box" x="6" y="8" width="268" height="174" fill="var(--bg-subtle)" stroke="var(--border)" stroke-width="1.2" />
+  <rect x="6" y="8" width="268" height="22" rx="6" ry="6" fill="var(--accent-soft)" />
   <text x="140" y="22" text-anchor="middle" class="m73-hdr">Lock Granularity Hierarchy</text>
-  <rect class="m73-box" x="24" y="38" width="232" height="34" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m73-box" x="24" y="38" width="232" height="34" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="140" y="54" text-anchor="middle" class="m73-lbl">OBJECT (Table): IX / IS</text>
   <text x="140" y="66" text-anchor="middle" class="m73-sub">Signals child locks without scanning</text>
-  <path d="M140 72 L140 84" stroke="var(--token-brand-default)" stroke-width="1.6" marker-end="url(#arr73)" />
-  <rect class="m73-box" x="24" y="86" width="232" height="34" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <path d="M140 72 L140 84" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#arr73)" />
+  <rect class="m73-box" x="24" y="86" width="232" height="34" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="140" y="102" text-anchor="middle" class="m73-lbl">PAGE (8 KB): IX / IS / IU</text>
   <text x="140" y="114" text-anchor="middle" class="m73-sub">Protects page splits &amp; slot array</text>
-  <path d="M140 120 L140 132" stroke="var(--token-brand-default)" stroke-width="1.6" marker-end="url(#arr73)" />
-  <rect class="m73-box" x="24" y="134" width="232" height="38" fill="var(--token-surface-raised)" stroke="var(--token-brand-default)" stroke-width="1.2" />
+  <path d="M140 120 L140 132" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#arr73)" />
+  <rect class="m73-box" x="24" y="134" width="232" height="38" fill="var(--bg-elevated)" stroke="var(--accent)" stroke-width="1.2" />
   <text x="140" y="151" text-anchor="middle" class="m73-lbl">KEY / RID: S, U, or X</text>
   <text x="140" y="164" text-anchor="middle" class="m73-sub">Row-level lock (or RangeS-U in SERIALIZABLE)</text>
 
-  <rect class="m73-box" x="284" y="8" width="254" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
-  <rect x="284" y="8" width="254" height="22" rx="6" ry="6" fill="var(--token-warning-muted)" />
+  <rect class="m73-box" x="284" y="8" width="254" height="174" fill="var(--bg-subtle)" stroke="var(--border)" stroke-width="1.2" />
+  <rect x="284" y="8" width="254" height="22" rx="6" ry="6" fill="var(--warning-soft)" />
   <text x="411" y="22" text-anchor="middle" class="m73-hdr">Lock Escalation (~5,000 Locks)</text>
-  <rect class="m73-box" x="296" y="40" width="230" height="44" fill="var(--token-surface-raised)" stroke="var(--token-error-default)" stroke-width="1.2" />
+  <rect class="m73-box" x="296" y="40" width="230" height="44" fill="var(--bg-elevated)" stroke="var(--danger)" stroke-width="1.2" />
   <text x="411" y="57" text-anchor="middle" class="m73-lbl">5,000+ KEY/PAGE Locks Held</text>
   <text x="411" y="71" text-anchor="middle" class="m73-sub">Single statement updates 50K rows</text>
-  <path d="M411 84 L411 100" stroke="var(--token-error-default)" stroke-width="1.8" marker-end="url(#arr73e)" />
-  <rect class="m73-box" x="296" y="102" width="230" height="70" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <path d="M411 84 L411 100" stroke="var(--danger)" stroke-width="1.8" marker-end="url(#arr73e)" />
+  <rect class="m73-box" x="296" y="102" width="230" height="70" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="411" y="119" text-anchor="middle" class="m73-lbl">Escalates to Table X Lock</text>
   <text x="411" y="134" text-anchor="middle" class="m73-sub">Blocks all concurrent queries on table</text>
   <text x="411" y="148" text-anchor="middle" class="m73-sub">Fix: Batch 2,000 rows per txn</text>
   <text x="411" y="162" text-anchor="middle" class="m73-sub">or LOCK_ESCALATION = AUTO (partition)</text>
 
-  <rect class="m73-box" x="548" y="8" width="266" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
-  <rect x="548" y="8" width="266" height="22" rx="6" ry="6" fill="var(--token-success-muted)" />
+  <rect class="m73-box" x="548" y="8" width="266" height="174" fill="var(--bg-subtle)" stroke="var(--border)" stroke-width="1.2" />
+  <rect x="548" y="8" width="266" height="22" rx="6" ry="6" fill="var(--success-soft)" />
   <text x="681" y="22" text-anchor="middle" class="m73-hdr">Update Lock (U) Anti-Deadlock</text>
-  <rect class="m73-box" x="560" y="40" width="242" height="58" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m73-box" x="560" y="40" width="242" height="58" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="681" y="57" text-anchor="middle" class="m73-lbl">Bad: S + S → Both Request X</text>
   <text x="681" y="71" text-anchor="middle" class="m73-sub">T1 &amp; T2 both hold S, wait for X</text>
   <text x="681" y="85" text-anchor="middle" class="m73-sub">Result: Conversion Deadlock (1205)</text>
-  <rect class="m73-box" x="560" y="106" width="242" height="66" fill="var(--token-surface-raised)" stroke="var(--token-success-default)" stroke-width="1.2" />
+  <rect class="m73-box" x="560" y="106" width="242" height="66" fill="var(--bg-elevated)" stroke="var(--success)" stroke-width="1.2" />
   <text x="681" y="123" text-anchor="middle" class="m73-lbl">Good: WITH (UPDLOCK)</text>
   <text x="681" y="138" text-anchor="middle" class="m73-sub">U compatible with S, blocks other U/X</text>
   <text x="681" y="152" text-anchor="middle" class="m73-sub">T2 waits on U before T1 converts U→X</text>
@@ -523,50 +523,50 @@ console.log("With UPDLOCK:", JSON.stringify(simulateUpdateLockFlow({ useUpdlock:
 <svg viewBox="0 0 820 190" xmlns="http://www.w3.org/2000/svg" aria-label="Comparison of SQL Server Pessimistic READ COMMITTED vs RCSI and SNAPSHOT row versioning in tempdb">
   <defs>
     <style>{`
-      .m74-lbl { font: 600 11px system-ui, sans-serif; fill: var(--token-text-primary); }
-      .m74-sub { font: 400 9.5px system-ui, sans-serif; fill: var(--token-text-secondary); }
-      .m74-hdr { font: 700 10px system-ui, sans-serif; fill: var(--token-text-inverse); }
+      .m74-lbl { font: 600 11px system-ui, sans-serif; fill: var(--text-primary); }
+      .m74-sub { font: 400 9.5px system-ui, sans-serif; fill: var(--text-secondary); }
+      .m74-hdr { font: 700 10px system-ui, sans-serif; fill: var(--accent-contrast); }
       .m74-box { rx: 6; ry: 6; }
     `}</style>
     <marker id="arr74" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-      <path d="M0,0 L6,3 L0,6 Z" fill="var(--token-brand-default)" />
+      <path d="M0,0 L6,3 L0,6 Z" fill="var(--accent)" />
     </marker>
   </defs>
 
-  <rect class="m74-box" x="6" y="8" width="256" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
-  <rect x="6" y="8" width="256" height="22" rx="6" ry="6" fill="var(--token-error-muted)" />
+  <rect class="m74-box" x="6" y="8" width="256" height="174" fill="var(--bg-subtle)" stroke="var(--border)" stroke-width="1.2" />
+  <rect x="6" y="8" width="256" height="22" rx="6" ry="6" fill="var(--danger-soft)" />
   <text x="134" y="22" text-anchor="middle" class="m74-hdr">Pessimistic READ COMMITTED</text>
-  <rect class="m74-box" x="18" y="40" width="232" height="54" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m74-box" x="18" y="40" width="232" height="54" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="134" y="57" text-anchor="middle" class="m74-lbl">Writer Holds X Lock</text>
   <text x="134" y="71" text-anchor="middle" class="m74-sub">Reader requests S lock → BLOCKED</text>
   <text x="134" y="84" text-anchor="middle" class="m74-sub">LCK_M_S wait until writer commits</text>
-  <rect class="m74-box" x="18" y="104" width="232" height="68" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m74-box" x="18" y="104" width="232" height="68" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="134" y="121" text-anchor="middle" class="m74-lbl">Avoid NOLOCK!</text>
   <text x="134" y="136" text-anchor="middle" class="m74-sub">NOLOCK skips S locks but risks</text>
   <text x="134" y="150" text-anchor="middle" class="m74-sub">dirty reads &amp; missing/duplicate rows</text>
 
-  <rect class="m74-box" x="276" y="8" width="268" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
-  <rect x="276" y="8" width="268" height="22" rx="6" ry="6" fill="var(--token-success-muted)" />
+  <rect class="m74-box" x="276" y="8" width="268" height="174" fill="var(--bg-subtle)" stroke="var(--border)" stroke-width="1.2" />
+  <rect x="276" y="8" width="268" height="22" rx="6" ry="6" fill="var(--success-soft)" />
   <text x="410" y="22" text-anchor="middle" class="m74-hdr">Row Versioning: RCSI &amp; SNAPSHOT</text>
-  <rect class="m74-box" x="288" y="40" width="244" height="54" fill="var(--token-surface-raised)" stroke="var(--token-success-default)" stroke-width="1.2" />
+  <rect class="m74-box" x="288" y="40" width="244" height="54" fill="var(--bg-elevated)" stroke="var(--success)" stroke-width="1.2" />
   <text x="410" y="57" text-anchor="middle" class="m74-lbl">tempdb / ADR Version Store</text>
   <text x="410" y="71" text-anchor="middle" class="m74-sub">Reader reads prior committed version</text>
   <text x="410" y="84" text-anchor="middle" class="m74-sub">0 reader/writer blocking!</text>
-  <rect class="m74-box" x="288" y="104" width="244" height="68" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m74-box" x="288" y="104" width="244" height="68" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="410" y="121" text-anchor="middle" class="m74-lbl">RCSI vs. SNAPSHOT</text>
   <text x="410" y="136" text-anchor="middle" class="m74-sub">RCSI: statement-level snapshot</text>
   <text x="410" y="150" text-anchor="middle" class="m74-sub">SNAPSHOT: txn-level (Error 3960)</text>
 
-  <rect class="m74-box" x="558" y="8" width="256" height="174" fill="var(--token-surface-subtle)" stroke="var(--token-border-muted)" stroke-width="1.2" />
-  <rect x="558" y="8" width="256" height="22" rx="6" ry="6" fill="var(--token-brand-muted)" />
+  <rect class="m74-box" x="558" y="8" width="256" height="174" fill="var(--bg-subtle)" stroke="var(--border)" stroke-width="1.2" />
+  <rect x="558" y="8" width="256" height="22" rx="6" ry="6" fill="var(--accent-soft)" />
   <text x="686" y="22" text-anchor="middle" class="m74-hdr">Safe T-SQL Transaction Checklist</text>
-  <rect class="m74-box" x="570" y="40" width="232" height="40" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m74-box" x="570" y="40" width="232" height="40" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="686" y="56" text-anchor="middle" class="m74-lbl">SET XACT_ABORT ON</text>
   <text x="686" y="69" text-anchor="middle" class="m74-sub">Check XACT_STATE() in CATCH</text>
-  <rect class="m74-box" x="570" y="86" width="232" height="40" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m74-box" x="570" y="86" width="232" height="40" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="686" y="102" text-anchor="middle" class="m74-lbl">Batch &lt; 5,000 Rows</text>
   <text x="686" y="115" text-anchor="middle" class="m74-sub">Prevent table lock escalation</text>
-  <rect class="m74-box" x="570" y="132" width="232" height="40" fill="var(--token-surface-raised)" stroke="var(--token-border-default)" stroke-width="1" />
+  <rect class="m74-box" x="570" y="132" width="232" height="40" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1" />
   <text x="686" y="148" text-anchor="middle" class="m74-lbl">Retry 1205 &amp; 3960</text>
   <text x="686" y="161" text-anchor="middle" class="m74-sub">Bounded backoff + jitter</text>
 </svg>
