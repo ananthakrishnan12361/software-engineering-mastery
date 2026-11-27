@@ -292,14 +292,14 @@ Split into 4 parts:
 - [x] CTEs
 - [x] Recursive CTEs
 - [x] Window functions
-- [ ] Views
-- [ ] Materialized views
-- [ ] Functions
-- [ ] Stored procedures
-- [ ] Triggers
-- [ ] Constraints
-- [ ] JSON
-- [ ] JSONB
+- [x] Views
+- [x] Materialized views
+- [x] Functions
+- [x] Stored procedures
+- [x] Triggers
+- [x] Constraints
+- [x] JSON
+- [x] JSONB
 - [ ] Locking
 - [ ] Isolation levels
 - [ ] Partitioning

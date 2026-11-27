@@ -1125,14 +1125,46 @@ export const SYLLABUS_MODULES: SyllabusModule[] = [
       lessonId: "m05-p2",
       anchorId: "m05-p2-topic-window-functions"
     },
-    "Views",
-    "Materialized views",
-    "Functions",
-    "Stored procedures",
-    "Triggers",
-    "Constraints",
-    "JSON",
-    "JSONB",
+    {
+      title: "Views",
+      lessonId: "m05-p3",
+      anchorId: "m05-p3-topic-views"
+    },
+    {
+      title: "Materialized views",
+      lessonId: "m05-p3",
+      anchorId: "m05-p3-topic-materialized-views"
+    },
+    {
+      title: "Functions",
+      lessonId: "m05-p3",
+      anchorId: "m05-p3-topic-functions"
+    },
+    {
+      title: "Stored procedures",
+      lessonId: "m05-p3",
+      anchorId: "m05-p3-topic-stored-procedures"
+    },
+    {
+      title: "Triggers",
+      lessonId: "m05-p3",
+      anchorId: "m05-p3-topic-triggers"
+    },
+    {
+      title: "Constraints",
+      lessonId: "m05-p3",
+      anchorId: "m05-p3-topic-constraints"
+    },
+    {
+      title: "JSON",
+      lessonId: "m05-p3",
+      anchorId: "m05-p3-topic-json"
+    },
+    {
+      title: "JSONB",
+      lessonId: "m05-p3",
+      anchorId: "m05-p3-topic-jsonb"
+    },
     "Locking",
     "Isolation levels",
     "Partitioning",

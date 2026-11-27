@@ -4,10 +4,10 @@
 Maintain a comfortable, offline-capable React + TypeScript + MDX learning portal built with Feature-Sliced Design v2.1 and bundled into `dist/software_engineering_mastery.html`.
 
 ## Overall status
-**Modules 1–4 Complete + `M05-P1`–`M05-P2` Audited (`PASS`) — `M05-P3` next**
+**Modules 1–4 Complete + `M05-P1`–`M05-P3` Audited (`PASS`) — `M05-P4` next**
 
 ## Current phase
-Phase 3 design remains locked in [DESIGN_GUIDE.md](DESIGN_GUIDE.md). Modules 1–4 (`185/185`) and `M05-P1`–`M05-P2` (`23/46`) are complete & verified (`208/945` topics across 18 lessons, `158` IQs; `M05-P3` next).
+Phase 3 design remains locked in [DESIGN_GUIDE.md](DESIGN_GUIDE.md). Modules 1–4 (`185/185`) and `M05-P1`–`M05-P3` (`31/46`) are complete & verified (`216/945` topics across 19 lessons, `166` IQs; `M05-P4` next).
 
 ## Completed
 - [x] Phase 1 & 2: Legacy v1 archived in `legacy/`, React 19 + TS + Vite 8 + MDX + `vite-plugin-singlefile` + Steiger setup
@@ -19,13 +19,13 @@ Phase 3 design remains locked in [DESIGN_GUIDE.md](DESIGN_GUIDE.md). Modules 1�
 - [x] Verification: `tsc`, `vite build`, `steiger ./src`, `verify:syllabus`, `verify:parity`, `verify:offline`, and headless Chrome CDP checks at `360`, `390`, `768`, `1024`, `1440` widths across all 3 themes
 
 ## Module progress
-Use `COURSE_OUTLINE.md` and `CONTENT_CHECKLIST.md` to track module and part status. Currently written: Module 1 complete (`47/47` topics, `35/35` IQs) + Module 2 complete (`46/46` topics, `35/35` IQs) + Module 3 complete (`56/56` topics, `35/35` IQs) + Module 4 complete (`36/36` topics, `35/35` IQs) + `M05-P1`–`M05-P2` (`23/46` topics, `18/35` IQs: `5` Basic, `6` Intermediate, `5` Advanced, `2` Senior/Architect) = `208` topics available, `737` not written yet.
+Use `COURSE_OUTLINE.md` and `CONTENT_CHECKLIST.md` to track module and part status. Currently written: Module 1 complete (`47/47` topics, `35/35` IQs) + Module 2 complete (`46/46` topics, `35/35` IQs) + Module 3 complete (`56/56` topics, `35/35` IQs) + Module 4 complete (`36/36` topics, `35/35` IQs) + `M05-P1`–`M05-P3` (`31/46` topics, `26/35` IQs: `7` Basic, `8` Intermediate, `8` Advanced, `3` Senior/Architect) = `216` topics available, `729` not written yet.
 
 ## Current task
-`M05-P2` completed, audited (`PASS`), and committed locally on `react-fsd`. Next part: `M05-P3` (Views, Materialized views, Functions, Stored procedures, Triggers, Constraints, JSON, JSONB).
+`M05-P3` completed, audited (`PASS`), and committed locally on `react-fsd`. Next part: `M05-P4` (Locking, Isolation levels, Partitioning, Replication, Connection pooling, EXPLAIN, EXPLAIN ANALYZE, Query planner, Query optimization, Indexing, Performance tuning, Vacuum, Autovacuum, Database maintenance, Backup and recovery).
 
 ## Next actions
-1. Proceed to `M05-P3` (`PLAN -> WRITE -> CHECK -> AUDIT -> UPDATE -> COMMIT` on `react-fsd`).
+1. Proceed to `M05-P4` (`PLAN -> WRITE -> CHECK -> AUDIT -> UPDATE -> COMMIT` on `react-fsd`).
 2. User decides when to approve removing `legacy/`.
 
 ## Decisions

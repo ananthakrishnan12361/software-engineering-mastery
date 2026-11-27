@@ -358,3 +358,15 @@ For each review, add:
   - PostgreSQL `WITH` Queries (CTEs, `MATERIALIZED`, `WITH RECURSIVE`, `CYCLE`): `https://www.postgresql.org/docs/current/queries-with.html`
   - PostgreSQL Window Functions (`OVER`, `PARTITION BY`, `ROWS` vs `RANGE` frames): `https://www.postgresql.org/docs/current/tutorial-window.html` and `https://www.postgresql.org/docs/current/sql-expressions.html#SYNTAX-WINDOW-FUNCTIONS`
 - **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m05-p2.mdx`, `m05-p2.questions.ts`, and `m05-p2.coverage.ts`.
+
+---
+
+### Module 05 Part 3 (M05-P3) Technical Review Log — 2026-11-27
+
+- **Scope:** Views, Materialized views, Functions, Stored procedures, Triggers, Constraints, JSON, JSONB.
+- **Official Documentation Verified (`M3`):**
+  - PostgreSQL `CREATE VIEW` (`security_invoker`) & Materialized Views (`REFRESH MATERIALIZED VIEW CONCURRENTLY`): `https://www.postgresql.org/docs/current/sql-createview.html` and `https://www.postgresql.org/docs/current/rules-materializedviews.html`
+  - PostgreSQL Functions (Volatility), `CREATE PROCEDURE` (`COMMIT`/`ROLLBACK`), & Triggers (`BEFORE`/`AFTER`, `REFERENCING NEW TABLE`): `https://www.postgresql.org/docs/current/xfunc-volatility.html`, `https://www.postgresql.org/docs/current/sql-createprocedure.html`, and `https://www.postgresql.org/docs/current/trigger-definition.html`
+  - PostgreSQL Constraints (`EXCLUDE USING`, `DEFERRABLE`, `NOT VALID`): `https://www.postgresql.org/docs/current/ddl-constraints.html`
+  - PostgreSQL `JSON` / `JSONB` Types & `GIN` Indexing (`jsonb_ops`, `jsonb_path_ops`): `https://www.postgresql.org/docs/current/datatype-json.html`
+- **Verification Scope:** `npm run quality` + fresh `research` subagent audit covering `m05-p3.mdx`, `m05-p3.questions.ts`, and `m05-p3.coverage.ts`.

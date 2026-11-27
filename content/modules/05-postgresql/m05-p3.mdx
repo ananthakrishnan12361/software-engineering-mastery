@@ -1,0 +1,534 @@
+<Callout variant="info" title="Topics Covered in Part 3 (M05-P3)">
+  <p>
+    This third part of Module 5 covers 8 PostgreSQL schema objects and semi-structured data topics: <strong>Views</strong>, <strong>Materialized views</strong>, <strong>Functions</strong>, <strong>Stored procedures</strong>, <strong>Triggers</strong>, <strong>Constraints</strong>, <strong>JSON</strong>, and <strong>JSONB</strong>.
+  </p>
+</Callout>
+
+<TopicSection id="m05-p3-sec-a" letter="A" title="Topic Introduction">
+
+#### What is this?
+
+PostgreSQL goes far beyond plain tables and ad-hoc `SELECT` queries. It provides **views** and **materialized views** for reusable/cached projections, **functions** and **stored procedures** for server-side logic, **triggers** and rich **constraints** (including `EXCLUDE USING` and `DEFERRABLE`) for automated invariants, and native **`JSON` / `JSONB`** types with **GIN** indexing for semi-structured payloads.
+
+#### Why does it exist & what problem does it solve?
+
+Without these primitives, teams duplicate complex reporting queries across services, hit race conditions on calendar overlaps, leak tenant rows through `SECURITY DEFINER` views, or store schemaless blobs that require slow sequential scans to filter. Knowing when to push logic into PostgreSQL—and when *not* to—keeps data consistent and fast.
+
+#### Where is it used in real-world software?
+
+Analytics dashboards (`MATERIALIZED VIEW`), booking/reservation engines (`EXCLUDE USING gist`), audit trails (`AFTER` triggers), batch backfill workers (`CREATE PROCEDURE` with intermediate `COMMIT`), and webhook/feature-flag stores (`JSONB` + `GIN`).
+
+</TopicSection>
+
+<TopicSection id="m05-p3-sec-b" letter="B" title="Fundamentals (Simple Mental Models)">
+
+<TopicAnchor id="m05-p3-topic-views" />
+
+#### 1. Views: Virtual Query Abstractions, Updatable Views & Security Invoker
+
+A <GlossaryTerm definition="A named virtual table backed by a stored SELECT query that executes dynamically on each read without storing separate rows.">view</GlossaryTerm> (`CREATE VIEW active_orders AS SELECT ...`) acts as a saved virtual table: reading from it runs the underlying `SELECT` against live base tables every time, so results are never stale. Simple single-table views are even automatically updatable.
+
+By default in older PostgreSQL versions, views checked permissions as the view *owner* (`SECURITY DEFINER`-like), which could bypass Row-Level Security (RLS). Since PostgreSQL 15, adding `WITH (security_invoker = true)` enforces the **caller's** permissions and RLS policies.
+
+<TopicAnchor id="m05-p3-topic-materialized-views" />
+
+#### 2. Materialized Views: Persisted Query Snapshots & REFRESH CONCURRENTLY
+
+A **materialized view** (`CREATE MATERIALIZED VIEW ...`) executes an expensive query once and **persists the resulting rows on disk** like a real table, allowing B-tree or GIN indexes on pre-aggregated columns. Reads are instant, at the trade-off of staleness between refreshes.
+
+Running `REFRESH MATERIALIZED VIEW` locks out readers with `ACCESS EXCLUSIVE`; adding a `UNIQUE` index on the materialized view enables **`REFRESH MATERIALIZED VIEW CONCURRENTLY`**, which computes a diff and swaps rows while readers continue querying smoothly.
+
+<TopicAnchor id="m05-p3-topic-functions" />
+
+#### 3. Functions: PL/pgSQL & SQL Functions, Volatility & Transaction Rules
+
+PostgreSQL **functions** (`CREATE FUNCTION ... RETURNS ...`) execute inside the caller's single transaction, so they **cannot** run `COMMIT` or `ROLLBACK`. They can be used directly inside `SELECT`, `WHERE`, and expression indexes.
+
+Always label function volatility accurately: **`IMMUTABLE`** (same inputs always return same output, required for expression indexes), **`STABLE`** (consistent within one statement/snapshot, like `now()`), or **`VOLATILE`** (default; can mutate data or vary per row, like `random()`).
+
+<TopicAnchor id="m05-p3-topic-stored-procedures" />
+
+#### 4. Stored Procedures: CALL, Explicit COMMIT/ROLLBACK & Batch Loops
+
+Added in PostgreSQL 11, **stored procedures** (`CREATE PROCEDURE ...`) are invoked with `CALL proc_name(...)` rather than `SELECT`. Unlike functions, procedures can issue **`COMMIT` and `ROLLBACK` inside loops** when not already wrapped in an outer transaction block.
+
+This makes procedures ideal for multi-million-row batch backfills or archival jobs where committing every 5,000 rows releases row locks and lets `VACUUM` reclaim dead tuples incrementally.
+
+<TopicAnchor id="m05-p3-topic-triggers" />
+
+#### 5. Triggers: BEFORE/AFTER, ROW vs. STATEMENT & Audit/Sync Patterns
+
+A **trigger** automatically invokes a trigger function (`RETURNS trigger`) before or after `INSERT`, `UPDATE`, `DELETE`, or `TRUNCATE`. **`BEFORE` row triggers** can inspect/modify `NEW` values (such as auto-updating `updated_at`) before constraints run, whereas **`AFTER` triggers** record immutable audit logs once the row change is finalized.
+
+For bulk updates touching 10,000 rows, `FOR EACH STATEMENT` with transition tables (`REFERENCING NEW TABLE AS inserted_rows`) avoids firing 10,000 separate row-trigger invocations.
+
+<TopicAnchor id="m05-p3-topic-constraints" />
+
+#### 6. Constraints: CHECK, UNIQUE, Exclusion (EXCLUDE USING), Deferrable & NOT VALID
+
+Beyond `PRIMARY KEY`, `FOREIGN KEY`, `UNIQUE`, and `CHECK`, PostgreSQL supports **Exclusion Constraints** (`EXCLUDE USING gist (room_id WITH =, during WITH &&)`), which guarantee no two rows overlap in time or space—preventing double-bookings at the storage layer.
+
+Foreign keys and `UNIQUE` constraints can be marked **`DEFERRABLE INITIALLY DEFERRED`** to check invariants at `COMMIT` instead of per-statement (useful for cyclic swaps), while `CHECK (...) NOT VALID` + `VALIDATE CONSTRAINT` adds rules to huge live tables without blocking writes.
+
+<TopicAnchor id="m05-p3-topic-json" />
+
+#### 7. JSON: Text-Preserving Storage, Key Order & Serialization Semantics
+
+PostgreSQL's **`json`** data type stores an exact copy of the input UTF-8 text, preserving **whitespace**, **key ordering**, and **duplicate keys**. Because it validates syntax on write without decomposing the tree, `INSERT` is slightly faster than `jsonb`.
+
+However, every query extracting a field (`payload->>'tier'`) must re-parse the raw text from scratch, and `json` does **not** support `GIN` indexing or equality (`=`) operators cleanly—making `json` suitable mostly for raw audit/webhook archival when exact formatting must stay untouched.
+
+<TopicAnchor id="m05-p3-topic-jsonb" />
+
+#### 8. JSONB: Binary Decomposed Storage, GIN Indexes & Containment (@>)
+
+<GlossaryTerm definition="PostgreSQL's binary decomposed JSON storage format that deduplicates keys, strips whitespace, and supports GIN inverted indexing and @> containment queries.">JSONB</GlossaryTerm> parses JSON into a decomposed binary format on write: it strips whitespace, deduplicates keys (last key wins), sorts keys for fast lookup, and supports **GIN** indexes.
+
+With a GIN index (`CREATE INDEX ... ON events USING GIN (payload jsonb_path_ops)`), containment queries like `WHERE payload @> '{"plan": "pro"}'` run in milliseconds even over tens of millions of flexible documents.
+
+</TopicSection>
+
+<TopicSection id="m05-p3-sec-c" letter="C" title="Internal Working & Architecture">
+
+PostgreSQL integrates schema objects directly into its planner, lock manager, and GIN inverted index engine.
+
+<DiagramCard caption="Figure 5.5 — Live View vs. Materialized View (with Concurrent Refresh) & Trigger Execution Pipeline.">
+  <svg viewBox="0 0 820 190" width="100%" role="img" aria-label="View vs Materialized View and Trigger Execution Pipeline">
+    <rect x="8" y="10" width="804" height="170" rx="12" fill="var(--bg-subtle)" stroke="var(--border)" />
+
+    <rect x="24" y="26" width="376" height="138" rx="10" fill="var(--accent-soft)" stroke="var(--accent)" />
+    <text x="212" y="48" textAnchor="middle" fill="var(--accent-strong)" fontSize="12" fontWeight="700" fontFamily="sans-serif">View vs. Materialized View</text>
+    <text x="212" y="76" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">VIEW: Query rewritten on every SELECT</text>
+    <text x="212" y="96" textAnchor="middle" fill="var(--text-secondary)" fontSize="10" fontFamily="sans-serif">Always fresh · security_invoker=true (PG15+)</text>
+    <text x="212" y="122" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">MATVIEW: Persisted heap + indexes</text>
+    <text x="212" y="142" textAnchor="middle" fill="var(--success)" fontSize="10" fontFamily="sans-serif">REFRESH CONCURRENTLY diffs via UNIQUE index</text>
+
+    <rect x="420" y="26" width="376" height="138" rx="10" fill="var(--success-soft)" stroke="var(--success)" />
+    <text x="608" y="48" textAnchor="middle" fill="var(--success)" fontSize="12" fontWeight="700" fontFamily="sans-serif">DML + Trigger + Constraint Pipeline</text>
+    <rect x="436" y="68" width="102" height="44" rx="6" fill="var(--bg-surface)" stroke="var(--border-control)" />
+    <text x="487" y="87" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontWeight="700" fontFamily="sans-serif">BEFORE</text>
+    <text x="487" y="103" textAnchor="middle" fill="var(--text-secondary)" fontSize="10" fontFamily="sans-serif">Mutate NEW</text>
+
+    <line x1="538" y1="90" x2="562" y2="90" stroke="var(--success)" strokeWidth="2" />
+    <polygon points="562,90 554,86 554,94" fill="var(--success)" />
+
+    <rect x="566" y="68" width="96" height="44" rx="6" fill="var(--bg-surface)" stroke="var(--border-control)" />
+    <text x="614" y="87" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontWeight="700" fontFamily="sans-serif">Constraints</text>
+    <text x="614" y="103" textAnchor="middle" fill="var(--text-secondary)" fontSize="10" fontFamily="sans-serif">CHECK/EXCL</text>
+
+    <line x1="662" y1="90" x2="686" y2="90" stroke="var(--success)" strokeWidth="2" />
+    <polygon points="686,90 678,86 678,94" fill="var(--success)" />
+
+    <rect x="690" y="68" width="90" height="44" rx="6" fill="var(--bg-surface)" stroke="var(--border-control)" />
+    <text x="735" y="87" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontWeight="700" fontFamily="sans-serif">AFTER</text>
+    <text x="735" y="103" textAnchor="middle" fill="var(--text-secondary)" fontSize="10" fontFamily="sans-serif">Audit log</text>
+    <text x="608" y="146" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="sans-serif">AFTER triggers fire only after row constraints pass</text>
+  </svg>
+</DiagramCard>
+
+<DiagramCard caption="Figure 5.6 — JSON (Raw UTF-8 Text) vs. JSONB (Decomposed Binary Tree + GIN Inverted Index for @> Containment).">
+  <svg viewBox="0 0 820 190" width="100%" role="img" aria-label="JSON vs JSONB binary storage and GIN containment index">
+    <rect x="8" y="10" width="804" height="170" rx="12" fill="var(--bg-subtle)" stroke="var(--border)" />
+
+    <rect x="24" y="26" width="376" height="138" rx="10" fill="var(--warning-soft)" stroke="var(--warning)" />
+    <text x="212" y="48" textAnchor="middle" fill="var(--warning)" fontSize="12" fontWeight="700" fontFamily="sans-serif">JSON (Exact Text Preservation)</text>
+    <text x="212" y="78" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">{`'{ "b": 1, "a": 2, "a": 3 }'`}</text>
+    <text x="212" y="102" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Keeps whitespace, key order, duplicate keys</text>
+    <text x="212" y="126" textAnchor="middle" fill="var(--warning)" fontSize="11" fontFamily="sans-serif">Reparsed on every read · No GIN index</text>
+
+    <rect x="420" y="26" width="376" height="138" rx="10" fill="var(--accent-soft)" stroke="var(--accent)" />
+    <text x="608" y="48" textAnchor="middle" fill="var(--accent-strong)" fontSize="12" fontWeight="700" fontFamily="sans-serif">JSONB + GIN Index (jsonb_path_ops)</text>
+    <text x="608" y="78" textAnchor="middle" fill="var(--text-primary)" fontSize="11" fontFamily="monospace">{`Binary Tree: { "a": 3, "b": 1 }`}</text>
+    <text x="608" y="102" textAnchor="middle" fill="var(--text-secondary)" fontSize="11" fontFamily="sans-serif">Deduplicated keys · Fast binary key lookup</text>
+    <text x="608" y="126" textAnchor="middle" fill="var(--success)" fontSize="11" fontWeight="700" fontFamily="monospace">GIN: ("a":3) -&gt; [ctid1, ctid9] (@&gt; fast)</text>
+  </svg>
+</DiagramCard>
+
+</TopicSection>
+
+<TopicSection id="m05-p3-sec-d" letter="D" title="Practical Examples (Interactive)">
+
+#### Example 1: PostgreSQL Security-Invoker Views, Concurrent MatViews, Exclusion Constraints & JSONB GIN (SQL)
+
+<CodeBlock
+  lang="sql"
+  code={`-- 1. PostgreSQL 15+ Security Invoker View (respects caller RLS)
+CREATE VIEW tenant_orders_view WITH (security_invoker = true) AS
+SELECT id, tenant_id, total_cents, status FROM orders;
+
+-- 2. Materialized View with UNIQUE index for CONCURRENTLY refresh
+CREATE MATERIALIZED VIEW mv_daily_revenue AS
+SELECT tenant_id, date_trunc('day', created_at) AS day, SUM(total_cents) AS rev_cents
+FROM orders GROUP BY 1, 2;
+
+CREATE UNIQUE INDEX idx_mv_daily_rev_pk ON mv_daily_revenue (tenant_id, day);
+REFRESH MATERIALIZED VIEW CONCURRENTLY mv_daily_revenue;
+
+-- 3. Exclusion Constraint preventing overlapping room bookings
+CREATE EXTENSION IF NOT EXISTS btree_gist;
+CREATE TABLE room_bookings (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  room_id BIGINT NOT NULL,
+  during TSTZRANGE NOT NULL,
+  EXCLUDE USING gist (room_id WITH =, during WITH &&)
+);
+
+-- 4. JSONB + GIN index for fast @> containment
+CREATE TABLE app_events (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  payload JSONB NOT NULL
+);
+CREATE INDEX idx_app_events_payload_gin ON app_events USING GIN (payload jsonb_path_ops);`}
+/>
+
+#### Example 2: View vs. Materialized View Concurrent Refresh Simulator (`createMaterializedViewEngine`)
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// Models live VIEW vs cached MATERIALIZED VIEW with CONCURRENTLY unique-key diff requirement
+function createMaterializedViewEngine({ baseRows = [], uniqueKey }) {
+  if (!Array.isArray(baseRows)) throw new TypeError("baseRows must be an array");
+
+  let liveTable = baseRows.map((r) => ({ ...r }));
+  let snapshot = liveTable.map((r) => ({ ...r }));
+  let refreshCount = 1;
+
+  return {
+    insertBaseRow(row) {
+      if (!row || typeof row !== "object") throw new TypeError("row must be an object");
+      liveTable.push({ ...row });
+    },
+    queryLiveView() {
+      return liveTable.map((r) => ({ ...r }));
+    },
+    queryMaterializedView() {
+      return snapshot.map((r) => ({ ...r }));
+    },
+    refresh({ concurrently = false } = {}) {
+      if (concurrently && !uniqueKey) {
+        throw new Error("UniqueIndexRequired: CONCURRENTLY requires a uniqueKey index");
+      }
+      if (concurrently) {
+        const seen = new Set();
+        for (const r of liveTable) {
+          const k = r[uniqueKey];
+          if (k === undefined || k === null || seen.has(k)) {
+            throw new Error("UniqueViolation: duplicate or null key in concurrent refresh");
+          }
+          seen.add(k);
+        }
+      }
+      snapshot = liveTable.map((r) => ({ ...r }));
+      refreshCount += 1;
+      return { refreshCount, concurrently, rowCount: snapshot.length };
+    }
+  };
+}
+
+const mv = createMaterializedViewEngine({ baseRows: [{ id: 1, rev: 100 }], uniqueKey: "id" });
+mv.insertBaseRow({ id: 2, rev: 250 });
+console.log("Stale MatView:", mv.queryMaterializedView());
+console.log("Fresh Live View:", mv.queryLiveView());
+console.log("Concurrent Refresh:", mv.refresh({ concurrently: true }));
+console.log("Updated MatView:", mv.queryMaterializedView());`}
+/>
+
+#### Example 3: JSON vs. JSONB Storage & GIN Containment Index (`createJsonbGinStore`)
+
+<CodeBlock
+  lang="javascript"
+  runnable
+  code={`// Models JSONB key deduplication + GIN inverted index supporting @> containment queries
+function createJsonbGinStore() {
+  const docs = [];
+  const ginIndex = new Map(); // "key:jsonValue" -> Set(docId)
+
+  function indexEntries(doc, prefix = "") {
+    const tokens = [];
+    for (const key of Object.keys(doc).sort()) {
+      const val = doc[key];
+      const path = prefix ? prefix + "." + key : key;
+      if (val && typeof val === "object" && !Array.isArray(val)) {
+        tokens.push(...indexEntries(val, path));
+      } else {
+        tokens.push(path + "=" + JSON.stringify(val));
+      }
+    }
+    return tokens;
+  }
+
+  function containsPattern(doc, pattern) {
+    for (const [k, v] of Object.entries(pattern)) {
+      if (!(k in doc)) return false;
+      if (v && typeof v === "object" && !Array.isArray(v)) {
+        if (!doc[k] || typeof doc[k] !== "object" || !containsPattern(doc[k], v)) return false;
+      } else if (doc[k] !== v) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  return {
+    insert(rawJsonText) {
+      if (typeof rawJsonText !== "string") throw new TypeError("rawJsonText must be JSON string");
+      const parsed = JSON.parse(rawJsonText); // JSONB deduplicates duplicate keys (last key wins)
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        throw new TypeError("Document must be a JSON object");
+      }
+      const id = docs.length + 1;
+      docs.push({ id, jsonText: rawJsonText, jsonb: parsed });
+      for (const tok of indexEntries(parsed)) {
+        if (!ginIndex.has(tok)) ginIndex.set(tok, new Set());
+        ginIndex.get(tok).add(id);
+      }
+      return { id, jsonb: parsed };
+    },
+    queryContainment(pattern) {
+      if (!pattern || typeof pattern !== "object" || Array.isArray(pattern)) {
+        throw new TypeError("pattern must be a JSON object");
+      }
+      const tokens = indexEntries(pattern);
+      let candidateIds = null;
+      for (const tok of tokens) {
+        const postings = ginIndex.get(tok) || new Set();
+        candidateIds = candidateIds === null
+          ? new Set(postings)
+          : new Set([...candidateIds].filter((id) => postings.has(id)));
+      }
+      const ids = candidateIds ? [...candidateIds] : docs.map((d) => d.id);
+      return ids.map((id) => docs[id - 1]).filter((d) => containsPattern(d.jsonb, pattern));
+    }
+  };
+}
+
+const store = createJsonbGinStore();
+store.insert('{ "tier": "free", "tier": "pro", "region": "us" }');
+store.insert('{ "tier": "free", "region": "eu" }');
+console.log("JSONB @> pro:", store.queryContainment({ tier: "pro" }));`}
+/>
+
+</TopicSection>
+
+<TopicSection id="m05-p3-sec-e" letter="E" title="Step-by-Step Walkthrough">
+
+Let us trace how `createJsonbGinStore` executes `insert` and `queryContainment`:
+
+1. **Parsing & Key Deduplication (`insert`)**: `JSON.parse` parses `'{ "tier": "free", "tier": "pro", "region": "us" }'`, collapsing duplicate `"tier"` keys to `"pro"` (just like PostgreSQL `jsonb`, whereas `json` keeps the raw string in `jsonText`).
+2. **GIN Posting Lists**: `indexEntries` extracts `region="us"` and `tier="pro"` and appends document `id = 1` to each token's `Set` in `ginIndex`.
+3. **Containment (`@>`) Intersection**: `queryContainment({ tier: "pro" })` intersects the GIN posting lists (`candidateIds = {1}`) and verifies `containsPattern`, returning doc `1` in `O(postings)` instead of scanning all rows.
+
+</TopicSection>
+
+<TopicSection id="m05-p3-sec-f" letter="F" title="Real-World Use Cases">
+
+#### Scenario 1: Double-Booking Prevention via `EXCLUDE USING gist`
+
+Hotel, meeting-room, and clinic schedulers enforce `EXCLUDE USING gist (room_id WITH =, during WITH &&)` directly in PostgreSQL—eliminating race conditions even when two requests book overlapping slots at the exact same millisecond.
+
+#### Scenario 2: Multi-Million-Row Backfill via `CREATE PROCEDURE`
+
+Instead of running one giant `UPDATE` holding locks for 40 minutes, a PL/pgSQL `PROCEDURE` iterates in 5,000-row keyset batches and calls `COMMIT` after each batch, keeping replication lag and WAL spikes bounded.
+
+</TopicSection>
+
+<TopicSection id="m05-p3-sec-g" letter="G" title="Common Mistakes">
+
+- **Forgetting `security_invoker = true` on Views:** Standard views run with the view creator's privileges by default, which can accidentally expose cross-tenant rows even when Row-Level Security (RLS) is enabled on the underlying table.
+- **Indexing `JSONB` with `B-tree` for `@>` containment:** B-tree supports `=` and `<`, not `@>` containment—you must use `USING GIN (col)` (or `jsonb_path_ops` for smaller/faster `@>` indexes).
+- **Putting business orchestration in Triggers:** Deeply chained `AFTER` triggers make write latency opaque and hard to debug; keep triggers limited to lightweight invariants/auditing (`updated_at`, audit log) rather than complex multi-table workflows.
+
+</TopicSection>
+
+<TopicSection id="m05-p3-sec-h" letter="H" title="Best Practices">
+
+- Default to **`JSONB`** over `JSON` unless exact key order/whitespace preservation is legally required.
+- Always create a `UNIQUE` index on materialized views so `REFRESH MATERIALIZED VIEW CONCURRENTLY` never blocks dashboard readers.
+- Harden any `SECURITY DEFINER` function with `SET search_path = pg_catalog, public` (or explicit schema) to prevent object-shadowing attacks.
+
+</TopicSection>
+
+<TopicSection id="m05-p3-sec-i" letter="I" title="Performance & Scalability">
+
+- **`jsonb_ops` vs. `jsonb_path_ops`:** Default `GIN (col)` indexes every key and value separately (supporting `?`, `?&`, `?|`, and `@>`). `GIN (col jsonb_path_ops)` hashes full paths, cutting GIN index size by ~30–50% and speeding up `@>` containment queries.
+- **Trigger Overhead on Bulk Loads:** Row-level triggers execute once per row; for bulk ETL (`COPY` / batch inserts), switch to `FOR EACH STATEMENT` transition tables (`REFERENCING NEW TABLE`) or disable/bypass non-critical audit triggers carefully.
+
+</TopicSection>
+
+<TopicSection id="m05-p3-sec-j" letter="J" title="Security Considerations">
+
+- **`SECURITY INVOKER` Views (PG 15+):** Enable `WITH (security_invoker = true)` on tenant-facing views so caller RLS policies apply automatically.
+- **`SECURITY DEFINER` `search_path` Hijacking:** A `SECURITY DEFINER` function without an explicit `SET search_path` can be tricked into executing a malicious user-schema function or operator; always pin `SET search_path` and revoke `EXECUTE` from `PUBLIC`.
+
+</TopicSection>
+
+<TopicSection id="m05-p3-sec-k" letter="K" title="Comparisons & Decision Tables">
+
+#### 1. Views vs. Materialized Views
+
+| Feature | Standard `VIEW` | `MATERIALIZED VIEW` |
+| --- | --- | --- |
+| **Storage** | Virtual (query definition only) | Persisted heap table on disk |
+| **Freshness** | Always 100% live | Snapshot as of last `REFRESH` |
+| **Indexable** | No (uses base table indexes) | Yes (own B-tree / GIN indexes) |
+| **Refresh Lock** | N/A | `ACCESS EXCLUSIVE` unless `CONCURRENTLY` + `UNIQUE` index |
+
+#### 2. Functions vs. Stored Procedures
+
+| Feature | `CREATE FUNCTION` | `CREATE PROCEDURE` (PG 11+) |
+| --- | --- | --- |
+| **Invocation** | `SELECT fn(...)` / `WHERE` | `CALL proc(...)` |
+| **Return Value** | Scalar, record, or `TABLE` | Optional `INOUT`/`OUT` only |
+| **Transaction Control** | Single caller tx (no `COMMIT`) | Can `COMMIT`/`ROLLBACK` in loops |
+| **Best Fit** | Pure helpers, triggers, computed columns | Batched backfills & maintenance jobs |
+
+#### 3. JSON vs. JSONB in PostgreSQL
+
+| Dimension | `json` | `jsonb` |
+| --- | --- | --- |
+| **Storage Format** | Raw UTF-8 text | Decomposed binary tree |
+| **Whitespace / Key Order / Dupes** | Preserved exactly | Stripped, sorted, deduplicated (last wins) |
+| **Read / Query Speed** | Slower (reparses text each read) | Fast binary field traversal |
+| **GIN Indexing & `@>`** | Not supported | Supported (`jsonb_ops` / `jsonb_path_ops`) |
+
+</TopicSection>
+
+<TopicSection id="m05-p3-sec-l" letter="L" title="Tips to Remember (Mnemonics & Mental Models)">
+
+- **"Default to `JSONB`; use `JSON` only when raw formatting matters."**
+- **"`REFRESH MATERIALIZED VIEW CONCURRENTLY` always needs a `UNIQUE` index."**
+- **"Functions compute inside one transaction; Procedures `CALL` and `COMMIT` across batches."**
+- **"Use `EXCLUDE USING gist` when uniqueness spans a range (`&&`), not just equality (`=`)."**
+
+</TopicSection>
+
+<TopicSection id="m05-p3-sec-mn" letter="M/N" title="Interview Questions & Detailed Answers">
+
+<InterviewSection lessonId="m05-p3" />
+
+</TopicSection>
+
+<TopicSection id="m05-p3-sec-o" letter="O" title="Practical Exercises">
+
+#### Exercise 1: Exclusion Constraint Overlap Checker (createExclusionConstraintTable)
+
+<ExerciseCard
+  title="Exercise 1: Exclusion Constraint Overlap Checker (createExclusionConstraintTable)"
+  prompt={
+    <p>
+      Implement <code>createExclusionConstraintTable()</code> modeling PostgreSQL's <code>EXCLUDE USING gist (room_id WITH =, during WITH &amp;&amp;)</code> for half-open intervals <code>[startMs, endMs)</code>, rejecting invalid ranges and throwing <code>ExclusionViolation</code> on overlapping bookings for the same room.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function createExclusionConstraintTable() {
+  const rows = [];
+
+  return {
+    insert({ roomId, startMs, endMs }) {
+      if (!Number.isInteger(roomId) || roomId < 1) throw new TypeError("roomId must be positive integer");
+      if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || startMs >= endMs) {
+        throw new TypeError("Invalid half-open interval: startMs must be < endMs");
+      }
+      const conflict = rows.find(
+        (r) => r.roomId === roomId && r.startMs < endMs && startMs < r.endMs
+      );
+      if (conflict) {
+        throw new Error("ExclusionViolation: overlapping booking for room " + roomId);
+      }
+      const created = { id: rows.length + 1, roomId, startMs, endMs };
+      rows.push(created);
+      return created;
+    },
+    list() {
+      return rows.map((r) => ({ ...r }));
+    }
+  };
+}
+
+const bookings = createExclusionConstraintTable();
+console.log("Book 1:", bookings.insert({ roomId: 101, startMs: 10, endMs: 20 }));
+console.log("Back-to-back OK:", bookings.insert({ roomId: 101, startMs: 20, endMs: 30 }));`}
+  />
+</ExerciseCard>
+
+#### Exercise 2: BEFORE/AFTER Trigger & Constraint Pipeline (runTriggerPipeline)
+
+<ExerciseCard
+  title="Exercise 2: BEFORE/AFTER Trigger & Constraint Pipeline (runTriggerPipeline)"
+  prompt={
+    <p>
+      Implement <code>runTriggerPipeline(&#123; row, beforeTrigger, validateConstraints, afterTrigger &#125;)</code> modeling PostgreSQL's execution order: <code>BEFORE</code> transforms/guards <code>NEW</code>, constraints validate the mutated row, and <code>AFTER</code> audit hooks run only after constraints pass.
+    </p>
+  }
+>
+  <CodeBlock
+    lang="javascript"
+    runnable
+    code={`function runTriggerPipeline({ row, beforeTrigger, validateConstraints, afterTrigger }) {
+  if (!row || typeof row !== "object") throw new TypeError("row must be an object");
+  if (typeof validateConstraints !== "function") throw new TypeError("validateConstraints must be a function");
+
+  let nextRow = { ...row };
+  if (typeof beforeTrigger === "function") {
+    const mutated = beforeTrigger({ ...nextRow });
+    if (mutated === null) return { committed: false, reason: "Suppressed by BEFORE trigger" };
+    nextRow = { ...mutated };
+  }
+
+  validateConstraints(nextRow);
+
+  const auditEvents = [];
+  if (typeof afterTrigger === "function") {
+    auditEvents.push(afterTrigger({ ...nextRow }));
+  }
+
+  return { committed: true, row: nextRow, auditEvents };
+}
+
+console.log(
+  "Pipeline:",
+  runTriggerPipeline({
+    row: { email: "  ADA@EXAMPLE.COM ", balanceCents: 500 },
+    beforeTrigger: (r) => ({ ...r, email: r.email.trim().toLowerCase(), updatedAt: "2026-11-27" }),
+    validateConstraints: (r) => {
+      if (r.balanceCents < 0) throw new Error("CheckViolation: balanceCents >= 0");
+    },
+    afterTrigger: (r) => ({ action: "AUDIT_INSERT", email: r.email })
+  })
+);`}
+  />
+</ExerciseCard>
+
+</TopicSection>
+
+<TopicSection id="m05-p3-sec-p" letter="P" title="Advanced Challenge">
+
+<Callout variant="warning" title="Architecture Challenge: Multi-Tenant Event & Booking Platform">
+  <p>
+    You are designing a PostgreSQL platform storing flexible webhook payloads, preventing room double-bookings, exposing tenant-isolated SQL views, refreshing analytics dashboards without blocking reads, and backfilling 50M rows.
+  </p>
+</Callout>
+
+<ExerciseCard
+  title="Challenge: Combining JSONB GIN, Exclusion Constraints, Security-Invoker Views & Concurrent MatViews"
+  prompt={
+    <p>
+      Design the full schema and operational pipeline combining <code>JSONB</code> + <code>jsonb_path_ops</code> GIN, <code>EXCLUDE USING gist</code>, <code>security_invoker = true</code> views, <code>REFRESH MATERIALIZED VIEW CONCURRENTLY</code>, and batched <code>CREATE PROCEDURE</code> backfills. Compare your solution with Interview Question 8 in Section M/N.
+    </p>
+  }
+/>
+
+</TopicSection>
+
+<TopicSection id="m05-p3-sec-q" letter="Q" title="Summary & Key Takeaways">
+
+- **Views (`security_invoker = true`)** abstract live queries safely under caller RLS, while **Materialized Views (`REFRESH CONCURRENTLY` + `UNIQUE` index)** cache heavy aggregations without read locks.
+- **Functions** run inside the caller's transaction (`IMMUTABLE` / `STABLE` / `VOLATILE`), whereas **Stored Procedures (`CALL`)** can `COMMIT` across batches.
+- **`BEFORE`/`AFTER` triggers** and **`EXCLUDE USING gist` / `NOT VALID` constraints** enforce domain invariants cleanly at the database layer.
+- **`JSONB` + `GIN (jsonb_path_ops)`** provides fast binary storage and `@>` containment indexing compared to text-preserving `JSON`.
+
+</TopicSection>

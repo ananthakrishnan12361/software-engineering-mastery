@@ -43,6 +43,8 @@ import M05P1Mdx from "./modules/05-postgresql/m05-p1.mdx";
 import m05p1Raw from "./modules/05-postgresql/m05-p1.mdx?raw";
 import M05P2Mdx from "./modules/05-postgresql/m05-p2.mdx";
 import m05p2Raw from "./modules/05-postgresql/m05-p2.mdx?raw";
+import M05P3Mdx from "./modules/05-postgresql/m05-p3.mdx";
+import m05p3Raw from "./modules/05-postgresql/m05-p3.mdx?raw";
 import { m01p1Questions } from "./interviews/m01-p1.questions";
 import { m01p2Questions } from "./interviews/m01-p2.questions";
 import { m01p3Questions } from "./interviews/m01-p3.questions";
@@ -61,6 +63,7 @@ import { m04p2Questions } from "./interviews/m04-p2.questions";
 import { m04p3Questions } from "./interviews/m04-p3.questions";
 import { m05p1Questions } from "./interviews/m05-p1.questions";
 import { m05p2Questions } from "./interviews/m05-p2.questions";
+import { m05p3Questions } from "./interviews/m05-p3.questions";
 import { SYLLABUS_MODULES } from "./syllabus";
 
 export interface HandbookCatalog {
@@ -201,11 +204,11 @@ const modules: ModuleRecord[] = [
     number: 5,
     title: "PostgreSQL",
     category: "databases",
-    partSummary: "Parts 1–2 of 4",
+    partSummary: "Parts 1–3 of 4",
     scopeSummary:
-      "Scope (Parts 1–2): PostgreSQL Architecture, 8 KB Pages, MVCC, WAL, SQL, DML (INSERT/ON CONFLICT/UPDATE/DELETE), JOINs, Subqueries, CTEs, Recursive CTEs & Window Functions",
-    lead: "Master PostgreSQL process and page internals, MVCC, WAL, SQL joins, subqueries, recursive CTEs, and window analytics.",
-    lessonIds: ["m05-p1", "m05-p2"]
+      "Scope (Parts 1–3): PostgreSQL Architecture, 8 KB Pages, MVCC, WAL, SQL Mastery, JOINs, CTEs, Views, Materialized Views, Functions, Procedures, Triggers, Constraints & JSON/JSONB",
+    lead: "Master PostgreSQL internals, SQL joins/CTEs/windows, security-invoker views, concurrent materialized views, triggers, exclusion constraints, and JSONB + GIN.",
+    lessonIds: ["m05-p1", "m05-p2", "m05-p3"]
   }
 ];
 
@@ -1256,8 +1259,65 @@ const lessons: LessonRecord[] = [
       }
     ],
     prevLessonId: "m05-p1",
-    nextLessonId: null,
+    nextLessonId: "m05-p3",
     Content: M05P2Mdx
+  },
+  {
+    id: "m05-p3",
+    moduleId: "module-5",
+    moduleNumber: 5,
+    moduleTitle: "PostgreSQL",
+    partLabel: "Lesson M05-P3",
+    title: "Part 3: Views, Materialized Views, Functions, Procedures, Triggers, Constraints & JSON/JSONB",
+    category: "databases",
+    duration: "85 min (35m theory · 30m practice · 20m review)",
+    objectives: [
+      "Differentiate live security_invoker Views from persisted Materialized Views with REFRESH CONCURRENTLY.",
+      "Choose between PL/pgSQL Functions (IMMUTABLE/STABLE/VOLATILE) and Stored Procedures (CALL with batched COMMIT).",
+      "Design BEFORE/AFTER triggers and storage-level constraints (EXCLUDE USING gist, DEFERRABLE, NOT VALID).",
+      "Model semi-structured documents with JSONB and accelerate @> containment queries via GIN (jsonb_path_ops)."
+    ],
+    sections: [
+      { id: "m05-p3-objectives", title: "Learning Objectives" },
+      { id: "m05-p3-sec-a", letter: "A", title: "Topic Introduction" },
+      { id: "m05-p3-sec-b", letter: "B", title: "Fundamentals (Simple Mental Models)" },
+      { id: "m05-p3-sec-c", letter: "C", title: "Internal Working & Architecture" },
+      { id: "m05-p3-sec-d", letter: "D", title: "Practical Examples (Interactive)" },
+      { id: "m05-p3-sec-e", letter: "E", title: "Step-by-Step Walkthrough" },
+      { id: "m05-p3-sec-f", letter: "F", title: "Real-World Use Cases" },
+      { id: "m05-p3-sec-g", letter: "G", title: "Common Mistakes" },
+      { id: "m05-p3-sec-h", letter: "H", title: "Best Practices" },
+      { id: "m05-p3-sec-i", letter: "I", title: "Performance & Scalability" },
+      { id: "m05-p3-sec-j", letter: "J", title: "Security Considerations" },
+      { id: "m05-p3-sec-k", letter: "K", title: "Comparisons & Decision Tables" },
+      { id: "m05-p3-sec-l", letter: "L", title: "Tips to Remember (Mnemonics & Mental Models)" },
+      { id: "m05-p3-sec-mn", letter: "M/N", title: "Interview Questions & Detailed Answers" },
+      { id: "m05-p3-sec-o", letter: "O", title: "Practical Exercises" },
+      { id: "m05-p3-sec-p", letter: "P", title: "Advanced Challenge" },
+      { id: "m05-p3-sec-q", letter: "Q", title: "Summary & Key Takeaways" },
+      { id: "m05-p3-mastery", title: "Mastery Assessment" }
+    ],
+    masteryItems: [
+      {
+        id: "m05-p3-m1",
+        label: "I can configure security_invoker views and concurrent materialized views with UNIQUE indexes."
+      },
+      {
+        id: "m05-p3-m2",
+        label: "I can choose between Functions and Stored Procedures and design BEFORE/AFTER triggers."
+      },
+      {
+        id: "m05-p3-m3",
+        label: "I can enforce EXCLUDE USING gist constraints and index JSONB with GIN (jsonb_path_ops)."
+      },
+      {
+        id: "m05-p3-m4",
+        label: "I completed the M05-P3 exercises and can answer the interview questions without notes."
+      }
+    ],
+    prevLessonId: "m05-p2",
+    nextLessonId: null,
+    Content: M05P3Mdx
   }
 ];
 
@@ -1279,7 +1339,8 @@ const questionsByLesson: Record<string, InterviewQuestion[]> = {
   "m04-p2": m04p2Questions,
   "m04-p3": m04p3Questions,
   "m05-p1": m05p1Questions,
-  "m05-p2": m05p2Questions
+  "m05-p2": m05p2Questions,
+  "m05-p3": m05p3Questions
 };
 
 const allQuestions: InterviewQuestion[] = [
@@ -1300,7 +1361,8 @@ const allQuestions: InterviewQuestion[] = [
   ...m04p2Questions,
   ...m04p3Questions,
   ...m05p1Questions,
-  ...m05p2Questions
+  ...m05p2Questions,
+  ...m05p3Questions
 ];
 
 function mergeGlossaryEntries(...batches: GlossaryEntry[][]): GlossaryEntry[] {
@@ -1334,7 +1396,8 @@ const glossaryEntries: GlossaryEntry[] = mergeGlossaryEntries(
   extractGlossaryFromMdx(m04p2Raw, "m04-p2"),
   extractGlossaryFromMdx(m04p3Raw, "m04-p3"),
   extractGlossaryFromMdx(m05p1Raw, "m05-p1"),
-  extractGlossaryFromMdx(m05p2Raw, "m05-p2")
+  extractGlossaryFromMdx(m05p2Raw, "m05-p2"),
+  extractGlossaryFromMdx(m05p3Raw, "m05-p3")
 );
 
 function buildSearchRecords(): SearchRecord[] {
@@ -1371,6 +1434,7 @@ function buildSearchRecords(): SearchRecord[] {
   records.push(...extractSearchRecordsFromMdx(m04p3Raw, "m04-p3", lessons[15].title, 4));
   records.push(...extractSearchRecordsFromMdx(m05p1Raw, "m05-p1", lessons[16].title, 5));
   records.push(...extractSearchRecordsFromMdx(m05p2Raw, "m05-p2", lessons[17].title, 5));
+  records.push(...extractSearchRecordsFromMdx(m05p3Raw, "m05-p3", lessons[18].title, 5));
 
   for (const mod of SYLLABUS_MODULES) {
     for (const topic of mod.topics) {
